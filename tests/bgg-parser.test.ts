@@ -6,7 +6,7 @@ const thingXml = `<?xml version="1.0" encoding="utf-8"?>
   <item type="boardgame" id="174430">
     <name type="primary" value="Gloomhaven"/>
     <yearpublished value="2017"/>
-    <description>Vanquish monsters with strategic cardplay.</description>
+    <description>Vanquish monsters with &lt;em&gt;strategic&lt;/em&gt; cardplay.</description>
     <minplayers value="1"/>
     <maxplayers value="4"/>
     <playingtime value="120"/>
@@ -61,6 +61,7 @@ describe("BGG XML parser", () => {
       maxPlayers: 4,
       playingTime: 120,
       weight: 3.89,
+      description: "Vanquish monsters with <em>strategic</em> cardplay.",
       categories: ["Adventure", "Fantasy"],
       mechanics: ["Deck, Bag, and Pool Building"],
     });

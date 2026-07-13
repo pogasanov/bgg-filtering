@@ -105,7 +105,7 @@ export function parseThingXml(xml: string): NormalizedGame[] {
       rank: numberOrNull(boardGameRank?.value),
       title: String(primaryName?.value ?? "Untitled"),
       year: numberOrNull(item.yearpublished?.value),
-      description: stripTags(stringOrEmpty(item.description)),
+      description: stringOrEmpty(item.description),
       geekRating: numberOrNull(ratings.bayesaverage?.value),
       averageRating: numberOrNull(ratings.average?.value),
       numVoters: numberOrNull(ratings.usersrated?.value),

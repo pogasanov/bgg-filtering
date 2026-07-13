@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { PoweredByBgg } from "@/components/powered-by-bgg";
 
 type BggAppProps = {
   initialGames: NormalizedGame[];
@@ -102,6 +103,13 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
           <h1 className="mt-2 text-3xl font-semibold tracking-normal sm:text-4xl">Player-count game finder</h1>
           <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
             Top BGG games cached in SQLite, with selectable recommendation cells by player count.
+          </p>
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+            Data source:{" "}
+            <a href="https://boardgamegeek.com" target="_blank" rel="noreferrer" className="font-medium underline">
+              BoardGameGeek
+            </a>
+            .
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -252,7 +260,6 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
                       </a>
                       {game.year ? <span className="text-sm text-[var(--muted-foreground)]">({game.year})</span> : null}
                     </div>
-                    <p className="mt-2 line-clamp-2 text-sm text-[var(--muted-foreground)]">{game.description}</p>
                     <div className="mt-3 flex flex-wrap gap-1">
                       {[...game.categories, ...game.mechanics].slice(0, 8).map((tag) => (
                         <Badge key={tag} className="bg-transparent">
@@ -279,6 +286,19 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
           </div>
         </section>
       </section>
+      <footer className="mt-4 flex flex-col gap-3 border-t pt-5 text-sm text-[var(--muted-foreground)] sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p>
+            Board game data is sourced from{" "}
+            <a href="https://boardgamegeek.com" target="_blank" rel="noreferrer" className="font-medium underline">
+              BoardGameGeek
+            </a>
+            . This app is not affiliated with or endorsed by BoardGameGeek.
+          </p>
+          <p className="mt-1">Non-commercial local browsing only. API data is not used for AI or LLM training.</p>
+        </div>
+        <PoweredByBgg />
+      </footer>
     </main>
   );
 }
