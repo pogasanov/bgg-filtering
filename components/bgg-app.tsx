@@ -26,6 +26,7 @@ import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PoweredByBgg } from "@/components/powered-by-bgg";
 import { cn } from "@/lib/utils";
+import { buildYearScale, closestYear, positionForYear, yearAtPosition } from "@/lib/year-scale";
 
 type BggAppProps = {
   initialGames: NormalizedGame[];
@@ -69,33 +70,22 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
     () => [...new Set(games.flatMap((game) => game.languages))].sort(),
     [games],
   );
-  const yearLimits = useMemo(() => {
-    const knownYears = games
-      .map((game) => game.year)
-      .filter((year): year is number => year !== null);
-
-    if (knownYears.length === 0) return null;
-    return {
-      oldest: Math.min(...knownYears),
-      newest: Math.max(...knownYears),
-    };
-  }, [games]);
+  const yearScale = useMemo(
+    () => buildYearScale(games.map((game) => game.year)),
+    [games],
+  );
 
   useEffect(() => {
-    setMinYear((current) => {
-      if (current === null || yearLimits === null) return null;
-      return Math.min(Math.max(current, yearLimits.oldest), yearLimits.newest);
-    });
-    setMaxYear((current) => {
-      if (current === null || yearLimits === null) return null;
-      return Math.min(Math.max(current, yearLimits.oldest), yearLimits.newest);
-    });
-  }, [yearLimits]);
+    setMinYear((current) => (current === null ? null : closestYear(yearScale, current)));
+    setMaxYear((current) => (current === null ? null : closestYear(yearScale, current)));
+  }, [yearScale]);
 
-  const sliderMin = yearLimits ? yearLimits.oldest - 1 : 0;
-  const sliderMax = yearLimits ? yearLimits.newest + 1 : 1;
-  const minSliderValue = minYear ?? sliderMin;
-  const maxSliderValue = maxYear ?? sliderMax;
+  const sliderMin = 0;
+  const sliderMax = yearScale.length + 1;
+  const minSliderValue =
+    minYear === null ? sliderMin : (positionForYear(yearScale, minYear) ?? sliderMin);
+  const maxSliderValue =
+    maxYear === null ? sliderMax : (positionForYear(yearScale, maxYear) ?? sliderMax);
   const yearRangeLabel = (minYear ?? "No min") + " \u2013 " + (maxYear ?? "No max");
   const filteredGames = useMemo(
     () => filterGames(games, { search, language, tags: selectedTags, matrix, sort, minYear, maxYear }),
@@ -117,8 +107,8 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
   }
 
   function updateYearRange([minimum, maximum]: number[]) {
-    setMinYear(minimum === sliderMin ? null : minimum);
-    setMaxYear(maximum === sliderMax ? null : maximum);
+    setMinYear(minimum === sliderMin ? null : yearAtPosition(yearScale, minimum));
+    setMaxYear(maximum === sliderMax ? null : yearAtPosition(yearScale, maximum));
   }
 
   async function refreshLocalState() {
@@ -236,7 +226,7 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
                 </Select>
               </div>
 
-              <fieldset disabled={!yearLimits} className="grid gap-3">
+              <fieldset disabled={yearScale.length === 0} className="grid gap-3">
                 <legend className="sr-only">Year</legend>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm font-medium">Year</span>
@@ -250,7 +240,7 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
                   minStepsBetweenThumbs={1}
                   value={[minSliderValue, maxSliderValue]}
                   onValueChange={updateYearRange}
-                  disabled={!yearLimits}
+                  disabled={yearScale.length === 0}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground" aria-hidden="true">
                   <span>No min</span>

@@ -56,11 +56,30 @@ describe("shadcn control composition", () => {
 
     expect(slotCount(html, "slider")).toBe(1);
     expect(slotCount(html, "slider-thumb")).toBe(2);
-    expect(html).toContain('aria-valuemin="1994"');
-    expect(html).toContain('aria-valuemax="2021"');
+    expect(html).toContain('aria-valuemin="0"');
+    expect(html).toContain('aria-valuemax="3"');
+    expect(html).not.toContain('aria-valuemin="1994"');
     expect(html).toContain(">No min<");
     expect(html).toContain(">No max<");
     expect(html).not.toContain('class="year-range-input"');
+  });
+
+  test("gives an extreme year outlier only one ordinal step", () => {
+    const html = renderToStaticMarkup(
+      createElement(BggApp, {
+        initialGames: [
+          makeGame(1, -2200),
+          makeGame(2, 2020),
+          makeGame(3, 2021),
+          makeGame(4, 2022),
+        ],
+        initialStatus: { ...status, gameCount: 4 },
+      }),
+    );
+
+    expect(html).toContain('aria-valuemin="0"');
+    expect(html).toContain('aria-valuemax="5"');
+    expect(html).not.toContain('aria-valuemin="-2201"');
   });
 
   test("disables the year slider when no known years exist", () => {
