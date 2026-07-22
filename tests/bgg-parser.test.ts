@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { parseThingXml, parseTopRankRows } from "@/lib/bgg/parser";
+import { parseThingXml } from "@/lib/bgg/parser";
 
 const thingXml = `<?xml version="1.0" encoding="utf-8"?>
 <items>
@@ -24,6 +24,23 @@ const thingXml = `<?xml version="1.0" encoding="utf-8"?>
     <link type="boardgamecategory" id="1022" value="Adventure"/>
     <link type="boardgamecategory" id="1010" value="Fantasy"/>
     <link type="boardgamemechanic" id="2664" value="Deck, Bag, and Pool Building"/>
+    <versions>
+      <item type="boardgameversion" id="1001">
+        <link type="boardgamelanguage" id="2184" value="English"/>
+        <link type="boardgamelanguage" id="2187" value="French"/>
+      </item>
+      <item type="boardgameversion" id="1002">
+        <link type="boardgamelanguage" id="2187" value="French"/>
+        <link type="boardgamelanguage" id="2186" value="German"/>
+        <link type="boardgamelanguage" id="9999" value=""/>
+      </item>
+      <item type="boardgameversion" id="1003">
+        <link type="boardgamelanguage" id="9998"/>
+        <link id="9997" value="Japanese"/>
+      </item>
+      <item type="boardgameversion" id="1004">
+      </item>
+    </versions>
     <poll name="suggested_numplayers" title="User Suggested Number of Players">
       <results numplayers="1">
         <result value="Best" numvotes="12"/>
@@ -64,6 +81,7 @@ describe("BGG XML parser", () => {
       description: "Vanquish monsters with <em>strategic</em> cardplay.",
       categories: ["Adventure", "Fantasy"],
       mechanics: ["Deck, Bag, and Pool Building"],
+      languages: ["English", "French", "German"],
     });
     expect(parsed[0].playerRecommendations["1"]).toEqual({
       best: 12,
@@ -75,27 +93,15 @@ describe("BGG XML parser", () => {
     expect(parsed[0].playerRecommendations["6+"].verdict).toBe("not-recommended");
   });
 
-  test("parses BGG browse rows into ranked list items", () => {
-    const html = `
-      <tr id="row_">
-        <td class="collection_rank">24</td>
-        <td class="collection_thumbnail"><a href="/boardgame/68448/7-wonders-duel"></a></td>
-        <td class="collection_objectname"><a href="/boardgame/68448/7-wonders-duel">7 Wonders Duel</a><span class="smallerfont dull">(2015)</span></td>
-        <td class="collection_bggrating">7.951</td>
-        <td class="collection_bggrating">8.08</td>
-        <td class="collection_bggrating">109427</td>
-      </tr>`;
+  test("returns no languages when version metadata is absent", () => {
+    const parsed = parseThingXml(`
+      <items>
+        <item type="boardgame" id="1">
+          <name type="primary" value="No Versions"/>
+        </item>
+      </items>
+    `);
 
-    expect(parseTopRankRows(html)).toEqual([
-      {
-        id: 68448,
-        rank: 24,
-        title: "7 Wonders Duel",
-        year: 2015,
-        geekRating: 7.951,
-        averageRating: 8.08,
-        numVoters: 109427,
-      },
-    ]);
+    expect(parsed[0].languages).toEqual([]);
   });
 });

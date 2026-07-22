@@ -5,7 +5,6 @@ import {
   type PlayerRecommendation,
   type PlayerRecommendations,
   playerCounts,
-  type TopRankItem,
 } from "./types";
 
 const xmlParser = new XMLParser({
@@ -40,19 +39,6 @@ function stringOrEmpty(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-function decodeHtml(value: string): string {
-  return value
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
-}
-
-function stripTags(value: string): string {
-  return decodeHtml(value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim());
-}
 
 function normalizePlayerCount(value: unknown): PlayerCount | null {
   const text = String(value ?? "").trim();
@@ -87,6 +73,18 @@ export function parseThingXml(xml: string): NormalizedGame[] {
     const links = asArray(item.link);
     const categories = links.filter((link: any) => link.type === "boardgamecategory").map((link: any) => String(link.value)).sort();
     const mechanics = links.filter((link: any) => link.type === "boardgamemechanic").map((link: any) => String(link.value)).sort();
+    const versions = asArray(item.versions?.item);
+    const languages = [
+      ...new Set(
+        versions.flatMap((version: any) =>
+          asArray(version.link)
+            .filter(
+              (link: any) => link.type === "boardgamelanguage" && link.value !== undefined && String(link.value).trim() !== "",
+            )
+            .map((link: any) => String(link.value)),
+        ),
+      ),
+    ].sort();
     const names = asArray(item.name);
     const primaryName = names.find((name: any) => name.type === "primary") ?? names[0];
     const ratings = item.statistics?.ratings ?? {};
@@ -115,37 +113,9 @@ export function parseThingXml(xml: string): NormalizedGame[] {
       weight: numberOrNull(ratings.averageweight?.value),
       categories,
       mechanics,
+      languages,
       playerRecommendations,
       bggUrl: `https://boardgamegeek.com/boardgame/${item.id}`,
     };
-  });
-}
-
-export function parseTopRankRows(html: string): TopRankItem[] {
-  const rows = html.match(/<tr[\s\S]*?<\/tr>/gi) ?? [];
-
-  return rows.flatMap((row) => {
-    const linkMatch = [...row.matchAll(/href="\/boardgame\/(\d+)\/[^"]*"[^>]*>([\s\S]*?)<\/a>/gi)]
-      .map((match) => ({ id: Number(match[1]), title: stripTags(match[2]) }))
-      .find((match) => match.id && match.title);
-    if (!linkMatch) return [];
-    const { id, title } = linkMatch;
-    if (!id || !title) return [];
-
-    const rankMatch = row.match(/collection_rank[\s\S]*?(\d+)\s*<\/td>/i);
-    const yearMatch = row.match(/\((\d{4})\)/);
-    const numericCells = [...row.matchAll(/collection_bggrating[^>]*>\s*([0-9.]+|N\/A)\s*<\/td>/gi)].map((match) => match[1]);
-
-    return [
-      {
-        id,
-        rank: Number(rankMatch?.[1] ?? 0),
-        title,
-        year: yearMatch ? Number(yearMatch[1]) : null,
-        geekRating: numberOrNull(numericCells[0]),
-        averageRating: numberOrNull(numericCells[1]),
-        numVoters: numberOrNull(numericCells[2]),
-      },
-    ];
   });
 }

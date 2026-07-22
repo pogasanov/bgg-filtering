@@ -1,5 +1,5 @@
-import { parseThingXml, parseTopRankRows } from "./parser";
-import type { NormalizedGame, TopRankItem } from "./types";
+import { parseThingXml } from "./parser";
+import type { NormalizedGame } from "./types";
 
 const BGG_BASE = "https://boardgamegeek.com";
 const DETAILS_BATCH_SIZE = 20;
@@ -26,28 +26,6 @@ async function fetchText(url: string, init?: RequestInit): Promise<string> {
   return response.text();
 }
 
-export async function fetchTopRankItems(limit = 500): Promise<{ items: TopRankItem[]; rawPayload: string }> {
-  const pages = Math.ceil(limit / 100);
-  const allItems: TopRankItem[] = [];
-  const rawPages: string[] = [];
-
-  for (let page = 1; page <= pages; page += 1) {
-    const html = await fetchText(`${BGG_BASE}/browse/boardgame/page/${page}`);
-    rawPages.push(html);
-    allItems.push(...parseTopRankRows(html));
-    if (page < pages) await sleep(REQUEST_DELAY_MS);
-  }
-
-  return {
-    items: allItems.slice(0, limit),
-    rawPayload: JSON.stringify(
-      rawPages.map((html, index) => ({ page: index + 1, html })),
-      null,
-      2,
-    ),
-  };
-}
-
 export async function fetchGameDetails(
   ids: number[],
   token: string,
@@ -57,7 +35,7 @@ export async function fetchGameDetails(
 
   for (let index = 0; index < ids.length; index += DETAILS_BATCH_SIZE) {
     const batchIds = ids.slice(index, index + DETAILS_BATCH_SIZE);
-    const xml = await fetchText(`${BGG_BASE}/xmlapi2/thing?id=${batchIds.join(",")}&stats=1`, {
+    const xml = await fetchText(`${BGG_BASE}/xmlapi2/thing?id=${batchIds.join(",")}&stats=1&versions=1`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

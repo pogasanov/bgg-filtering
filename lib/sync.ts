@@ -1,4 +1,5 @@
-import { fetchGameDetails, fetchTopRankItems } from "@/lib/bgg/client";
+import { fetchGameDetails } from "@/lib/bgg/client";
+import { loadTopRankItems } from "@/lib/bgg/ranks";
 import { createCacheStore } from "@/lib/cache/store";
 
 export async function syncBggCache(limit = 500) {
@@ -15,8 +16,8 @@ export async function syncBggCache(limit = 500) {
   }
 
   try {
-    const ranks = await fetchTopRankItems(limit);
-    store.insertRankSnapshot("boardgamegeek:browse:boardgame", ranks.rawPayload);
+    const ranks = await loadTopRankItems(limit);
+    store.insertRankSnapshot("boardgamegeek:data_dumps:bg_ranks", ranks.rawPayload);
     const details = await fetchGameDetails(
       ranks.items.map((item) => item.id),
       token,

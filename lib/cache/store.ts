@@ -105,6 +105,13 @@ export class CacheStore {
         FOREIGN KEY (game_id) REFERENCES games(bgg_id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS game_languages (
+        game_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        PRIMARY KEY (game_id, name),
+        FOREIGN KEY (game_id) REFERENCES games(bgg_id) ON DELETE CASCADE
+      );
+
       CREATE TABLE IF NOT EXISTS player_recommendations (
         game_id INTEGER NOT NULL,
         player_count TEXT NOT NULL,
@@ -118,6 +125,7 @@ export class CacheStore {
 
       CREATE INDEX IF NOT EXISTS idx_games_rank ON games(rank);
       CREATE INDEX IF NOT EXISTS idx_game_tags_name ON game_tags(name);
+      CREATE INDEX IF NOT EXISTS idx_game_languages_name ON game_languages(name);
       CREATE INDEX IF NOT EXISTS idx_player_recommendations_lookup
         ON player_recommendations(player_count, verdict);
     `);
@@ -192,6 +200,8 @@ export class CacheStore {
       `);
       const deleteTagsStmt = this.db.prepare("DELETE FROM game_tags WHERE game_id = ?");
       const tagStmt = this.db.prepare("INSERT OR IGNORE INTO game_tags (game_id, kind, name) VALUES (?, ?, ?)");
+      const deleteLanguagesStmt = this.db.prepare("DELETE FROM game_languages WHERE game_id = ?");
+      const languageStmt = this.db.prepare("INSERT OR IGNORE INTO game_languages (game_id, name) VALUES (?, ?)");
       const deleteRecommendationsStmt = this.db.prepare("DELETE FROM player_recommendations WHERE game_id = ?");
       const recommendationStmt = this.db.prepare(`
         INSERT INTO player_recommendations (
@@ -204,6 +214,8 @@ export class CacheStore {
         deleteTagsStmt.run(game.id);
         for (const category of game.categories) tagStmt.run(game.id, "category", category);
         for (const mechanic of game.mechanics) tagStmt.run(game.id, "mechanic", mechanic);
+        deleteLanguagesStmt.run(game.id);
+        for (const language of game.languages) languageStmt.run(game.id, language);
         deleteRecommendationsStmt.run(game.id);
         for (const count of playerCounts) {
           const recommendation = game.playerRecommendations[count];
@@ -232,12 +244,15 @@ export class CacheStore {
         FROM games
         ORDER BY COALESCE(rank, 999999), title`,
       )
-      .all() as Array<Omit<NormalizedGame, "categories" | "mechanics" | "playerRecommendations">>;
+      .all() as Array<Omit<NormalizedGame, "categories" | "mechanics" | "languages" | "playerRecommendations">>;
     const tagRows = this.db.prepare("SELECT game_id AS gameId, kind, name FROM game_tags ORDER BY name").all() as Array<{
       gameId: number;
       kind: "category" | "mechanic";
       name: string;
     }>;
+    const languageRows = this.db
+      .prepare("SELECT game_id AS gameId, name FROM game_languages ORDER BY name")
+      .all() as Array<{ gameId: number; name: string }>;
     const recommendationRows = this.db
       .prepare(
         `SELECT game_id AS gameId, player_count AS playerCount, best_votes AS best,
@@ -261,6 +276,13 @@ export class CacheStore {
       tagsByGame.set(row.gameId, tags);
     }
 
+    const languagesByGame = new Map<number, string[]>();
+    for (const row of languageRows) {
+      const languages = languagesByGame.get(row.gameId) ?? [];
+      languages.push(row.name);
+      languagesByGame.set(row.gameId, languages);
+    }
+
     const recommendationsByGame = new Map<number, ReturnType<typeof emptyPlayerRecommendations>>();
     for (const row of recommendationRows) {
       const recommendations = recommendationsByGame.get(row.gameId) ?? emptyPlayerRecommendations();
@@ -277,6 +299,7 @@ export class CacheStore {
       ...game,
       categories: tagsByGame.get(game.id)?.categories ?? [],
       mechanics: tagsByGame.get(game.id)?.mechanics ?? [],
+      languages: languagesByGame.get(game.id) ?? [],
       playerRecommendations: recommendationsByGame.get(game.id) ?? emptyPlayerRecommendations(),
     }));
   }

@@ -1,8 +1,10 @@
 export const playerCounts = ["1", "2", "3", "4", "5", "6", "6+"] as const;
 export const verdicts = ["best", "recommended", "not-recommended"] as const;
+export const matrixVerdicts = [...verdicts, "not-playable"] as const;
 
 export type PlayerCount = (typeof playerCounts)[number];
 export type RecommendationVerdict = (typeof verdicts)[number] | "unknown";
+export type MatrixVerdict = (typeof matrixVerdicts)[number];
 
 export type PlayerRecommendation = {
   best: number;
@@ -38,13 +40,14 @@ export type NormalizedGame = {
   weight: number | null;
   categories: string[];
   mechanics: string[];
+  languages: string[];
   playerRecommendations: PlayerRecommendations;
   bggUrl: string;
 };
 
 export type MatrixSelection = {
   playerCount: PlayerCount;
-  verdict: Exclude<RecommendationVerdict, "unknown">;
+  verdict: MatrixVerdict;
 };
 
 export type SortKey = "rank" | "geekRating" | "averageRating" | "year";
