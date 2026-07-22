@@ -1,34 +1,42 @@
 "use client";
 
 import { RefreshCw, Search, X } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import type { CacheStatus } from "@/lib/cache/store";
-import { filterGames } from "@/lib/filtering";
+import { filterGames, gameTags } from "@/lib/filtering";
 import {
   playerCounts,
   type MatrixSelection,
   type NormalizedGame,
-  type RecommendationVerdict,
+  type MatrixVerdict,
   type SortKey,
-  verdicts,
+  matrixVerdicts,
 } from "@/lib/bgg/types";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PoweredByBgg } from "@/components/powered-by-bgg";
+import { cn } from "@/lib/utils";
 
 type BggAppProps = {
   initialGames: NormalizedGame[];
   initialStatus: CacheStatus;
 };
 
-const verdictLabels: Record<Exclude<RecommendationVerdict, "unknown">, string> = {
+const verdictLabels: Record<MatrixVerdict, string> = {
   best: "BEST",
   recommended: "RECOMMENDED",
   "not-recommended": "NOT RECOMMENDED",
+  "not-playable": "NOT PLAYABLE",
 };
 
 function matrixKey(selection: MatrixSelection) {
@@ -44,19 +52,54 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
   const [games, setGames] = useState(initialGames);
   const [status, setStatus] = useState(initialStatus);
   const [search, setSearch] = useState("");
+  const [language, setLanguage] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [matrix, setMatrix] = useState<MatrixSelection[]>([]);
   const [sort, setSort] = useState<SortKey>("rank");
+  const [minYear, setMinYear] = useState<number | null>(null);
+  const [maxYear, setMaxYear] = useState<number | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const allTags = useMemo(
-    () => [...new Set(games.flatMap((game) => [...game.categories, ...game.mechanics]))].sort(),
+    () => [...new Set(games.flatMap((game) => gameTags(game)))].sort(),
     [games],
   );
+  const allLanguages = useMemo(
+    () => [...new Set(games.flatMap((game) => game.languages))].sort(),
+    [games],
+  );
+  const yearLimits = useMemo(() => {
+    const knownYears = games
+      .map((game) => game.year)
+      .filter((year): year is number => year !== null);
+
+    if (knownYears.length === 0) return null;
+    return {
+      oldest: Math.min(...knownYears),
+      newest: Math.max(...knownYears),
+    };
+  }, [games]);
+
+  useEffect(() => {
+    setMinYear((current) => {
+      if (current === null || yearLimits === null) return null;
+      return Math.min(Math.max(current, yearLimits.oldest), yearLimits.newest);
+    });
+    setMaxYear((current) => {
+      if (current === null || yearLimits === null) return null;
+      return Math.min(Math.max(current, yearLimits.oldest), yearLimits.newest);
+    });
+  }, [yearLimits]);
+
+  const sliderMin = yearLimits ? yearLimits.oldest - 1 : 0;
+  const sliderMax = yearLimits ? yearLimits.newest + 1 : 1;
+  const minSliderValue = minYear ?? sliderMin;
+  const maxSliderValue = maxYear ?? sliderMax;
+  const yearRangeLabel = (minYear ?? "No min") + " \u2013 " + (maxYear ?? "No max");
   const filteredGames = useMemo(
-    () => filterGames(games, { search, tags: selectedTags, matrix, sort }),
-    [games, search, selectedTags, matrix, sort],
+    () => filterGames(games, { search, language, tags: selectedTags, matrix, sort, minYear, maxYear }),
+    [games, search, language, selectedTags, matrix, sort, minYear, maxYear],
   );
   const selectedMatrixKeys = new Set(matrix.map(matrixKey));
 
@@ -71,6 +114,11 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
 
   function toggleTag(tag: string) {
     setSelectedTags((current) => (current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag]));
+  }
+
+  function updateYearRange([minimum, maximum]: number[]) {
+    setMinYear(minimum === sliderMin ? null : minimum);
+    setMaxYear(maximum === sliderMax ? null : maximum);
   }
 
   async function refreshLocalState() {
@@ -97,14 +145,14 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-4 border-b pb-5 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-[var(--accent)]">BoardGameGeek local cache</p>
+          <p className="text-sm font-medium uppercase tracking-wide text-primary">BoardGameGeek local cache</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-normal sm:text-4xl">Player-count game finder</h1>
-          <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
+          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
             Top BGG games cached in SQLite, with selectable recommendation cells by player count.
           </p>
-          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+          <p className="mt-2 text-sm text-muted-foreground">
             Data source:{" "}
             <a href="https://boardgamegeek.com" target="_blank" rel="noreferrer" className="font-medium underline">
               BoardGameGeek
@@ -121,16 +169,15 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
         </div>
       </header>
 
+      <Separator />
+
       {games.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>SQLite cache is empty</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-[var(--muted-foreground)]">
-            <p>Add `BGG_TOKEN` to `.env.local`, then use Sync BGG to populate `data/bgg-cache.sqlite`.</p>
-            {syncError ? <p className="text-[var(--destructive)]">{syncError}</p> : null}
-          </CardContent>
-        </Card>
+        <Alert>
+          <AlertTitle>SQLite cache is empty</AlertTitle>
+          <AlertDescription>
+            Add BGG_TOKEN to .env.local and place boardgames_ranks.csv in the project root, then use Sync BGG.
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       <section className="grid gap-4 lg:grid-cols-[20rem_1fr]">
@@ -140,42 +187,103 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
               <CardTitle>Filters</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <label className="block text-sm font-medium">
-                Search
-                <span className="relative mt-1 block">
-                  <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[var(--muted-foreground)]" />
-                  <Input className="pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Game title" />
-                </span>
-              </label>
+              <div className="grid gap-2">
+                <Label htmlFor="game-search">Search</Label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="game-search"
+                    className="pl-9"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Game title"
+                  />
+                </div>
+              </div>
 
-              <label className="block text-sm font-medium">
-                Sort
-                <Select className="mt-1 w-full" value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
-                  <option value="rank">BGG rank</option>
-                  <option value="geekRating">Geek Rating</option>
-                  <option value="averageRating">Average rating</option>
-                  <option value="year">Year</option>
+              <div className="grid gap-2">
+                <Label htmlFor="sort">Sort</Label>
+                <Select value={sort} onValueChange={(value) => setSort(value as SortKey)}>
+                  <SelectTrigger id="sort" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rank">BGG rank</SelectItem>
+                    <SelectItem value="geekRating">Geek Rating</SelectItem>
+                    <SelectItem value="averageRating">Average rating</SelectItem>
+                    <SelectItem value="year">Year</SelectItem>
+                  </SelectContent>
                 </Select>
-              </label>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="language">Translation language</Label>
+                <Select
+                  value={language || "all"}
+                  onValueChange={(value) => setLanguage(value === "all" ? "" : value)}
+                >
+                  <SelectTrigger id="language" className="w-full">
+                    <SelectValue>{language || "Any language"}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any language</SelectItem>
+                    {allLanguages.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <fieldset disabled={!yearLimits} className="grid gap-3">
+                <legend className="sr-only">Year</legend>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium">Year</span>
+                  <output className="text-xs text-muted-foreground">{yearRangeLabel}</output>
+                </div>
+                <Slider
+                  aria-label="Publication year range"
+                  min={sliderMin}
+                  max={sliderMax}
+                  step={1}
+                  minStepsBetweenThumbs={1}
+                  value={[minSliderValue, maxSliderValue]}
+                  onValueChange={updateYearRange}
+                  disabled={!yearLimits}
+                />
+                <div className="flex justify-between text-xs text-muted-foreground" aria-hidden="true">
+                  <span>No min</span>
+                  <span>No max</span>
+                </div>
+              </fieldset>
 
               <div>
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <p className="text-sm font-medium">Categories + mechanics</p>
                   {selectedTags.length > 0 ? (
                     <Button variant="ghost" size="sm" onClick={() => setSelectedTags([])}>
-                      <X className="h-3 w-3" />
+                      <X className="size-3" />
                       Clear
                     </Button>
                   ) : null}
                 </div>
-                <div className="max-h-64 space-y-1 overflow-auto rounded-md border bg-[var(--card)] p-2">
-                  {allTags.map((tag) => (
-                    <label key={tag} className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-[var(--muted)]">
-                      <input type="checkbox" checked={selectedTags.includes(tag)} onChange={() => toggleTag(tag)} />
-                      <span>{tag}</span>
-                    </label>
-                  ))}
-                </div>
+                <ScrollArea className="h-64 rounded-md border">
+                  <div className="space-y-1 p-2">
+                    {allTags.map((tag) => (
+                      <Label
+                        key={tag}
+                        className="flex items-center gap-2 rounded-md px-2 py-1.5 font-normal hover:bg-muted"
+                      >
+                        <Checkbox
+                          checked={selectedTags.includes(tag)}
+                          onCheckedChange={() => toggleTag(tag)}
+                        />
+                        <span>{tag}</span>
+                      </Label>
+                    ))}
+                  </div>
+                </ScrollArea>
               </div>
             </CardContent>
           </Card>
@@ -188,25 +296,25 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[36rem] border-collapse text-sm">
-                  <thead>
-                    <tr>
-                      <th className="border p-2 text-left">Players</th>
-                      {verdicts.map((verdict) => (
-                        <th key={verdict} className="border p-2 text-center">
+                <Table className="min-w-[36rem]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Players</TableHead>
+                      {matrixVerdicts.map((verdict) => (
+                        <TableHead key={verdict} className="text-center">
                           {verdictLabels[verdict]}
-                        </th>
+                        </TableHead>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {playerCounts.map((playerCount) => (
-                      <tr key={playerCount}>
-                        <th className="border bg-[var(--muted)] p-2 text-left">{playerCount}</th>
-                        {verdicts.map((verdict) => {
+                      <TableRow key={playerCount}>
+                        <TableHead className="bg-muted/50">{playerCount}</TableHead>
+                        {matrixVerdicts.map((verdict) => {
                           const selected = selectedMatrixKeys.has(`${playerCount}:${verdict}`);
                           return (
-                            <td key={verdict} className="border p-1">
+                            <TableCell key={verdict} className="p-1">
                               <Button
                                 type="button"
                                 variant={selected ? "default" : "ghost"}
@@ -216,13 +324,13 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
                               >
                                 {selected ? "Selected" : "Any"}
                               </Button>
-                            </td>
+                            </TableCell>
                           );
                         })}
-                      </tr>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
               {matrix.length > 0 ? (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -239,9 +347,15 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
             </CardContent>
           </Card>
 
-          {syncError ? <p className="rounded-md border border-[var(--destructive)] p-3 text-sm text-[var(--destructive)]">{syncError}</p> : null}
+          {syncError ? (
+            <Alert variant="destructive">
+              <AlertTitle>Sync failed</AlertTitle>
+              <AlertDescription>{syncError}</AlertDescription>
+            </Alert>
+          ) : null}
 
-          <div className="flex items-center justify-between text-sm text-[var(--muted-foreground)]">
+
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
               Showing {filteredGames.length} of {games.length}
             </span>
@@ -258,24 +372,24 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
                       <a href={game.bggUrl} target="_blank" rel="noreferrer" className="text-lg font-semibold hover:underline">
                         {game.title}
                       </a>
-                      {game.year ? <span className="text-sm text-[var(--muted-foreground)]">({game.year})</span> : null}
+                      {game.year ? <span className="text-sm text-muted-foreground">({game.year})</span> : null}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1">
-                      {[...game.categories, ...game.mechanics].slice(0, 8).map((tag) => (
-                        <Badge key={tag} className="bg-transparent">
+                      {gameTags(game).slice(0, 8).map((tag) => (
+                        <Badge key={tag} variant="outline">
                           {tag}
                         </Badge>
                       ))}
                     </div>
                   </div>
                   <div className="grid min-w-40 grid-cols-2 gap-2 text-sm md:text-right">
-                    <span className="text-[var(--muted-foreground)]">Geek</span>
+                    <span className="text-muted-foreground">Geek</span>
                     <strong>{formatNumber(game.geekRating)}</strong>
-                    <span className="text-[var(--muted-foreground)]">Avg</span>
+                    <span className="text-muted-foreground">Avg</span>
                     <strong>{formatNumber(game.averageRating)}</strong>
-                    <span className="text-[var(--muted-foreground)]">Voters</span>
+                    <span className="text-muted-foreground">Voters</span>
                     <strong>{formatNumber(game.numVoters, 0)}</strong>
-                    <span className="text-[var(--muted-foreground)]">Players</span>
+                    <span className="text-muted-foreground">Players</span>
                     <strong>
                       {game.minPlayers ?? "—"}-{game.maxPlayers ?? "—"}
                     </strong>
@@ -286,7 +400,9 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
           </div>
         </section>
       </section>
-      <footer className="mt-4 flex flex-col gap-3 border-t pt-5 text-sm text-[var(--muted-foreground)] sm:flex-row sm:items-center sm:justify-between">
+      <Separator />
+
+      <footer className="mt-4 flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p>
             Board game data is sourced from{" "}
