@@ -5,6 +5,7 @@ data
 .env.local
 *.log
 work
+.worktrees
 .agents
 tsconfig.tsbuildinfo
 boardgames_ranks.csv
