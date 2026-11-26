@@ -3,6 +3,8 @@ import { parseRubles } from "@/lib/prices/text";
 import type { ShopAdapter, ShopProduct } from "@/lib/prices/types";
 
 const ORIGIN = "https://www.lavkaigr.ru";
+/** The previous price inside a price block: `<span class="oldprice">…</span>`, `<s>`, `<del>` or `<strike>`. */
+const OLD_PRICE = /<(span\b[^>]*class="[^"]*\boldprice\b[^"]*"[^>]*|s|del|strike)>([\s\S]*?)<\/(?:span|s|del|strike)>/i;
 
 function toProduct(block: string): ShopProduct | null {
   const photo = openingTags(block, "div").find((tag) => hasClass(tag, "photo-block"));
@@ -19,6 +21,13 @@ function toProduct(block: string): ShopProduct | null {
   const buy = openingTags(block, "a").find((tag) => hasClass(tag, "buy-mini") && attribute(tag, "data-id") === externalId);
   const listed = /<p\b[^>]*class="[^"]*\bprice\b[^"]*"[^>]*>([\s\S]*?)<\/p>/i.exec(block);
 
+  // A discounted product lists two amounts: the current price, and the previous one
+  // in `span.oldprice` (or struck through). The markup tells them apart, not the order.
+  const struck = listed ? OLD_PRICE.exec(listed[1]) : null;
+  const current = listed ? textContent(listed[1].replace(OLD_PRICE, " ")) : null;
+  const price = buy ? parseRubles(attribute(buy, "data-price")) : parseRubles(current);
+  const oldPrice = struck ? parseRubles(textContent(struck[2])) : null;
+
   return {
     shop: "lavkaigr",
     externalId,
@@ -26,8 +35,8 @@ function toProduct(block: string): ShopProduct | null {
     title,
     vendor: null,
     barcode: null,
-    price: buy ? parseRubles(attribute(buy, "data-price")) : parseRubles(listed ? textContent(listed[1]) : null),
-    oldPrice: null,
+    price,
+    oldPrice: price !== null && oldPrice !== null && oldPrice > price ? oldPrice : null,
     available: Boolean(buy),
     variantCount: 1,
   };

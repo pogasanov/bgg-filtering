@@ -9,7 +9,7 @@ describe("parseLavkaListing", () => {
   const { products, lastPage } = parseLavkaListing(fixture);
 
   it("maps a product block", () => {
-    expect(products).toHaveLength(4);
+    expect(products).toHaveLength(5);
     expect(products[0]).toEqual({
       shop: "lavkaigr",
       externalId: "13753",
@@ -108,8 +108,30 @@ describe("parseLavkaListing — review fixes", () => {
     expect(parseLavkaListing(html).products[0]).toMatchObject({ externalId: "7", price: 3990, available: false });
   });
 
-  it("gives no price when an old and a new price are listed together", () => {
+  it("reads the shop's own old price next to the current one", () => {
+    const html = listing(outOfStock.replace("3 990 руб.", '3 990 руб. <span class="oldprice">4 990 руб.</span>'));
+    expect(parseLavkaListing(html).products[0]).toMatchObject({ price: 3990, oldPrice: 4990 });
+  });
+
+  it("treats a struck-through amount as the old price wherever it stands", () => {
     const html = listing(outOfStock.replace("3 990 руб.", "<s>4 990</s> 3 990 руб."));
-    expect(parseLavkaListing(html).products[0].price).toBeNull();
+    expect(parseLavkaListing(html).products[0]).toMatchObject({ price: 3990, oldPrice: 4990 });
+  });
+
+  it("gives no price for two amounts with nothing to tell them apart", () => {
+    const html = listing(outOfStock.replace("3 990 руб.", "4 990 3 990 руб."));
+    expect(parseLavkaListing(html).products[0]).toMatchObject({ price: null, oldPrice: null });
+  });
+
+  it("drops an old price that is not higher than the current one", () => {
+    const html = listing(outOfStock.replace("3 990 руб.", '3 990 руб. <span class="oldprice">3 990 руб.</span>'));
+    expect(parseLavkaListing(html).products[0]).toMatchObject({ price: 3990, oldPrice: null });
+  });
+
+  it("reads a real discounted in-stock block", () => {
+    const discounted = parseLavkaListing(fixture).products[4];
+    expect(discounted.available).toBe(true);
+    expect(discounted.price).toBeGreaterThan(0);
+    expect(discounted.oldPrice).toBeGreaterThan(discounted.price as number);
   });
 });
