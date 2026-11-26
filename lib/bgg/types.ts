@@ -31,6 +31,7 @@ export type NormalizedGame = {
   title: string;
   year: number | null;
   description: string;
+  thumbnailUrl: string | null;
   geekRating: number | null;
   averageRating: number | null;
   numVoters: number | null;

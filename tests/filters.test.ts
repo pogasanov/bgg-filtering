@@ -9,6 +9,7 @@ function makeGame(overrides: Partial<NormalizedGame>): NormalizedGame {
     title: "Base Game",
     year: 2020,
     description: "",
+    thumbnailUrl: null,
     geekRating: 8,
     averageRating: 8.2,
     numVoters: 100,

@@ -105,3 +105,10 @@ describe("BGG XML parser", () => {
     expect(parsed[0].languages).toEqual([]);
   });
 });
+
+test("reads the thumbnail URL and tolerates its absence", () => {
+  const withThumb = `<items><item type="boardgame" id="1"><thumbnail>https://cf.geekdo-images.com/a/t.jpg</thumbnail><name type="primary" value="A"/></item></items>`;
+  const without = `<items><item type="boardgame" id="2"><name type="primary" value="B"/></item></items>`;
+  expect(parseThingXml(withThumb)[0].thumbnailUrl).toBe("https://cf.geekdo-images.com/a/t.jpg");
+  expect(parseThingXml(without)[0].thumbnailUrl).toBeNull();
+});
