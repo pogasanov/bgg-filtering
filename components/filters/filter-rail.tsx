@@ -29,7 +29,9 @@ export function FilterRail(props: FilterRailProps) {
   const yearActive = filters.minYear !== null || filters.maxYear !== null;
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
+      {/* Only the groups scroll; the footer with the BGG mark and sync stays in view. */}
+      <div data-rail-scroll className="min-h-0 flex-1 overflow-y-auto [&>*:last-child]:border-b-0">
       <FilterGroup
         title="Игроки × вердикт"
         activeCount={filters.matrix.length}
@@ -82,7 +84,9 @@ export function FilterRail(props: FilterRailProps) {
         />
       </FilterGroup>
 
-      <div className="mt-auto">
+      </div>
+
+      <div data-rail-footer className="flex-none border-t">
         <RailFooter status={props.status} syncing={props.syncing} syncError={props.syncError} onSync={props.onSync} />
       </div>
     </div>

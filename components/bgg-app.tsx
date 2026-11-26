@@ -17,9 +17,11 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { useIsDesktop } from "@/components/use-is-desktop";
 import { activeFilterChips } from "@/lib/active-filters";
 import { sortKeys, type NormalizedGame, type SortKey } from "@/lib/bgg/types";
+import { fetchCacheState } from "@/lib/cache-client";
 import type { CacheStatus } from "@/lib/cache/store";
 import { defaultSortDir, filterGames, gameTags, tagCounts, type GameFilters } from "@/lib/filtering";
 import { formatNumber, sortLabels } from "@/lib/labels";
+import { isSearchShortcut } from "@/lib/shortcuts";
 import { defaultFilters, serializeFilters } from "@/lib/url-state";
 import { buildYearScale } from "@/lib/year-scale";
 
@@ -69,9 +71,7 @@ export function BggApp({ initialGames, initialStatus, initialFilters }: BggAppPr
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      const slash = event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey && !isTypingTarget(event.target);
-      const commandK = event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey);
-      if (!slash && !commandK) return;
+      if (!isSearchShortcut(event, isTypingTarget(event.target))) return;
       event.preventDefault();
       searchRef.current?.focus();
       searchRef.current?.select();
@@ -94,11 +94,9 @@ export function BggApp({ initialGames, initialStatus, initialFilters }: BggAppPr
   }
 
   async function refreshLocalState() {
-    const [gamesResponse, statusResponse] = await Promise.all([fetch("/api/games"), fetch("/api/status")]);
-    const gamesPayload = (await gamesResponse.json()) as { games: NormalizedGame[] };
-    const statusPayload = (await statusResponse.json()) as CacheStatus;
-    setGames(gamesPayload.games);
-    setStatus(statusPayload);
+    const next = await fetchCacheState();
+    setGames(next.games);
+    setStatus(next.status);
   }
 
   function sync() {
@@ -112,7 +110,8 @@ export function BggApp({ initialGames, initialStatus, initialFilters }: BggAppPr
         }
         await refreshLocalState();
       } catch {
-        setSyncError("Синхронизация не удалась: нет связи с сервером.");
+        // Keep showing the data already on screen; a more specific sync error, if any, stays.
+        setSyncError((current) => current ?? "Не удалось обновить данные: сервер не ответил.");
       }
     });
   }
@@ -136,12 +135,12 @@ export function BggApp({ initialGames, initialStatus, initialFilters }: BggAppPr
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="sticky top-0 hidden h-screen flex-col overflow-y-auto border-r lg:flex">
+      <aside className="sticky top-0 hidden h-screen flex-col overflow-hidden border-r lg:flex">
         <div className="flex items-baseline justify-between border-b px-4 py-3.5">
           <span className="text-sm font-semibold">Player-count finder</span>
           <span className="font-mono text-[11px] text-muted-foreground">{formatNumber(games.length, 0)} игр</span>
         </div>
-        <div className="flex-1">{rail}</div>
+        <div className="min-h-0 flex-1">{rail}</div>
       </aside>
 
       <main className="min-w-0">
@@ -181,12 +180,12 @@ export function BggApp({ initialGames, initialStatus, initialFilters }: BggAppPr
                 {chips.length > 0 ? <span className="font-mono text-xs">{chips.length}</span> : null}
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[320px] gap-0 overflow-y-auto p-0 sm:max-w-[320px]">
+            <SheetContent side="left" className="w-[320px] gap-0 overflow-hidden p-0 sm:max-w-[320px]">
               <SheetHeader className="border-b px-4 py-3.5">
                 <SheetTitle className="text-sm">Фильтры</SheetTitle>
                 <SheetDescription className="sr-only">Фильтры списка игр и синхронизация данных</SheetDescription>
               </SheetHeader>
-              {rail}
+              <div className="min-h-0 flex-1">{rail}</div>
             </SheetContent>
           </Sheet>
         </div>

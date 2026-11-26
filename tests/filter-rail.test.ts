@@ -71,3 +71,14 @@ test("footer carries the BGG mark and sync state, and nothing is a card", () => 
   expect(html).toContain("22.11.2026");
   expect(html).not.toContain('data-slot="card"');
 });
+
+test("the footer sits outside the scrolling groups so the BGG mark never scrolls away", () => {
+  const html = render();
+  const scroll = html.indexOf("data-rail-scroll");
+  const footer = html.indexOf("data-rail-footer");
+  expect(scroll).toBeGreaterThan(-1);
+  expect(footer).toBeGreaterThan(scroll);
+  expect(html.slice(scroll, footer)).toContain("overflow-y-auto");
+  expect(html.slice(0, footer)).not.toContain("Powered by BoardGameGeek");
+  expect(html.slice(footer)).toContain("Powered by BoardGameGeek");
+});

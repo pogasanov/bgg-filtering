@@ -38,7 +38,7 @@ export function ResultsList({ games, onReset }: ResultsListProps) {
               ) : null}
             </div>
             <div className="mt-1.5">
-              <PollStrip game={game} />
+              <PollStrip game={game} hoverable={false} />
             </div>
           </div>
           <div className="flex-none text-right font-mono tabular-nums">

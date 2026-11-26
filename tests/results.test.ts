@@ -72,3 +72,10 @@ test("phone list shows thumbnail, title, strip and rating per game", () => {
   expect(html).toContain('data-thumb="placeholder"');
   expect(render(ResultsList, { games: [], onReset() {} })).toContain("Ничего не найдено");
 });
+
+test("on phones the strip lets taps through to the row link; on desktop it stays hoverable", () => {
+  const list = render(ResultsList, { games: [pollGame], onReset() {} });
+  expect(list).toMatch(/<span(?=[^>]*role="img")(?=[^>]*pointer-events-none)/);
+  const table = render(ResultsTable, { games: [pollGame], sort: "rank", sortDir: "asc", onSort() {}, onReset() {} });
+  expect(table).not.toMatch(/<span(?=[^>]*role="img")(?=[^>]*pointer-events-none)/);
+});

@@ -23,13 +23,26 @@ function cellClass(cell: PollCell) {
  * The poll verdict for each player count. One tooltip for the whole strip rather than one per
  * square: with thousands of rows, per-square tooltips and tab stops would swamp the page.
  */
-export function PollStrip({ game }: { game: NormalizedGame }) {
+type PollStripProps = {
+  game: NormalizedGame;
+  /**
+   * Hoverable strips sit above the row link so the tooltip can open. On touch screens there is
+   * no hover, so the strip steps aside and a tap on it opens the row like anywhere else.
+   */
+  hoverable?: boolean;
+};
+
+export function PollStrip({ game, hoverable = true }: PollStripProps) {
   const cells = pollCells(game);
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span role="img" aria-label={pollStripLabel(game)} className="relative z-10 inline-flex gap-0.5">
+        <span
+          role="img"
+          aria-label={pollStripLabel(game)}
+          className={cn("inline-flex gap-0.5", hoverable ? "relative z-10" : "pointer-events-none")}
+        >
           {cells.map((cell) => (
             <span
               key={cell.playerCount}
