@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp, Search, SlidersHorizontal } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { FilterRail } from "@/components/filters/filter-rail";
 import { BggAttribution } from "@/components/filters/rail-footer";
 import { PoweredByBgg } from "@/components/powered-by-bgg";
@@ -23,6 +23,7 @@ import { defaultSortDir, filterGames, gameTags, tagCounts, type GameFilters } fr
 import { formatNumber, sortLabels } from "@/lib/labels";
 import { isSearchShortcut } from "@/lib/shortcuts";
 import { defaultFilters, serializeFilters } from "@/lib/url-state";
+import { cn } from "@/lib/utils";
 import { buildYearScale } from "@/lib/year-scale";
 
 type BggAppProps = {
@@ -48,12 +49,20 @@ export function BggApp({ initialGames, initialStatus, initialFilters }: BggAppPr
   const writtenSearch = useRef(initialFilters.search);
   const isDesktop = useIsDesktop();
 
+  // The controls follow `filters` at once; the heavy part (filtering, counting, the result rows) follows
+  // this deferred copy. React renders it in the background and drops a half-done render when the filters
+  // change again, so fast typing or a slider drag costs one list update instead of one per step, and
+  // the wait scales with the device instead of being a fixed timer.
+  const deferredFilters = useDeferredValue(filters);
+  const isStale = deferredFilters !== filters;
+
   const sortDir = filters.sortDir ?? defaultSortDir(filters.sort);
+  const shownSortDir = deferredFilters.sortDir ?? defaultSortDir(deferredFilters.sort);
   const allTags = useMemo(() => [...new Set(games.flatMap((game) => gameTags(game)))].sort(), [games]);
   const allLanguages = useMemo(() => [...new Set(games.flatMap((game) => game.languages))].sort(), [games]);
   const yearScale = useMemo(() => buildYearScale(games.map((game) => game.year)), [games]);
-  const filteredGames = useMemo(() => filterGames(games, filters), [games, filters]);
-  const counts = useMemo(() => tagCounts(games, filters), [games, filters]);
+  const filteredGames = useMemo(() => filterGames(games, deferredFilters), [games, deferredFilters]);
+  const counts = useMemo(() => tagCounts(games, deferredFilters), [games, deferredFilters]);
   const chips = useMemo(() => activeFilterChips(filters), [filters]);
 
   // Keep the address bar in step with the filters so a reload or a copied link restores the view.
@@ -80,18 +89,19 @@ export function BggApp({ initialGames, initialStatus, initialFilters }: BggAppPr
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  function resetFilters() {
+  // Stable identities: the memoised results skip the urgent render only if their props do not change.
+  const resetFilters = useCallback(() => {
     // Sorting is a view setting, not a filter: a reset keeps it.
     setFilters((current) => ({ ...defaultFilters, sort: current.sort, sortDir: current.sortDir }));
-  }
+  }, []);
 
-  function sortBy(key: SortKey) {
+  const sortBy = useCallback((key: SortKey) => {
     setFilters((current) => {
       const currentDir = current.sortDir ?? defaultSortDir(current.sort);
       const nextDir = current.sort === key ? (currentDir === "asc" ? "desc" : "asc") : defaultSortDir(key);
       return { ...current, sort: key, sortDir: nextDir };
     });
-  }
+  }, []);
 
   async function refreshLocalState() {
     const next = await fetchCacheState();
@@ -234,17 +244,24 @@ export function BggApp({ initialGames, initialStatus, initialFilters }: BggAppPr
               </div>
             </ResultsBar>
 
-            {isDesktop ? (
-              <ResultsTable
-                games={filteredGames}
-                sort={filters.sort}
-                sortDir={sortDir}
-                onSort={sortBy}
-                onReset={resetFilters}
-              />
-            ) : (
-              <ResultsList games={filteredGames} onReset={resetFilters} />
-            )}
+            {/* Dimmed only if the list is still catching up after a noticeable wait, so quick updates do not flicker. */}
+            <div
+              data-results
+              aria-busy={isStale}
+              className={cn("transition-opacity duration-200", isStale && "opacity-60 delay-200")}
+            >
+              {isDesktop ? (
+                <ResultsTable
+                  games={filteredGames}
+                  sort={deferredFilters.sort}
+                  sortDir={shownSortDir}
+                  onSort={sortBy}
+                  onReset={resetFilters}
+                />
+              ) : (
+                <ResultsList games={filteredGames} onReset={resetFilters} />
+              )}
+            </div>
             <PollLegend />
           </>
         )}

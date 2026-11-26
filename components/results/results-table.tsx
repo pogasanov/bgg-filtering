@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { memo } from "react";
 import { GameThumb } from "@/components/results/game-thumb";
 import { PollStrip } from "@/components/results/poll-strip";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,8 @@ export function EmptyResults({ onReset }: { onReset: () => void }) {
   );
 }
 
-export function ResultsTable({ games, sort, sortDir, onSort, onReset }: ResultsTableProps) {
+/** Memoised: with thousands of rows it must re-render only when its own props change, not on every keystroke. */
+export const ResultsTable = memo(function ResultsTable({ games, sort, sortDir, onSort, onReset }: ResultsTableProps) {
   function sortHead(key: SortKey, label = sortLabels[key], align: "left" | "right" = "right") {
     const active = sort === key;
     const Arrow = sortDir === "asc" ? ArrowUp : ArrowDown;
@@ -124,4 +126,4 @@ export function ResultsTable({ games, sort, sortDir, onSort, onReset }: ResultsT
       </TableBody>
     </Table>
   );
-}
+});
