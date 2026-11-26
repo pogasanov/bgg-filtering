@@ -26,16 +26,16 @@ const thingXml = `<?xml version="1.0" encoding="utf-8"?>
     <link type="boardgamemechanic" id="2664" value="Deck, Bag, and Pool Building"/>
     <versions>
       <item type="boardgameversion" id="1001">
-        <link type="boardgamelanguage" id="2184" value="English"/>
-        <link type="boardgamelanguage" id="2187" value="French"/>
+        <link type="language" id="2184" value="English"/>
+        <link type="language" id="2187" value="French"/>
       </item>
       <item type="boardgameversion" id="1002">
-        <link type="boardgamelanguage" id="2187" value="French"/>
-        <link type="boardgamelanguage" id="2186" value="German"/>
-        <link type="boardgamelanguage" id="9999" value=""/>
+        <link type="language" id="2187" value="French"/>
+        <link type="language" id="2186" value="German"/>
+        <link type="language" id="9999" value=""/>
       </item>
       <item type="boardgameversion" id="1003">
-        <link type="boardgamelanguage" id="9998"/>
+        <link type="language" id="9998"/>
         <link id="9997" value="Japanese"/>
       </item>
       <item type="boardgameversion" id="1004">

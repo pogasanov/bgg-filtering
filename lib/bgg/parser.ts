@@ -79,7 +79,7 @@ export function parseThingXml(xml: string): NormalizedGame[] {
         versions.flatMap((version: any) =>
           asArray(version.link)
             .filter(
-              (link: any) => link.type === "boardgamelanguage" && link.value !== undefined && String(link.value).trim() !== "",
+              (link: any) => link.type === "language" && link.value !== undefined && String(link.value).trim() !== "",
             )
             .map((link: any) => String(link.value)),
         ),
