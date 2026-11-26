@@ -55,11 +55,23 @@ export function hasDatabaseUrl(): boolean {
   return Boolean(process.env.DATABASE_URL);
 }
 
+/**
+ * A pool that survives idle-client errors (pooler restarts, dropped connections) instead of
+ * crashing the process, and gives up on a connection attempt after 10 s instead of hanging.
+ */
+export function createPool(connectionString: string, max: number): Pool {
+  const created = new Pool({ connectionString, max, idleTimeoutMillis: 5000, connectionTimeoutMillis: 10_000 });
+  created.on("error", (error) => {
+    console.error("Postgres pool error", error);
+  });
+  return created;
+}
+
 export function getDb(): Db {
   if (!db) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) throw new Error("DATABASE_URL is not set");
-    pool = new Pool({ connectionString, max: 3, idleTimeoutMillis: 5000 });
+    pool = createPool(connectionString, 3);
     db = createPgDb(pool);
   }
   return db;

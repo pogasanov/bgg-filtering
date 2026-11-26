@@ -1,11 +1,10 @@
 import * as Sentry from "@sentry/node";
-import { Pool } from "pg";
 import { fetchThingBatch } from "@/lib/bgg/client";
-import { createPgDb } from "@/lib/db/client";
+import { createPgDb, createPool } from "@/lib/db/client";
 import { sentryDataCollection } from "@/lib/sentry-options";
-import type { SyncLog } from "@/lib/sync";
 import { createRevalidator } from "@/lib/worker/revalidate";
 import { runWeeklySync } from "@/lib/worker/run-weekly-sync";
+import { createSentryLog } from "@/lib/worker/sentry-log";
 
 const REQUIRED_ENV = ["DATABASE_URL", "BGG_TOKEN", "REVALIDATE_URL", "REVALIDATE_SECRET"] as const;
 const MONITOR_SLUG = "bgg-weekly-sync";
@@ -20,21 +19,7 @@ function initSentry() {
   });
 }
 
-const log: SyncLog = {
-  info(message, attributes) {
-    console.log(message, attributes ?? "");
-    Sentry.logger.info(message, attributes);
-  },
-  warn(message, attributes) {
-    console.warn(message, attributes ?? "");
-    Sentry.logger.warn(message, attributes);
-  },
-  error(message, error, attributes) {
-    console.error(message, error, attributes ?? "");
-    Sentry.logger.error(message, { ...attributes, error: error instanceof Error ? error.message : String(error) });
-    Sentry.captureException(error, { extra: { message, ...attributes } });
-  },
-};
+const log = createSentryLog(Sentry);
 
 async function sentryCheck(): Promise<number> {
   initSentry();
@@ -56,7 +41,7 @@ async function weeklySync(): Promise<number> {
   >;
 
   initSentry();
-  const pool = new Pool({ connectionString: env.DATABASE_URL, max: 2 });
+  const pool = createPool(env.DATABASE_URL, 2);
   let exitCode = 1;
   try {
     await Sentry.withMonitor(

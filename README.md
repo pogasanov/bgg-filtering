@@ -72,10 +72,10 @@ Functions run in `fra1` (`vercel.json`), next to the Neon database.
 ### 4. Modal
 
 1. In the project's Modal account, add a payment method. Then set a **workspace spend limit** (Settings → Usage) so overage stops work instead of charging the card. The weekly job uses well under $1 of the free $30 monthly compute.
-2. Create the dedicated CLI profile. This opens the browser; log in with the project's Modal account.
+2. Create the dedicated CLI profile without making it the active one. This opens the browser; log in with the project's Modal account. Your other Modal profiles stay active for other work.
 
 ```bash
-modal token new --profile bgg
+modal token new --profile bgg --no-activate
 ```
 
 3. Create the worker secret:

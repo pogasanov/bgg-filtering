@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, test } from "vitest";
-import { BggApp, formatUpdatedDate } from "@/components/bgg-app";
+import { describe, expect, test, vi } from "vitest";
+import { BggApp, formatNumber, formatUpdatedDate } from "@/components/bgg-app";
 import { emptyPlayerRecommendations } from "@/lib/bgg/parser";
 import type { CatalogStatus } from "@/lib/catalog/types";
 import type { NormalizedGame } from "@/lib/bgg/types";
@@ -136,5 +136,28 @@ describe("shadcn control composition", () => {
 
   test("says when data has never been updated", () => {
     expect(formatUpdatedDate(null)).toBe("Not updated yet");
+  });
+
+  test("formats numbers identically regardless of the runtime default locale", () => {
+    const spy = vi.spyOn(Number.prototype, "toLocaleString").mockImplementation(function (
+      this: number,
+      locales?: Intl.LocalesArgument,
+      options?: Intl.NumberFormatOptions,
+    ) {
+      return new Intl.NumberFormat(locales ?? "de-DE", options).format(this);
+    });
+    try {
+      expect(formatNumber(7.851)).toBe("7.85");
+      expect(formatNumber(123456, 0)).toBe("123,456");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test("describes the site as public and non-commercial", () => {
+    const html = renderToStaticMarkup(createElement(BggApp, { games: [makeGame(1, 2020)], status }));
+
+    expect(html).not.toContain("local browsing");
+    expect(html).toContain("Non-commercial site.");
   });
 });

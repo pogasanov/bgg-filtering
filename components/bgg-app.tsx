@@ -43,9 +43,10 @@ function matrixKey(selection: MatrixSelection) {
   return `${selection.playerCount}:${selection.verdict}`;
 }
 
-function formatNumber(value: number | null | undefined, digits = 2) {
+/** Fixed locale: the prerendered HTML and the visitor's browser must produce the same text. */
+export function formatNumber(value: number | null | undefined, digits = 2) {
   if (value === null || value === undefined) return "—";
-  return value.toLocaleString(undefined, { maximumFractionDigits: digits });
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: digits }).format(value);
 }
 
 /** Deterministic across server and browser, so the prerendered page hydrates without a mismatch. */
@@ -367,7 +368,7 @@ export function BggApp({ games, status }: BggAppProps) {
             </a>
             . This app is not affiliated with or endorsed by BoardGameGeek.
           </p>
-          <p className="mt-1">Non-commercial local browsing only. API data is not used for AI or LLM training.</p>
+          <p className="mt-1">Non-commercial site. API data is not used for AI or LLM training.</p>
         </div>
         <PoweredByBgg />
       </footer>
