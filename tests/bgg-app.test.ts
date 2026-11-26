@@ -1,13 +1,17 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { BggApp } from "@/components/bgg-app";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { emptyPlayerRecommendations } from "@/lib/bgg/parser";
 import type { CacheStatus } from "@/lib/cache/store";
 import type { NormalizedGame } from "@/lib/bgg/types";
 import type { GameFilters } from "@/lib/filtering";
+import { gamesView } from "@/lib/games-view";
 import { defaultFilters } from "@/lib/url-state";
+
+// The components read the router; outside Next there is none.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace() {}, refresh() {} }) }));
 
 const status: CacheStatus = {
   gameCount: 3,
@@ -49,13 +53,13 @@ function slotCount(html: string, slot: string) {
   return html.match(new RegExp(`data-slot="${slot}"`, "g"))?.length ?? 0;
 }
 
-function render(games: NormalizedGame[], initialFilters: GameFilters = defaultFilters) {
+function render(games: NormalizedGame[], filters: GameFilters = defaultFilters, page = 1) {
   // The root layout provides the tooltip context; mirror it here.
   return renderToStaticMarkup(
     createElement(
       TooltipProvider,
       null,
-      createElement(BggApp, { initialGames: games, initialStatus: { ...status, gameCount: games.length }, initialFilters }),
+      createElement(BggApp, { view: gamesView(games, { ...status, gameCount: games.length }, filters, page), filters }),
     ),
   );
 }
@@ -99,6 +103,25 @@ describe("BggApp", () => {
   test("keeps the search bar pinned to the top while the results scroll", () => {
     const html = render([makeGame(1, 2000)]);
     expect(html).toMatch(/<div(?=[^>]*data-search-bar)(?=[^>]*class="[^"]*\bsticky\b[^"]*\btop-0\b)/);
+  });
+
+  test("shows 100 games per page and links to the other pages with the filters kept", () => {
+    const games = Array.from({ length: 250 }, (_, index) => makeGame(index + 1, 2000));
+    const filters = { ...defaultFilters, minYear: 1990 };
+    const html = render(games, filters, 2);
+    expect(html.match(/data-slot="table-row"/g)).toHaveLength(101);
+    expect(html).toContain("Game 101<");
+    expect(html).toContain("Game 200<");
+    expect(html).not.toContain("Game 100<");
+    expect(html).not.toContain("Game 201<");
+    expect(html).toContain("101–200 из 250");
+    expect(html).toMatch(/<span[^>]*aria-current="page"[^>]*>2</);
+    expect(html).toContain('href="/?ymin=1990"');
+    expect(html).toContain('href="/?ymin=1990&amp;page=3"');
+  });
+
+  test("shows no page links while everything fits on one page", () => {
+    expect(render([makeGame(1, 2000)])).not.toContain("Страницы результатов");
   });
 
   test("shows no legend under the results", () => {

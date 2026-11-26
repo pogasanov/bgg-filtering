@@ -2,7 +2,7 @@
 
 A local Next.js app for filtering top BoardGameGeek games from a local ranks CSV by categories, mechanics, and player-count recommendation polls.
 
-Filters live in a rail on the left with the player-count × verdict matrix on top; results are a sortable table with the poll verdict for every player count shown in each row. The current filters and sort are kept in the URL, so a reload or a copied link restores the view. The theme follows the operating system.
+Filters live in a rail on the left with the player-count × verdict matrix on top; results are a sortable table with the poll verdict for every player count shown in each row. The current filters, sort and page are kept in the URL, so a reload or a copied link restores the view. Filtering and sorting run on the server, which renders 100 games per page and keeps the result of each filter combination in memory until the cache database changes. The theme follows the operating system.
 
 ## Local Setup
 

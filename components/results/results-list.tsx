@@ -1,6 +1,3 @@
-"use client";
-
-import { memo } from "react";
 import { GameThumb } from "@/components/results/game-thumb";
 import { PollStrip } from "@/components/results/poll-strip";
 import { EmptyResults } from "@/components/results/results-table";
@@ -9,12 +6,11 @@ import { formatNumber } from "@/lib/labels";
 
 type ResultsListProps = {
   games: ListedGame[];
-  onReset: () => void;
 };
 
 /** The phone layout of the results: fewer columns, same row-opens-BGG behaviour. */
-export const ResultsList = memo(function ResultsList({ games, onReset }: ResultsListProps) {
-  if (games.length === 0) return <EmptyResults onReset={onReset} />;
+export function ResultsList({ games }: ResultsListProps) {
+  if (games.length === 0) return <EmptyResults />;
 
   return (
     <ul>
@@ -50,4 +46,4 @@ export const ResultsList = memo(function ResultsList({ games, onReset }: Results
       ))}
     </ul>
   );
-});
+}

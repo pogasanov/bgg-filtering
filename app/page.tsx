@@ -1,6 +1,6 @@
 import { BggApp } from "@/components/bgg-app";
-import { createCacheStore } from "@/lib/cache/store";
-import { parseFilters } from "@/lib/url-state";
+import { queryGames } from "@/lib/games-query";
+import { parseFilters, parsePage } from "@/lib/url-state";
 
 export const dynamic = "force-dynamic";
 
@@ -19,14 +19,8 @@ function toSearchParams(record: Record<string, string | string[] | undefined>) {
 }
 
 export default async function Page({ searchParams }: PageProps) {
-  // Filters come from the URL so a reloaded or shared link opens the same view.
-  const initialFilters = parseFilters(toSearchParams(await searchParams));
-  const store = createCacheStore();
-  try {
-    return (
-      <BggApp initialGames={store.getListedGames()} initialStatus={store.getStatus()} initialFilters={initialFilters} />
-    );
-  } finally {
-    store.close();
-  }
+  // The view lives in the URL: the server filters, sorts and cuts one page, so a reloaded or shared link opens the same view.
+  const params = toSearchParams(await searchParams);
+  const filters = parseFilters(params);
+  return <BggApp view={queryGames(filters, parsePage(params))} filters={filters} />;
 }
