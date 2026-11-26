@@ -59,7 +59,21 @@ pnpm bgg:import-ranks ./boardgames_ranks.csv
 
 ### 2. Sentry
 
-In the project's Sentry account, create an organization and a Next.js project, then copy the DSN. One project is enough. Events carry a `component` tag of `site` or `worker`.
+Sentry organization `bgfilter` (EU region) has two projects: `bgfilter-site` (Next.js, `NEXT_PUBLIC_SENTRY_DSN`) and `bgfilter-worker` (Node, `SENTRY_DSN`). Manage them with the official Sentry CLI through `pnpm sentry …`. Its login is kept in `~/.config/sentry-bgg` (override with `SENTRY_CONFIG_DIR`):
+
+```bash
+pnpm sentry auth login
+pnpm sentry issue list bgfilter/bgfilter-site --period 24h
+```
+
+What the site sends:
+
+- errors;
+- logs;
+- traces: 10% of requests in production, all of them in development;
+- Session Replay, only for sessions with an error.
+
+Source maps are uploaded during the Vercel build with an org auth token. On Vercel it is set as `SENTRY_AUTH_TOKEN`, together with `SENTRY_ORG=bgfilter` and `SENTRY_PROJECT=bgfilter-site`. The token was created with `pnpm sentry token create bgfilter/vercel-sourcemaps`. Never commit it.
 
 ### 3. Vercel
 
