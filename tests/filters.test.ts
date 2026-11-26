@@ -8,7 +8,6 @@ function makeGame(overrides: Partial<NormalizedGame>): NormalizedGame {
     rank: 1,
     title: "Base Game",
     year: 2020,
-    description: "",
     geekRating: 8,
     averageRating: 8.2,
     numVoters: 100,

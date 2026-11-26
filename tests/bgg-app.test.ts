@@ -25,7 +25,6 @@ function makeGame(id: number, year: number | null, languages: string[] = []): No
     rank: id,
     title: "Game " + id,
     year,
-    description: "",
     geekRating: 8,
     averageRating: 8,
     numVoters: 100,
