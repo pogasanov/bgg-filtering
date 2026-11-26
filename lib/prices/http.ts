@@ -2,6 +2,7 @@ import { isAllowedByRobots } from "@/lib/prices/robots";
 import type { Get } from "@/lib/prices/types";
 
 const DEFAULT_MIN_INTERVAL_MS = 2000;
+const MAX_REDIRECTS = 5;
 
 /** An honest identity: who is asking and why. Never a personal name or email. */
 export function buildUserAgent(infoUrl?: string): string {
@@ -52,7 +53,7 @@ export function createShopGet(options: ShopGetOptions): Get {
       if (wait > 0) await sleep(wait);
     }
     try {
-      return await fetchImpl(url, { headers: { "user-agent": options.userAgent }, redirect: "follow" });
+      return await fetchImpl(url, { headers: { "user-agent": options.userAgent }, redirect: "manual" });
     } finally {
       lastRequestAt = now();
     }
@@ -67,17 +68,31 @@ export function createShopGet(options: ShopGetOptions): Get {
     return response.text();
   }
 
-  async function run(url: string, encoding: "utf-8" | "windows-1251"): Promise<string> {
+  async function run(startUrl: string, encoding: "utf-8" | "windows-1251"): Promise<string> {
     robots ??= loadRobots();
-    const target = new URL(url);
-    if (!isAllowedByRobots(await robots, target.pathname + target.search)) {
-      throw new Error(`robots.txt disallows ${url}`);
+    const rules = await robots;
+    let url = startUrl;
+
+    // Redirects are followed by hand so that every hop is held to the same rules
+    // as the first request: same shop, allowed by robots.txt, spaced apart.
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+      const target = new URL(url);
+      if (target.origin !== origin) throw new Error(`Refusing ${url}: outside the shop origin ${origin}`);
+      if (!isAllowedByRobots(rules, target.pathname + target.search)) throw new Error(`robots.txt disallows ${url}`);
+
+      const response = await request(url);
+      if (response.status === 403 || response.status === 429) throw new ShopBlockedError(response.status, url);
+
+      const location = response.status >= 300 && response.status < 400 ? response.headers.get("location") : null;
+      if (location) {
+        url = new URL(location, url).href;
+        continue;
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+      return new TextDecoder(encoding).decode(await response.arrayBuffer());
     }
 
-    const response = await request(url);
-    if (response.status === 403 || response.status === 429) throw new ShopBlockedError(response.status, url);
-    if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
-    return new TextDecoder(encoding).decode(await response.arrayBuffer());
+    throw new Error(`Too many redirects starting at ${startUrl}`);
   }
 
   return (url, opts) => {

@@ -153,3 +153,24 @@ describe("matchProducts — candidates", () => {
     expect(links.some((link) => link.externalId === byBarcode.externalId && link.reason === "barcode")).toBe(true);
   });
 });
+
+describe("matchProducts — review fixes", () => {
+  it("does not confirm a title that is also the start of another listed game's name", () => {
+    const first = game(31260, "Agricola", "Агрикола");
+    const revised = game(200680, "Agricola (Revised Edition)", "Агрикола. Новое издание");
+    expect(summary([first, revised], [product("Агрикола")])).toEqual(["31260:lavkaigr:candidate:name-within-another-game"]);
+  });
+
+  it("still confirms the longer, unambiguous title", () => {
+    const first = game(31260, "Agricola", "Агрикола");
+    const revised = game(200680, "Agricola (Revised Edition)", "Агрикола. Новое издание");
+    expect(summary([first, revised], [product("Агрикола. Новое издание")])).toEqual(["200680:lavkaigr:confirmed:exact-title"]);
+  });
+
+  it("joins only a Latin name with a Cyrillic one", () => {
+    // Two names in one script must never confirm; at most the owner is asked.
+    expect(summary([game(1, "Dune", "Imperium")], [product("Dune: Imperium")])).toEqual(["1:lavkaigr:candidate:title-contains-name"]);
+    expect(summary([game(2, "Дюна", "Империя")], [product("Дюна: Империя")])).toEqual(["2:lavkaigr:candidate:title-contains-name"]);
+    expect(summary([game(3, "Apiary", "Апиарий")], [product("Apiary (Апиарий)")])).toEqual(["3:lavkaigr:confirmed:exact-title"]);
+  });
+});

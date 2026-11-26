@@ -70,9 +70,9 @@ describe("lavkaigrAdapter.listCatalog", () => {
     expect(urls).toEqual([1, 2, 3].map((n) => `https://www.lavkaigr.ru/shop/?page=${n}`));
   });
 
-  it("stops early at a page with no products", async () => {
+  it("fails rather than report a catalogue cut short by an empty page", async () => {
     const { get, urls } = pagedGet({ 1: page([1], 9) });
-    expect(await lavkaigrAdapter.listCatalog(get)).toHaveLength(1);
+    await expect(lavkaigrAdapter.listCatalog(get)).rejects.toThrow(/incomplete/);
     expect(urls).toHaveLength(2);
   });
 
@@ -85,5 +85,31 @@ describe("lavkaigrAdapter.listCatalog", () => {
   it("fails when the first page has no products", async () => {
     const { get } = pagedGet({ 1: page([], 1) });
     await expect(lavkaigrAdapter.listCatalog(get)).rejects.toThrow(/empty or unrecognised/);
+  });
+});
+
+describe("parseLavkaListing — review fixes", () => {
+  const listing = (blocks: string, after = "") =>
+    `<div class="product-list row">${blocks}</div><div class="pagenator"><a href="?page=2">2</a></div>${after}`;
+  const outOfStock = `<div class="block"><div>
+    <div class="photo-block" data-id="7"><a href="/shop/x/seven/" class="photo"></a></div>
+    <h3><a class="game-name" href="/shop/x/seven/">Seven</a></h3>
+    <p class="price">3 990 руб.</p>
+    <div class="bottom"><a href="#" data-id="7" class="btn lite add_alert">Уведомить о наличии</a></div>
+  </div></div>`;
+
+  it("does not take a buy button from outside the product list", () => {
+    const html = listing(outOfStock, '<a href="#" data-id="99" data-price="111" class="btn buy-mini">Купить</a>');
+    expect(parseLavkaListing(html).products[0]).toMatchObject({ externalId: "7", price: 3990, available: false });
+  });
+
+  it("ignores a buy button that belongs to another product", () => {
+    const html = listing(outOfStock.replace("</div></div>", '<a href="#" data-id="99" data-price="111" class="btn buy-mini">Купить</a></div></div>'));
+    expect(parseLavkaListing(html).products[0]).toMatchObject({ externalId: "7", price: 3990, available: false });
+  });
+
+  it("gives no price when an old and a new price are listed together", () => {
+    const html = listing(outOfStock.replace("3 990 руб.", "<s>4 990</s> 3 990 руб."));
+    expect(parseLavkaListing(html).products[0].price).toBeNull();
   });
 });

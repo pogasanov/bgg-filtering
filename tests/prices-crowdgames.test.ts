@@ -85,10 +85,9 @@ describe("crowdgamesAdapter.listCatalog", () => {
     ]);
   });
 
-  it("stops at an empty page even when the count promises more", async () => {
+  it("fails rather than report a catalogue shorter than the shop's own count", async () => {
     const { get, urls } = pagedGet({ 1: { status: "ok", count: 3, products: [product(1)] } });
-    const products = await crowdgamesAdapter.listCatalog(get);
-    expect(products).toHaveLength(1);
+    await expect(crowdgamesAdapter.listCatalog(get)).rejects.toThrow(/incomplete/);
     expect(urls).toHaveLength(2);
   });
 

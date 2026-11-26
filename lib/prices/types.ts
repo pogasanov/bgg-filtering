@@ -30,6 +30,9 @@ export type CatalogOptions = {
   known?: ShopProduct[];
   limit?: number;
   onProgress?: (done: number, total: number | null) => void;
+  /** Called with everything read so far after every `checkpointEvery` new pages, so a long crawl can be saved. */
+  onCheckpoint?: (products: ShopProduct[]) => void;
+  checkpointEvery?: number;
 };
 
 export type ShopAdapter = {

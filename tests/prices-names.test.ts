@@ -47,3 +47,10 @@ describe("mergeNames", () => {
     expect(mergeNames(1, "Go", ["  ", "—"]).names).toEqual(["Go"]);
   });
 });
+
+describe("alternateNamesByGame — review fixes", () => {
+  it("decodes numeric entities BGG leaves in names", () => {
+    const withEntity = `<items><item type="boardgame" id="9"><name type="primary" value="La Guerre de l&amp;#039;anneau" /></item></items>`;
+    expect(alternateNamesByGame(withEntity).get(9)).toEqual(["La Guerre de l'anneau"]);
+  });
+});

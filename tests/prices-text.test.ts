@@ -24,3 +24,23 @@ describe("parseRubles", () => {
     expect(parseRubles("1190.50")).toBeNull();
   });
 });
+
+describe("parseRubles — review fixes", () => {
+  it("refuses thousands written with a dot or comma, which could be read as one ruble", () => {
+    expect(parseRubles("1.000")).toBeNull();
+    expect(parseRubles("1,000")).toBeNull();
+    expect(parseRubles("2.000 руб.")).toBeNull();
+  });
+
+  it("refuses two numbers run together", () => {
+    expect(parseRubles("3 990 2 990")).toBeNull();
+    expect(parseRubles("4 990 3 990 руб.")).toBeNull();
+    expect(parseRubles("12 34")).toBeNull();
+  });
+
+  it("still reads grouped and plain amounts", () => {
+    expect(parseRubles("16 990 руб.")).toBe(16990);
+    expect(parseRubles("1 234 567")).toBe(1234567);
+    expect(parseRubles("990,00 ₽")).toBe(990);
+  });
+});

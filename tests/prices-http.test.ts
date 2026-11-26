@@ -121,3 +121,53 @@ describe("createShopGet", () => {
     expect(await h.get("https://shop.example/a", { encoding: "windows-1251" })).toBe("Цитадели");
   });
 });
+
+describe("createShopGet — redirects", () => {
+  function redirecting(routes: Record<string, Response | (() => Response)>, robots = "User-agent: *\nDisallow: /private\n") {
+    const calls: string[] = [];
+    const get = createShopGet({
+      origin: "https://shop.example",
+      userAgent: buildUserAgent(),
+      fetchImpl: (async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        calls.push(url);
+        expect(init?.redirect).toBe("manual");
+        if (url.endsWith("/robots.txt")) return new Response(robots);
+        const route = routes[url];
+        return typeof route === "function" ? route() : (route ?? new Response("missing", { status: 404 }));
+      }) as typeof fetch,
+      sleep: async () => {},
+      now: () => 0,
+    });
+    return { get, calls };
+  }
+  const redirect = (location: string) => () => new Response(null, { status: 301, headers: { location } });
+
+  it("follows a redirect inside the shop", async () => {
+    const { get } = redirecting({
+      "https://shop.example/a": redirect("/a/"),
+      "https://shop.example/a/": () => new Response("page"),
+    });
+    expect(await get("https://shop.example/a")).toBe("page");
+  });
+
+  it("refuses a redirect to another origin without requesting it", async () => {
+    const { get, calls } = redirecting({ "https://shop.example/a": redirect("https://other.example/x") });
+    await expect(get("https://shop.example/a")).rejects.toThrow(/origin/i);
+    expect(calls).not.toContain("https://other.example/x");
+  });
+
+  it("refuses a redirect to a path robots.txt disallows", async () => {
+    const { get, calls } = redirecting({ "https://shop.example/a": redirect("/private/x") });
+    await expect(get("https://shop.example/a")).rejects.toThrow(/robots/i);
+    expect(calls).not.toContain("https://shop.example/private/x");
+  });
+
+  it("gives up on a redirect loop", async () => {
+    const { get } = redirecting({
+      "https://shop.example/a": redirect("/b"),
+      "https://shop.example/b": redirect("/a"),
+    });
+    await expect(get("https://shop.example/a")).rejects.toThrow(/redirect/i);
+  });
+});

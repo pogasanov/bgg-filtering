@@ -129,9 +129,12 @@ async function collect(shop: ShopCode, options: Options, userAgent: string): Pro
     const products = await adapter.listCatalog(get, {
       known,
       limit,
+      checkpointEvery: GAGA_SAVE_EVERY,
       onProgress: (done, total) => {
         if (shop === "gaga" && done % GAGA_SAVE_EVERY === 0) console.log(`  gaga: ${done} of ${total ?? "?"} new pages`);
       },
+      // A long crawl is saved as it goes, so an error hours in does not lose it.
+      onCheckpoint: (soFar) => writeJson(path, { complete: false, products: soFar } satisfies CatalogCache),
     });
     writeJson(path, { complete: limit === undefined, products } satisfies CatalogCache);
     console.log(`  ${shop}: ${products.length} products${limit === undefined ? "" : ` (limited to ${limit})`}`);

@@ -125,3 +125,33 @@ describe("shopAdapters", () => {
     expect(shopAdapters.map((adapter) => adapter.code)).toEqual(["crowdgames", "lavkaigr", "gaga"]);
   });
 });
+
+describe("gagaAdapter.listCatalog — review fixes", () => {
+  const sitemapOf = (slugs: string[]) =>
+    `<urlset>${slugs.map((slug) => `<url><loc>https://gaga.ru/game/${slug}/</loc></url>`).join("")}</urlset>`;
+  const page = (id: number) => `<button class="btn add_to_cart" data-gid="${id}" data-price="500" data-name="Game ${id}" data-vendor="V">`;
+
+  it("fails when every fetched page is something other than a product", async () => {
+    const get: Get = async (url) => (url.endsWith("/sitemap.xml") ? sitemapOf(["a", "b", "c"]) : "<html>Проверка браузера</html>");
+    await expect(gagaAdapter.listCatalog(get)).rejects.toThrow(/unrecognised/);
+  });
+
+  it("hands over what it has read so far, so a long crawl can be saved", async () => {
+    const slugs = Array.from({ length: 5 }, (_, index) => `g${index + 1}`);
+    const checkpoints: number[] = [];
+    const get: Get = async (url) => (url.endsWith("/sitemap.xml") ? sitemapOf(slugs) : page(Number(url.split("/").at(-2)?.slice(1))));
+    await gagaAdapter.listCatalog(get, { checkpointEvery: 2, onCheckpoint: (products) => checkpoints.push(products.length) });
+    expect(checkpoints).toEqual([2, 4]);
+  });
+
+  it("keeps the checkpoint when a later page fails", async () => {
+    const saved: ShopProduct[][] = [];
+    const get: Get = async (url) => {
+      if (url.endsWith("/sitemap.xml")) return sitemapOf(["g1", "g2", "g3"]);
+      if (url.includes("/g3/")) throw new Error("HTTP 429");
+      return page(Number(url.split("/").at(-2)?.slice(1)));
+    };
+    await expect(gagaAdapter.listCatalog(get, { checkpointEvery: 2, onCheckpoint: (products) => saved.push(products) })).rejects.toThrow("429");
+    expect(saved.at(-1)?.map((item) => item.externalId)).toEqual(["1", "2"]);
+  });
+});

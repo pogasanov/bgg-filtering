@@ -32,6 +32,7 @@ export type LinkReason =
   | "exact-title"
   | "several-products"
   | "claimed-by-several-games"
+  | "name-within-another-game"
   | "title-contains-name"
   | "barcode";
 
@@ -52,11 +53,22 @@ const reasonRank: Record<LinkReason, number> = {
   barcode: 1,
   "several-products": 2,
   "claimed-by-several-games": 3,
-  "title-contains-name": 4,
+  "name-within-another-game": 4,
+  "title-contains-name": 5,
 };
 
 function isStopToken(token: string): boolean {
   return exactStopWords.includes(token) || stopWords.some((stem) => token.startsWith(stem));
+}
+
+const hasCyrillic = (text: string) => /[а-я]/.test(text);
+
+/** Whether `inner` occurs in `outer` as consecutive whole tokens. */
+function containsTokens(outer: string[], inner: string[]): boolean {
+  for (let start = 0; start + inner.length <= outer.length; start += 1) {
+    if (inner.every((token, offset) => outer[start + offset] === token)) return true;
+  }
+  return false;
 }
 
 const productKey = (product: ShopProduct) => `${product.shop}\u0000${product.externalId}`;
@@ -67,17 +79,22 @@ const productKey = (product: ShopProduct) => `${product.shop}\u0000${product.ext
  * a candidate for the owner to judge, and most products get no link at all.
  */
 export function matchProducts(games: GameNames[], products: ShopProduct[]): Link[] {
-  // Titles that count as "the game itself": each name, and any two names joined
-  // ("Apiary (Апиарий)" normalises to "apiary апиарий").
+  // Titles that count as "the game itself": each name, and an original name joined
+  // with a Russian one ("Apiary (Апиарий)" normalises to "apiary апиарий"). Two names
+  // in the same script are not joined: "Dune" + "Imperium" would claim another game.
   const gamesByExactTitle = new Map<string, Set<number>>();
+  const allNames: ContainedName[] = [];
   const containedByFirstToken = new Map<string, ContainedName[]>();
 
   for (const game of games) {
     const names = [...new Set(game.names.map(normalizeTitle).filter((name) => name !== ""))];
     const exactTitles = new Set(names);
     for (const first of names) {
-      for (const second of names) if (first !== second) exactTitles.add(`${first} ${second}`);
+      for (const second of names) {
+        if (first !== second && hasCyrillic(first) !== hasCyrillic(second)) exactTitles.add(`${first} ${second}`);
+      }
     }
+    for (const name of names) allNames.push({ bggId: game.bggId, tokens: name.split(" ") });
     for (const title of exactTitles) {
       if (!gamesByExactTitle.has(title)) gamesByExactTitle.set(title, new Set());
       gamesByExactTitle.get(title)?.add(game.bggId);
@@ -127,7 +144,16 @@ export function matchProducts(games: GameNames[], products: ShopProduct[]): Link
       for (const item of items) propose(bggId, item.product, "candidate", "several-products");
       continue;
     }
-    const { product } = items[0];
+    const { product, tokens } = items[0];
+    // "Агрикола" is one game's whole name and the start of another's ("Агрикола. Новое издание").
+    // The shop may mean either edition, so the owner decides.
+    const withinAnother = allNames.some(
+      (name) => name.bggId !== bggId && name.tokens.length > tokens.length && containsTokens(name.tokens, tokens),
+    );
+    if (withinAnother) {
+      propose(bggId, product, "candidate", "name-within-another-game");
+      continue;
+    }
     propose(bggId, product, "confirmed", "exact-title");
     confirmedProducts.add(productKey(product));
     if (product.barcode) {

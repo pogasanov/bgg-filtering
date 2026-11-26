@@ -64,6 +64,7 @@ export const gagaAdapter: ShopAdapter = {
     const limit = opts?.limit ?? Infinity;
     const products: ShopProduct[] = [];
     let fetched = 0;
+    let parsed = 0;
 
     for (const url of urls) {
       const known = knownByUrl.get(url);
@@ -76,8 +77,17 @@ export const gagaAdapter: ShopAdapter = {
 
       const product = parseGagaProduct(await get(url, { encoding: "windows-1251" }), url);
       fetched += 1;
-      if (product) products.push(product);
+      if (product) {
+        products.push(product);
+        parsed += 1;
+      }
       opts?.onProgress?.(fetched, total);
+      if (opts?.onCheckpoint && fetched % (opts.checkpointEvery ?? 50) === 0) opts.onCheckpoint([...products]);
+    }
+
+    // Some sitemap entries are not products, but all of them at once means a block page or a new layout.
+    if (fetched > 0 && parsed === 0) {
+      throw new Error(`GaGa product pages are unrecognised: none of ${fetched} pages had a product`);
     }
 
     // Products the sitemap no longer lists stay known; they are simply not refreshed.

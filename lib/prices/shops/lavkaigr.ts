@@ -15,7 +15,8 @@ function toProduct(block: string): ShopProduct | null {
   if (!href || title === "") return null;
 
   // In stock means a buy button; otherwise the shop offers "notify me" and only lists a price.
-  const buy = openingTags(block, "a").find((tag) => hasClass(tag, "buy-mini"));
+  // The button must carry this product's own ID, so a stray button never lends its price.
+  const buy = openingTags(block, "a").find((tag) => hasClass(tag, "buy-mini") && attribute(tag, "data-id") === externalId);
   const listed = /<p\b[^>]*class="[^"]*\bprice\b[^"]*"[^>]*>([\s\S]*?)<\/p>/i.exec(block);
 
   return {
@@ -37,8 +38,9 @@ export function parseLavkaListing(html: string): { products: ShopProduct[]; last
   const start = html.search(/<div\b[^>]*class="[^"]*\bproduct-list\b/i);
   if (start === -1) throw new Error("Lavka Igr listing is unrecognised: no product list");
 
+  const end = html.indexOf('<div class="pagenator"', start);
   const blocks = html
-    .slice(start)
+    .slice(start, end === -1 ? undefined : end)
     .split(/(?=<div class="block">)/)
     .filter((chunk) => chunk.startsWith('<div class="block">') && chunk.includes("photo-block"));
   const products = blocks.map(toProduct);
@@ -59,7 +61,11 @@ export const lavkaigrAdapter: ShopAdapter = {
 
     for (let page = 1; page <= lastPage && page <= (opts?.limit ?? Infinity); page += 1) {
       const listing = parseLavkaListing(await get(`${ORIGIN}/shop/?page=${page}`));
-      if (listing.products.length === 0) break;
+      if (listing.products.length === 0) {
+        if (page === 1) break;
+        // A complete walk never meets an empty page; treating this as the end would pass a cut-short catalogue off as whole.
+        throw new Error(`Lavka Igr catalogue incomplete: page ${page} of ${lastPage} has no products`);
+      }
       lastPage = Math.max(lastPage, listing.lastPage);
       for (const product of listing.products) if (!byId.has(product.externalId)) byId.set(product.externalId, product);
       opts?.onProgress?.(page, lastPage);

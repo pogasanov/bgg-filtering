@@ -1,4 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
+import { decodeEntities } from "@/lib/prices/html";
 import { normalizeTitle } from "@/lib/prices/text";
 import type { GameNames } from "@/lib/prices/types";
 
@@ -28,7 +29,8 @@ export function alternateNamesByGame(thingXml: string): Map<number, string[]> {
     const ordered = [...names.filter((name) => name.type === "primary"), ...names.filter((name) => name.type !== "primary")];
     result.set(
       id,
-      ordered.map((name) => String(name.value)),
+      // BGG double-encodes some names, leaving "&#039;" in the parsed value.
+      ordered.map((name) => decodeEntities(String(name.value))),
     );
   }
 

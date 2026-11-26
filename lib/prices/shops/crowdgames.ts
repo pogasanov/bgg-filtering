@@ -67,6 +67,9 @@ export const crowdgamesAdapter: ShopAdapter = {
     }
 
     if (byId.size === 0) throw new Error("CrowdGames catalogue empty or unrecognised");
+    if (total !== null && byId.size < total) {
+      throw new Error(`CrowdGames catalogue incomplete: read ${byId.size} of ${total} products`);
+    }
     return [...byId.values()];
   },
 };
