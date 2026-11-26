@@ -36,4 +36,19 @@ describe("shadcn foundation", () => {
       iconLibrary: "lucide",
     });
   });
+
+  test("ships the redesign foundation", () => {
+    const css = read("app/globals.css");
+    const layout = read("app/layout.tsx");
+    for (const name of ["sheet", "collapsible", "toggle", "toggle-group", "tooltip"]) {
+      expect(read(`components/ui/${name}.tsx`), `${name} should be generated`).toContain("data-slot=");
+    }
+    expect(css).toContain("@media (prefers-color-scheme: dark)");
+    expect(css).toContain("--color-poll-best: var(--poll-best)");
+    expect(css).toContain("--color-poll-rec: var(--poll-rec)");
+    expect(css).toContain("--font-sans: var(--font-geist-sans)");
+    expect(layout).toContain('lang="ru"');
+    expect(layout).toContain("geist/font");
+    expect(layout).toContain("TooltipProvider");
+  });
 });

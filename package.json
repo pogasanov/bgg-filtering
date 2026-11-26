@@ -17,6 +17,7 @@
     "clsx": "latest",
     "cn": "^0.5.2",
     "fast-xml-parser": "latest",
+    "geist": "^1.9.2",
     "lucide-react": "latest",
     "next": "latest",
     "radix-ui": "^1.6.4",
