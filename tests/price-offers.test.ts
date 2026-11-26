@@ -37,5 +37,5 @@ test("price formatting and shop names", () => {
   expect(formatPrice(22990)).toBe("22 990 ₽");
   expect(formatPrice(690)).toBe("690 ₽");
   expect(formatPrice(null)).toBe("—");
-  expect(shopNames).toEqual({ crowdgames: "CrowdGames", lavkaigr: "Лавка игр", gaga: "GaGa" });
+  expect(shopNames).toEqual({ crowdgames: "CrowdGames", lavkaigr: "Лавка игр", gaga: "GaGa", hobbygames: "Hobby Games" });
 });

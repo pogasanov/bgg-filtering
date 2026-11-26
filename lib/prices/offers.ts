@@ -27,6 +27,7 @@ export const shopNames: Record<ShopCode, string> = {
   crowdgames: "CrowdGames",
   lavkaigr: "Лавка игр",
   gaga: "GaGa",
+  hobbygames: "Hobby Games",
 };
 
 export function isStale(checkedAt: string | null, now: Date): boolean {

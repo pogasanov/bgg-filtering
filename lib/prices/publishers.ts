@@ -6,6 +6,7 @@ export const shopByPublisherId: Readonly<Record<number, ShopCode>> = {
   34522: "crowdgames", // CrowD Games
   34801: "lavkaigr", // Lavka Games
   29194: "gaga", // GaGa Games
+  18852: "hobbygames", // Hobby World
 };
 
 const xmlParser = new XMLParser({

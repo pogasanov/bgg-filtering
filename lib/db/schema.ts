@@ -131,13 +131,13 @@ export const syncLock = pgTable(
   (table) => [check("sync_lock_singleton_check", sql`${table.id} = 1`)],
 );
 
-const SHOPS = sql`('crowdgames', 'lavkaigr', 'gaga')`;
+const SHOPS = sql`('crowdgames', 'lavkaigr', 'gaga', 'hobbygames')`;
 
 /** Every product a tracked shop lists, whether or not it has been linked to a game. */
 export const shopProducts = pgTable(
   "shop_products",
   {
-    shop: text("shop").$type<"crowdgames" | "lavkaigr" | "gaga">().notNull(),
+    shop: text("shop").$type<"crowdgames" | "lavkaigr" | "gaga" | "hobbygames">().notNull(),
     /** The shop's own product ID. */
     externalId: text("external_id").notNull(),
     url: text("url").notNull(),
@@ -162,7 +162,7 @@ export const productLinks = pgTable(
   "product_links",
   {
     bggId: integer("bgg_id").notNull(),
-    shop: text("shop").$type<"crowdgames" | "lavkaigr" | "gaga">().notNull(),
+    shop: text("shop").$type<"crowdgames" | "lavkaigr" | "gaga" | "hobbygames">().notNull(),
     externalId: text("external_id").notNull(),
     status: text("status").$type<"candidate" | "confirmed" | "rejected">().notNull(),
     /** Why the matcher proposed it. */
@@ -193,7 +193,7 @@ export const productLinks = pgTable(
 export const priceHistory = pgTable(
   "price_history",
   {
-    shop: text("shop").$type<"crowdgames" | "lavkaigr" | "gaga">().notNull(),
+    shop: text("shop").$type<"crowdgames" | "lavkaigr" | "gaga" | "hobbygames">().notNull(),
     externalId: text("external_id").notNull(),
     observedAt: timestamp("observed_at", { withTimezone: true }).notNull(),
     /** Whole rubles. */
@@ -215,7 +215,7 @@ export const priceHistory = pgTable(
 export const priceChecks = pgTable(
   "price_checks",
   {
-    shop: text("shop").$type<"crowdgames" | "lavkaigr" | "gaga">().notNull(),
+    shop: text("shop").$type<"crowdgames" | "lavkaigr" | "gaga" | "hobbygames">().notNull(),
     externalId: text("external_id").notNull(),
     checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
   },
@@ -233,7 +233,7 @@ export const priceRuns = pgTable(
   "price_runs",
   {
     id: serial("id").primaryKey(),
-    shop: text("shop").$type<"crowdgames" | "lavkaigr" | "gaga">().notNull(),
+    shop: text("shop").$type<"crowdgames" | "lavkaigr" | "gaga" | "hobbygames">().notNull(),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
     finishedAt: timestamp("finished_at", { withTimezone: true }).notNull(),
     productsSeen: integer("products_seen").notNull().default(0),

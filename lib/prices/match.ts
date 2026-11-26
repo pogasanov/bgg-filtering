@@ -126,7 +126,8 @@ export function matchProducts(games: GameNames[], products: ShopProduct[]): Link
 
   // A product with several variants has no single price, so it is never matched.
   const indexed: IndexedProduct[] = products
-    .filter((product) => product.variantCount === 1)
+    // …and what the shop itself calls an expansion is not the game, whatever its title says.
+    .filter((product) => product.variantCount === 1 && !product.isExpansion)
     .map((product) => {
       const title = normalizeTitle(product.title).replace(GENERIC_PREFIX, "");
       return { product, title, tokens: title === "" ? [] : title.split(" ") };

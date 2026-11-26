@@ -240,9 +240,9 @@ Results and caches are written to `data/price-cache/`. Requests obey each shop's
 
 ## Collecting prices into the database
 
-`pnpm prices:collect` reads the three shops and stores the result in Postgres: every product a shop lists (`shop_products`), the links between games and products (`product_links`), and the price of each confirmed product (`price_history`, written only when price, old price or stock changed; `price_checks` records the last successful read). Each shop's outcome goes to `price_runs`.
+`pnpm prices:collect` reads the tracked shops (CrowdGames, Lavka Igr, GaGa, and Hobby World's own games at Hobby Games) and stores the result in Postgres: every product a shop lists (`shop_products`), the links between games and products (`product_links`), and the price of each confirmed product (`price_history`, written only when price, old price or stock changed; `price_checks` records the last successful read). Each shop's outcome goes to `price_runs`.
 
-- `--shops crowdgames,lavkaigr,gaga` limits the run to some shops.
+- `--shops crowdgames,lavkaigr,gaga,hobbygames` limits the run to some shops.
 - `--from-cache` stores the catalogues a `prices:dry-run` already saved under `data/price-cache/` instead of asking the shops again.
 
 It needs `DATABASE_URL`. Game names and Russian publishers come from the database, where the BGG sync stores every alternate name and publisher ID of a game; run the sync once before the first price run. Apply migrations first with `pnpm db:migrate`.

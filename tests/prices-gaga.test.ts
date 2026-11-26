@@ -121,8 +121,8 @@ describe("gagaAdapter.listCatalog", () => {
 });
 
 describe("shopAdapters", () => {
-  it("lists the three shops", () => {
-    expect(shopAdapters.map((adapter) => adapter.code)).toEqual(["crowdgames", "lavkaigr", "gaga"]);
+  it("lists every tracked shop", () => {
+    expect(shopAdapters.map((adapter) => adapter.code)).toEqual(["crowdgames", "lavkaigr", "gaga", "hobbygames"]);
   });
 });
 

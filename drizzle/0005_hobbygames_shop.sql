@@ -1,0 +1,2 @@
+ALTER TABLE "shop_products" DROP CONSTRAINT "shop_products_shop_check";--> statement-breakpoint
+ALTER TABLE "shop_products" ADD CONSTRAINT "shop_products_shop_check" CHECK ("shop_products"."shop" IN ('crowdgames', 'lavkaigr', 'gaga', 'hobbygames'));

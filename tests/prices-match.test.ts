@@ -243,3 +243,11 @@ describe("matchProducts — imports", () => {
   });
 });
 
+describe("matchProducts — expansions the shop marks itself", () => {
+  it("ignores a product the shop tags as an expansion, whatever its title", () => {
+    const everdell = game(1, "Everdell", "Эверделл");
+    expect(summary([everdell], [product("Эверделл: Морозный край. Зимние припасы", { isExpansion: true })])).toEqual([]);
+    expect(summary([everdell], [product("Эверделл", { isExpansion: true })])).toEqual([]);
+  });
+});
+

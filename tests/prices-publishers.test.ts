@@ -13,7 +13,7 @@ const xml = `<?xml version="1.0" encoding="utf-8"?>
     <link type="boardgamepublisher" id="29194" value="GaGa Games" />
   </item>
   <item type="boardgame" id="2">
-    <link type="boardgamepublisher" id="18852" value="Hobby World" />
+    <link type="boardgamepublisher" id="9325" value="Lifestyle Boardgames Ltd" />
   </item>
   <item type="boardgame" id="3">
     <link type="boardgamepublisher" id="34801" value="Lavka Games" />
@@ -34,6 +34,11 @@ describe("publisherShopsByGame", () => {
 
   it("gives an empty list for a game no tracked shop publishes", () => {
     expect(shops.get(2)).toEqual([]);
+  });
+
+  it("knows Hobby World's shop", () => {
+    const hobby = `<items><item id="7"><link type="boardgamepublisher" id="18852" value="Hobby World" /></item></items>`;
+    expect(publisherShopsByGame(hobby).get(7)).toEqual(["hobbygames"]);
   });
 
   it("ignores links that are not publishers", () => {

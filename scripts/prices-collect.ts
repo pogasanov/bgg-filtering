@@ -1,7 +1,7 @@
 /**
  * Collects today's prices from the tracked shops and stores them in the database.
  *
- *   pnpm prices:collect [--shops crowdgames,lavkaigr,gaga] [--from-cache]
+ *   pnpm prices:collect [--shops crowdgames,lavkaigr,gaga,hobbygames] [--from-cache]
  *
  * `--from-cache` stores the catalogues a `prices:dry-run` already saved under
  * data/price-cache instead of asking the shops again.

@@ -1,4 +1,4 @@
-export const shopCodes = ["crowdgames", "lavkaigr", "gaga"] as const;
+export const shopCodes = ["crowdgames", "lavkaigr", "gaga", "hobbygames"] as const;
 export type ShopCode = (typeof shopCodes)[number];
 
 export type ShopProduct = {
@@ -19,6 +19,8 @@ export type ShopProduct = {
   available: boolean | null;
   /** 1 unless the shop exposes several purchasable variants. */
   variantCount: number;
+  /** Set when the shop itself tags the product as an expansion; such a product is never a game's price. */
+  isExpansion?: boolean;
 };
 
 /** `names` includes `primaryName` and is de-duplicated. */

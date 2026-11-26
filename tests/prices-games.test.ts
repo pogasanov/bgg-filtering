@@ -21,7 +21,7 @@ describe("loadGamesForPricing", () => {
     await upsertGames(
       db,
       [
-        makeGame(2, { rank: 2, title: "Citadels", alternateNames: ["Цитадели", "Ciudadelas"], publisherIds: [18852] }),
+        makeGame(2, { rank: 2, title: "Citadels", alternateNames: ["Цитадели", "Ciudadelas"], publisherIds: [9325] }),
         makeGame(1, { rank: 1, title: "Wingspan", alternateNames: ["Крылья", "wingspan"], publisherIds: [23202, 34801, 29194] }),
       ],
       NOW,

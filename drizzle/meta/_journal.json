@@ -36,6 +36,13 @@
       "when": 1795717146017,
       "tag": "0004_game_ru_names",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795718327838,
+      "tag": "0005_hobbygames_shop",
+      "breakpoints": true
     }
   ]
 }
