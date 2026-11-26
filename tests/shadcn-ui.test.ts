@@ -59,4 +59,12 @@ describe("shadcn foundation", () => {
       expect(read(`components/ui/${name}.tsx`), `${name} should be removed`).toBe("");
     }
   });
+
+  test("ships the chart primitive and one colour per shop", () => {
+    const css = read("app/globals.css");
+    expect(read("components/ui/chart.tsx")).toContain("data-slot=");
+    for (const shop of ["crowdgames", "lavkaigr", "gaga"]) {
+      expect(css).toContain(`--color-shop-${shop}: var(--shop-${shop})`);
+    }
+  });
 });
