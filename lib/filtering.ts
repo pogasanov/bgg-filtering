@@ -23,14 +23,15 @@ export function isNotPlayable(game: ListedGame, playerCount: PlayerCount): boole
 }
 
 export function defaultSortDir(sort: SortKey): SortDir {
-  return sort === "rank" ? "asc" : "desc";
+  // Ranks and prices read best from the smallest; everything else from the largest.
+  return sort === "rank" || sort === "price" ? "asc" : "desc";
 }
 
 function compareGames(sort: SortKey, dir: SortDir) {
   const sign = dir === "asc" ? 1 : -1;
   return (a: ListedGame, b: ListedGame) => {
-    const left = a[sort];
-    const right = b[sort];
+    const left = sort === "price" ? a.bestPrice : a[sort];
+    const right = sort === "price" ? b.bestPrice : b[sort];
     // Missing values go last whichever way the column is sorted.
     if (left === null && right === null) return 0;
     if (left === null) return 1;

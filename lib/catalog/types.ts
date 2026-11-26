@@ -1,4 +1,4 @@
-import type { NormalizedGame } from "@/lib/bgg/types";
+import type { ListedGame } from "@/lib/bgg/types";
 
 export type CatalogStatus = {
   gameCount: number;
@@ -7,7 +7,7 @@ export type CatalogStatus = {
 };
 
 export type Catalog = {
-  games: NormalizedGame[];
+  games: ListedGame[];
   status: CatalogStatus;
 };
 

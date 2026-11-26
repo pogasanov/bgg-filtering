@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { defaultSortDir, filterGames, gameTags, tagCounts, type GameFilters } from "@/lib/filtering";
-import type { NormalizedGame } from "@/lib/bgg/types";
+import type { ListedGame } from "@/lib/bgg/types";
 
-function makeGame(overrides: Partial<NormalizedGame>): NormalizedGame {
+function makeGame(overrides: Partial<ListedGame>): ListedGame {
   return {
     id: 1,
     rank: 1,
@@ -29,6 +29,8 @@ function makeGame(overrides: Partial<NormalizedGame>): NormalizedGame {
       "6+": { best: 0, recommended: 0, notRecommended: 0, verdict: "unknown" },
     },
     bggUrl: "https://boardgamegeek.com/boardgame/1",
+    offers: [],
+    bestPrice: null,
     ...overrides,
   };
 }
@@ -280,5 +282,14 @@ describe("tag counts", () => {
     expect(counts.get("Economic")).toBe(2);
     expect(counts.get("Worker Placement")).toBe(1);
     expect(counts.has("Deck Building")).toBe(false);
+  });
+});
+
+describe("price sorting", () => {
+  test("cheapest first by default, with priceless games last either way", () => {
+    const games = [makeGame({ id: 1, bestPrice: 3000 }), makeGame({ id: 2, bestPrice: null }), makeGame({ id: 3, bestPrice: 900 })];
+    expect(defaultSortDir("price")).toBe("asc");
+    expect(filterGames(games, { ...base, sort: "price" }).map((item) => item.id)).toEqual([3, 1, 2]);
+    expect(filterGames(games, { ...base, sort: "price", sortDir: "desc" }).map((item) => item.id)).toEqual([1, 3, 2]);
   });
 });

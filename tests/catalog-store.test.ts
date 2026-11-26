@@ -9,6 +9,7 @@ import {
 } from "@/lib/catalog/store";
 import type { Db } from "@/lib/db/client";
 import type { NormalizedGame, TopRankItem } from "@/lib/bgg/types";
+import { priceChecks, priceHistory, productLinks, shopProducts } from "@/lib/db/schema";
 import { createTestDb, rows } from "./helpers/test-db";
 
 const NOW = new Date("2026-11-30T03:00:00.000Z");
@@ -184,5 +185,74 @@ describe("catalog store", () => {
     );
 
     expect((await getCatalog(db)).status.updatedAt).toBe("2026-11-30T03:05:00.000Z");
+  });
+});
+
+/** Game 1: a confirmed Lavka Igr product that went from 2000 to 1700, and a candidate CrowdGames one at 900. */
+async function seedOffers(db: Db): Promise<void> {
+  await replaceRankedGames(db, [ranked(1), ranked(2)], NOW);
+  await upsertGames(db, [game(1), game(2)], NOW);
+  const seen = new Date("2026-11-20T00:00:00.000Z");
+  await db.insert(shopProducts).values([
+    { shop: "lavkaigr", externalId: "L1", url: "https://www.lavkaigr.ru/shop/l1", title: "Игра 1", firstSeenAt: seen, lastSeenAt: seen },
+    { shop: "crowdgames", externalId: "C1", url: "https://www.crowdgames.ru/c1", title: "Игра 1", firstSeenAt: seen, lastSeenAt: seen },
+  ]);
+  await db.insert(productLinks).values([
+    { bggId: 1, shop: "lavkaigr", externalId: "L1", status: "confirmed", reason: "exact", decidedBy: "auto", decidedAt: seen },
+    { bggId: 1, shop: "crowdgames", externalId: "C1", status: "candidate", reason: "fuzzy", decidedBy: "auto", decidedAt: seen },
+  ]);
+  await db.insert(priceHistory).values([
+    { shop: "lavkaigr", externalId: "L1", observedAt: seen, price: 2000, oldPrice: null, available: true },
+    { shop: "lavkaigr", externalId: "L1", observedAt: new Date("2026-12-08T00:00:00.000Z"), price: 1700, oldPrice: null, available: true },
+    { shop: "crowdgames", externalId: "C1", observedAt: seen, price: 900, oldPrice: null, available: true },
+  ]);
+  const checked = new Date("2026-12-09T00:00:00.000Z");
+  await db.insert(priceChecks).values([
+    { shop: "lavkaigr", externalId: "L1", checkedAt: checked },
+    { shop: "crowdgames", externalId: "C1", checkedAt: checked },
+  ]);
+}
+
+describe("catalog offers", () => {
+  test("attaches current offers from confirmed links only", async () => {
+    const db = await setup();
+    await seedOffers(db);
+
+    const catalog = await getCatalog(db, new Date("2026-12-10T00:00:00.000Z"));
+    const one = catalog.games.find((item) => item.id === 1)!;
+
+    expect(one.offers).toEqual([
+      {
+        shop: "lavkaigr",
+        url: "https://www.lavkaigr.ru/shop/l1",
+        price: 1700,
+        oldPrice: null,
+        available: true,
+        checkedAt: "2026-12-09T00:00:00.000Z",
+        stale: false,
+        salePercent: 15,
+      },
+    ]);
+    expect(one.bestPrice).toBe(1700);
+    expect(catalog.games.find((item) => item.id === 2)).toMatchObject({ offers: [], bestPrice: null });
+  });
+
+  test("a shop not checked for three days stops counting towards the best price", async () => {
+    const db = await setup();
+    await seedOffers(db);
+
+    const one = (await getCatalog(db, new Date("2026-12-13T00:00:00.000Z"))).games.find((item) => item.id === 1)!;
+
+    expect(one.offers[0].stale).toBe(true);
+    expect(one.bestPrice).toBeNull();
+  });
+
+  test("a price that has held for over a month is not a sale", async () => {
+    const db = await setup();
+    await seedOffers(db);
+
+    const one = (await getCatalog(db, new Date("2027-02-01T00:00:00.000Z"))).games.find((item) => item.id === 1)!;
+
+    expect(one.offers[0].salePercent).toBeNull();
   });
 });

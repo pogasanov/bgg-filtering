@@ -6,7 +6,7 @@ import { Results } from "@/components/results/results";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { emptyPlayerRecommendations } from "@/lib/bgg/parser";
 import type { CatalogStatus } from "@/lib/catalog/types";
-import type { NormalizedGame } from "@/lib/bgg/types";
+import type { ListedGame } from "@/lib/bgg/types";
 import type { GameFilters } from "@/lib/filtering";
 import { catalogFrame, gamesView } from "@/lib/games-view";
 import { defaultFilters, serializeFilters } from "@/lib/url-state";
@@ -25,7 +25,7 @@ const status: CatalogStatus = {
   updatedAt: null,
 };
 
-function makeGame(id: number, year: number | null, languages: string[] = []): NormalizedGame {
+function makeGame(id: number, year: number | null, languages: string[] = []): ListedGame {
   return {
     id,
     rank: id,
@@ -44,6 +44,8 @@ function makeGame(id: number, year: number | null, languages: string[] = []): No
     languages,
     playerRecommendations: emptyPlayerRecommendations(),
     bggUrl: "https://boardgamegeek.com/boardgame/" + id,
+    offers: [],
+    bestPrice: null,
   };
 }
 
@@ -51,7 +53,7 @@ function slotCount(html: string, slot: string) {
   return html.match(new RegExp(`data-slot="${slot}"`, "g"))?.length ?? 0;
 }
 
-function render(games: NormalizedGame[], filters: GameFilters = defaultFilters, page = 1) {
+function render(games: ListedGame[], filters: GameFilters = defaultFilters, page = 1) {
   query = serializeFilters(filters);
   const frame = catalogFrame({ games, status: { ...status, gameCount: games.length } });
   // The root layout provides the tooltip context and the route's page provides the results; mirror both here.

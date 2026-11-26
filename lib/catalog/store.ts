@@ -19,6 +19,9 @@ import {
   syncRuns,
 } from "@/lib/db/schema";
 import type { Catalog, SyncRunResult } from "./types";
+import { bestOffer, isStale, salePercent, type GameOffer } from "@/lib/prices/offers";
+import { getCurrentOffers } from "@/lib/prices/store";
+import { shopCodes } from "@/lib/prices/types";
 
 export const STALE_LOCK_MS = 6 * 60 * 60 * 1000;
 
@@ -196,7 +199,7 @@ export async function finishSync(db: Db, syncRunId: number, result: SyncRunResul
   });
 }
 
-export async function getCatalog(db: Db): Promise<Catalog> {
+export async function getCatalog(db: Db, now: Date = new Date()): Promise<Catalog> {
   const gameRows = await db
     .select({
       id: games.bggId,
@@ -271,8 +274,31 @@ export async function getCatalog(db: Db): Promise<Catalog> {
     recommendationsByGame.set(row.gameId, recommendations);
   }
 
+  // Staleness and sales are judged once, when the catalog is built, so every cached page agrees.
+  const offersByGame = new Map<number, GameOffer[]>();
+  for (const row of await getCurrentOffers(db, now)) {
+    const checkedAt = row.checkedAt.toISOString();
+    const offers = offersByGame.get(row.bggId) ?? [];
+    offers.push({
+      shop: row.shop,
+      url: row.url,
+      price: row.price,
+      oldPrice: row.oldPrice,
+      available: row.available,
+      checkedAt,
+      stale: isStale(checkedAt, now),
+      salePercent: salePercent(row.price, row.oldPrice, row.recentHigh),
+    });
+    offersByGame.set(row.bggId, offers);
+  }
+  for (const offers of offersByGame.values()) {
+    offers.sort((a, b) => shopCodes.indexOf(a.shop) - shopCodes.indexOf(b.shop));
+  }
+
   const catalogGames = gameRows.map((game) => ({
     ...game,
+    offers: offersByGame.get(game.id) ?? [],
+    bestPrice: bestOffer(offersByGame.get(game.id) ?? [])?.price ?? null,
     categories: tagsByGame.get(game.id)?.categories ?? [],
     mechanics: tagsByGame.get(game.id)?.mechanics ?? [],
     languages: languagesByGame.get(game.id) ?? [],

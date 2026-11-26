@@ -22,6 +22,7 @@ export const sortLabels: Record<SortKey, string> = {
   geekRating: "Geek",
   averageRating: "Средний",
   numVoters: "Голосов",
+  price: "Цена",
 };
 
 export function playersLabel(count: PlayerCount): string {
