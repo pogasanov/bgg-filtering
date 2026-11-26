@@ -1,5 +1,7 @@
 # BGG Player Recommendation Finder
 
+Live at **https://bg.gsnv.dev**.
+
 A public, non-commercial Next.js site for filtering top BoardGameGeek games by categories, mechanics, and player-count recommendation polls.
 
 Filters live in a rail on the left with the player-count × verdict matrix on top; results are a sortable table with the poll verdict for every player count shown in each row. The current filters, sort and page are kept in the URL, so a reload or a copied link restores the view. Filtering and sorting run on the server, which renders 100 games per page and keeps the result of each filter combination in memory until the next sync. The theme follows the operating system.
@@ -99,7 +101,7 @@ modal token new --profile bgg --no-activate
 3. Create the worker secret:
 
 ```bash
-MODAL_PROFILE=bgg modal secret create bgg-sync DATABASE_URL=... BGG_TOKEN=... REVALIDATE_URL=https://<project>.vercel.app/api/revalidate REVALIDATE_SECRET=... SENTRY_DSN=...
+MODAL_PROFILE=bgg modal secret create bgg-sync DATABASE_URL=... BGG_TOKEN=... REVALIDATE_URL=https://bg.gsnv.dev/api/revalidate REVALIDATE_SECRET=... SENTRY_DSN=...
 ```
 
 4. Deploy the weekly schedule and run the first sync:
@@ -133,7 +135,7 @@ pnpm worker:run
 Each check sends one deliberate error, tagged `component:site` or `component:worker`:
 
 ```bash
-curl -H "Authorization: Bearer $REVALIDATE_SECRET" https://<project>.vercel.app/api/sentry-check
+curl -H "Authorization: Bearer $REVALIDATE_SECRET" https://bg.gsnv.dev/api/sentry-check
 ```
 
 ```bash
@@ -163,10 +165,11 @@ Most visitors are expected to come from Russia, where reachability is the main r
 | `bgfilter.vercel.app` | 1 of 6 OK | 6 of 6 OK |
 | `nextjs.org`, `vercel.com` (custom domains on Vercel) | 3 of 3 OK each | 3 of 3 OK each |
 | thumbnails from `cf.geekdo-images.com` | OK | OK |
+| `bg.gsnv.dev` (project's own domain, attached later that day) | 5 of 5 OK | 5 of 5 OK |
 
 When the Moscow requests to `bgfilter.vercel.app` failed, the TCP connection to Vercel's IPs succeeded and the request then timed out. That points at filtering of the `*.vercel.app` name, not at blocked IPs.
 
-**First fix:** attach the project's own domain to the Vercel project (free on Hobby) and repeat the check.
+**Fix applied:** the site's public address is **https://bg.gsnv.dev**, a subdomain of `gsnv.dev`, whose DNS is on Vercel in another account. It is attached to the `bgfilter` project with `pnpm vc domains add bg.gsnv.dev bgfilter`. Share this address, not `bgfilter.vercel.app`.
 
 **Plan B, if a custom domain is unreliable from Russia too:**
 
