@@ -15,7 +15,8 @@
     "worker:build": "node scripts/build-worker.mjs",
     "worker:deploy": "pnpm worker:build && MODAL_PROFILE=bgg modal deploy worker/modal_app.py",
     "worker:run": "pnpm worker:build && MODAL_PROFILE=bgg modal run worker/modal_app.py",
-    "worker:sentry-check": "pnpm worker:build && MODAL_PROFILE=bgg modal run worker/modal_app.py --sentry-check"
+    "worker:sentry-check": "pnpm worker:build && MODAL_PROFILE=bgg modal run worker/modal_app.py --sentry-check",
+    "vc": "tsx --env-file-if-exists=.env.local scripts/vercel.ts"
   },
   "dependencies": {
     "@sentry/nextjs": "11.17.0",
