@@ -1,22 +1,14 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
-import { BggApp } from "@/components/bgg-app";
+import { BggApp, formatUpdatedDate } from "@/components/bgg-app";
 import { emptyPlayerRecommendations } from "@/lib/bgg/parser";
-import type { CacheStatus } from "@/lib/cache/store";
+import type { CatalogStatus } from "@/lib/catalog/types";
 import type { NormalizedGame } from "@/lib/bgg/types";
 
-const status: CacheStatus = {
+const status: CatalogStatus = {
   gameCount: 3,
-  cacheUpdatedAt: null,
-  latestSync: {
-    status: null,
-    startedAt: null,
-    finishedAt: null,
-    fetchedCount: null,
-    error: null,
-  },
-  syncLocked: false,
+  updatedAt: null,
 };
 
 function makeGame(id: number, year: number | null, languages: string[] = []): NormalizedGame {
@@ -48,8 +40,8 @@ describe("shadcn control composition", () => {
   test("renders the open year domain as a two-thumb slider", () => {
     const html = renderToStaticMarkup(
       createElement(BggApp, {
-        initialGames: [makeGame(1, 1995), makeGame(2, 2020), makeGame(3, null)],
-        initialStatus: status,
+        games: [makeGame(1, 1995), makeGame(2, 2020), makeGame(3, null)],
+        status: status,
       }),
     );
 
@@ -66,13 +58,13 @@ describe("shadcn control composition", () => {
   test("gives an extreme year outlier only one ordinal step", () => {
     const html = renderToStaticMarkup(
       createElement(BggApp, {
-        initialGames: [
+        games: [
           makeGame(1, -2200),
           makeGame(2, 2020),
           makeGame(3, 2021),
           makeGame(4, 2022),
         ],
-        initialStatus: { ...status, gameCount: 4 },
+        status: { ...status, gameCount: 4 },
       }),
     );
 
@@ -84,8 +76,8 @@ describe("shadcn control composition", () => {
   test("disables the year slider when no known years exist", () => {
     const html = renderToStaticMarkup(
       createElement(BggApp, {
-        initialGames: [makeGame(1, null)],
-        initialStatus: { ...status, gameCount: 1 },
+        games: [makeGame(1, null)],
+        status: { ...status, gameCount: 1 },
       }),
     );
 
@@ -100,8 +92,8 @@ describe("shadcn control composition", () => {
     };
     const html = renderToStaticMarkup(
       createElement(BggApp, {
-        initialGames: [game],
-        initialStatus: { ...status, gameCount: 1 },
+        games: [game],
+        status: { ...status, gameCount: 1 },
       }),
     );
 
@@ -116,12 +108,33 @@ describe("shadcn control composition", () => {
   test("renders empty-cache guidance as an alert", () => {
     const html = renderToStaticMarkup(
       createElement(BggApp, {
-        initialGames: [],
-        initialStatus: { ...status, gameCount: 0 },
+        games: [],
+        status: { ...status, gameCount: 0 },
       }),
     );
 
     expect(slotCount(html, "alert")).toBe(1);
-    expect(html).toContain("SQLite cache is empty");
+    expect(html).toContain("No games yet");
+  });
+
+  test("has no sync control", () => {
+    const html = renderToStaticMarkup(createElement(BggApp, { games: [makeGame(1, 2020)], status }));
+
+    expect(html).not.toContain("Sync BGG");
+  });
+
+  test("shows the UTC update date", () => {
+    const html = renderToStaticMarkup(
+      createElement(BggApp, {
+        games: [makeGame(1, 2020)],
+        status: { gameCount: 1, updatedAt: "2026-11-30T23:30:00.000Z" },
+      }),
+    );
+
+    expect(html).toContain("Updated 2026-11-30");
+  });
+
+  test("says when data has never been updated", () => {
+    expect(formatUpdatedDate(null)).toBe("Not updated yet");
   });
 });

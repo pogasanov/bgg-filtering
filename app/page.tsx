@@ -1,13 +1,9 @@
 import { BggApp } from "@/components/bgg-app";
-import { createCacheStore } from "@/lib/cache/store";
+import { loadCatalog } from "@/lib/catalog/load";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 86400;
 
-export default function Page() {
-  const store = createCacheStore();
-  try {
-    return <BggApp initialGames={store.getGames()} initialStatus={store.getStatus()} />;
-  } finally {
-    store.close();
-  }
+export default async function Page() {
+  const catalog = await loadCatalog();
+  return <BggApp games={catalog.games} status={catalog.status} />;
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import { RefreshCw, Search, X } from "lucide-react";
-import { useEffect, useMemo, useState, useTransition } from "react";
-import type { CacheStatus } from "@/lib/cache/store";
+import { Search, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type { CatalogStatus } from "@/lib/catalog/types";
 import { filterGames, gameTags } from "@/lib/filtering";
 import {
   playerCounts,
@@ -25,12 +25,11 @@ import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PoweredByBgg } from "@/components/powered-by-bgg";
-import { cn } from "@/lib/utils";
 import { buildYearScale, closestYear, positionForYear, yearAtPosition } from "@/lib/year-scale";
 
 type BggAppProps = {
-  initialGames: NormalizedGame[];
-  initialStatus: CacheStatus;
+  games: NormalizedGame[];
+  status: CatalogStatus;
 };
 
 const verdictLabels: Record<MatrixVerdict, string> = {
@@ -49,9 +48,12 @@ function formatNumber(value: number | null | undefined, digits = 2) {
   return value.toLocaleString(undefined, { maximumFractionDigits: digits });
 }
 
-export function BggApp({ initialGames, initialStatus }: BggAppProps) {
-  const [games, setGames] = useState(initialGames);
-  const [status, setStatus] = useState(initialStatus);
+/** Deterministic across server and browser, so the prerendered page hydrates without a mismatch. */
+export function formatUpdatedDate(iso: string | null): string {
+  return iso ? `Updated ${iso.slice(0, 10)}` : "Not updated yet";
+}
+
+export function BggApp({ games, status }: BggAppProps) {
   const [search, setSearch] = useState("");
   const [language, setLanguage] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -59,8 +61,6 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
   const [sort, setSort] = useState<SortKey>("rank");
   const [minYear, setMinYear] = useState<number | null>(null);
   const [maxYear, setMaxYear] = useState<number | null>(null);
-  const [syncError, setSyncError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
 
   const allTags = useMemo(
     () => [...new Set(games.flatMap((game) => gameTags(game)))].sort(),
@@ -111,36 +111,14 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
     setMaxYear(maximum === sliderMax ? null : yearAtPosition(yearScale, maximum));
   }
 
-  async function refreshLocalState() {
-    const [gamesResponse, statusResponse] = await Promise.all([fetch("/api/games"), fetch("/api/status")]);
-    const gamesPayload = (await gamesResponse.json()) as { games: NormalizedGame[] };
-    const statusPayload = (await statusResponse.json()) as CacheStatus;
-    setGames(gamesPayload.games);
-    setStatus(statusPayload);
-  }
-
-  function sync() {
-    setSyncError(null);
-    startTransition(async () => {
-      const response = await fetch("/api/sync", { method: "POST" });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        setSyncError(payload.error ?? "Sync failed.");
-        await refreshLocalState();
-        return;
-      }
-      await refreshLocalState();
-    });
-  }
-
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-primary">BoardGameGeek local cache</p>
+          <p className="text-sm font-medium uppercase tracking-wide text-primary">BoardGameGeek top games</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-normal sm:text-4xl">Player-count game finder</h1>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-            Top BGG games cached in SQLite, with selectable recommendation cells by player count.
+            Top BoardGameGeek games, filterable by player-count recommendations and game types.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Data source:{" "}
@@ -151,11 +129,7 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge>{status.gameCount} cached games</Badge>
-          <Button onClick={sync} disabled={isPending || status.syncLocked}>
-            <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
-            Sync BGG
-          </Button>
+          <Badge>{status.gameCount} games</Badge>
         </div>
       </header>
 
@@ -163,10 +137,8 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
 
       {games.length === 0 ? (
         <Alert>
-          <AlertTitle>SQLite cache is empty</AlertTitle>
-          <AlertDescription>
-            Add BGG_TOKEN to .env.local and place boardgames_ranks.csv in the project root, then use Sync BGG.
-          </AlertDescription>
+          <AlertTitle>No games yet</AlertTitle>
+          <AlertDescription>Game data has not been loaded yet. Check back soon.</AlertDescription>
         </Alert>
       ) : null}
 
@@ -337,19 +309,13 @@ export function BggApp({ initialGames, initialStatus }: BggAppProps) {
             </CardContent>
           </Card>
 
-          {syncError ? (
-            <Alert variant="destructive">
-              <AlertTitle>Sync failed</AlertTitle>
-              <AlertDescription>{syncError}</AlertDescription>
-            </Alert>
-          ) : null}
 
 
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
               Showing {filteredGames.length} of {games.length}
             </span>
-            <span>{status.cacheUpdatedAt ? `Cache updated ${new Date(status.cacheUpdatedAt).toLocaleString()}` : "No cache timestamp"}</span>
+            <span>{formatUpdatedDate(status.updatedAt)}</span>
           </div>
 
           <div className="grid gap-3">
