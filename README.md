@@ -31,3 +31,17 @@ The SQLite cache is the source of truth. Keep `data/` outside `.next` and preser
 - `npm test` runs parser, ranks CSV, filter, and SQLite cache tests.
 - `npm run typecheck` checks TypeScript.
 - `npm run build` creates a production build.
+- `npm run prices:dry-run` checks the Russian shop price collectors (see below).
+
+## Price dry run
+
+`npm run prices:dry-run` fetches a little from CrowdGames, Lavka Igr and GaGa, matches the products against the games in `data/bgg-cache.sqlite`, and prints how many games got a confirmed price, how many only have candidates, and a sample of confirmed links to check by eye. It needs Node 22.15 or newer and a synced BGG cache.
+
+By default it reads only enough to prove the parsers work: the whole CrowdGames catalogue (two requests), two listing pages of Lavka Igr, three GaGa product pages, and Tesera names for three games.
+
+- `--shops crowdgames,lavkaigr,gaga` limits the run to some shops.
+- `--lavka-pages N`, `--gaga-limit N`, `--tesera N` change those limits; `--tesera 0` skips Tesera.
+- `--full` removes the limits. GaGa alone is about 5,700 pages and three hours.
+- `--refresh` ignores cached complete catalogues.
+
+Results and caches are written to `data/price-cache/`. Requests obey each shop's `robots.txt`, run one at a time at least two seconds apart, and identify themselves as `BggPlayerFinderBot`; set `PRICE_BOT_INFO_URL` to add a link to the site. The exit code is 1 if any shop failed.
