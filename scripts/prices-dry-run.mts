@@ -9,10 +9,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { buildUserAgent, createShopGet } from "@/lib/prices/http";
-import { matchProducts } from "@/lib/prices/match";
+import { matchProducts, type Link } from "@/lib/prices/match";
 import { alternateNamesByGame, mergeNames } from "@/lib/prices/names";
+import { publisherShopsByGame } from "@/lib/prices/publishers";
 import { buildReport, formatReport, type ShopOutcome } from "@/lib/prices/report";
 import { shopAdapters } from "@/lib/prices/shops";
+import { selectGagaUrls } from "@/lib/prices/shops/gaga";
 import { findTeseraNames, TESERA_ORIGIN, type TeseraNames } from "@/lib/prices/tesera";
 import { shopCodes, type GameNames, type ShopCode, type ShopProduct } from "@/lib/prices/types";
 
@@ -26,7 +28,10 @@ type Options = {
   lavkaPages: number | undefined;
   gagaLimit: number | undefined;
   teseraGames: number;
+  /** Read only the GaGa pages of games GaGa itself publishes, chosen by address. */
+  gagaPublished: boolean;
 };
+type GameRow = { bggId: number; title: string; names: string[]; publisherShops: ShopCode[] };
 type CatalogCache = { complete: boolean; products: ShopProduct[] };
 
 function parseArgs(argv: string[]): Options {
@@ -50,8 +55,9 @@ function parseArgs(argv: string[]): Options {
   return {
     shops: shops as ShopCode[],
     refresh: argv.includes("--refresh"),
-    lavkaPages: full ? undefined : count("--lavka-pages", 2),
-    gagaLimit: full ? undefined : count("--gaga-limit", 3),
+    lavkaPages: full || argv.includes("--lavka-full") ? undefined : count("--lavka-pages", 2),
+    gagaLimit: full || argv.includes("--gaga-published") ? undefined : count("--gaga-limit", 3),
+    gagaPublished: argv.includes("--gaga-published"),
     teseraGames: full ? Infinity : count("--tesera", 3),
   };
 }
@@ -65,7 +71,7 @@ function writeJson(path: string, data: unknown) {
   writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`);
 }
 
-function loadGames(): { bggId: number; title: string; names: string[] }[] {
+function loadGames(): GameRow[] {
   if (!existsSync(DB_PATH)) {
     throw new Error(`No legacy BGG cache at ${DB_PATH}. Copy data/bgg-cache.sqlite from a checkout that has it.`);
   }
@@ -78,10 +84,17 @@ function loadGames(): { bggId: number; title: string; names: string[] }[] {
     }[];
     // A row's XML is its whole 20-game batch, so each distinct text is parsed once.
     const namesById = new Map<number, string[]>();
+    const shopsById = new Map<number, ShopCode[]>();
     for (const xml of new Set(rows.map((row) => row.rawXml))) {
       for (const [id, names] of alternateNamesByGame(xml)) namesById.set(id, names);
+      for (const [id, shops] of publisherShopsByGame(xml)) shopsById.set(id, shops);
     }
-    return rows.map((row) => ({ bggId: row.bggId, title: row.title, names: namesById.get(row.bggId) ?? [] }));
+    return rows.map((row) => ({
+      bggId: row.bggId,
+      title: row.title,
+      names: namesById.get(row.bggId) ?? [],
+      publisherShops: shopsById.get(row.bggId) ?? [],
+    }));
   } finally {
     db.close();
   }
@@ -110,13 +123,14 @@ async function addTeseraNames(games: { bggId: number; title: string }[], limit: 
   return cache;
 }
 
-async function collect(shop: ShopCode, options: Options, userAgent: string): Promise<ShopOutcome> {
+async function collect(shop: ShopCode, options: Options, userAgent: string, rows: GameRow[]): Promise<ShopOutcome> {
   const adapter = shopAdapters.find((item) => item.code === shop);
   if (!adapter) return { shop, error: "no adapter" };
 
   const path = join(CACHE_DIR, `${shop}.json`);
   const cached = options.refresh ? null : readJson<CatalogCache>(path);
-  if (cached?.complete) {
+  const targeted = shop === "gaga" && options.gagaPublished;
+  if (cached?.complete && !targeted) {
     console.log(`  ${shop}: ${cached.products.length} products from ${path}`);
     return { shop, products: cached.products };
   }
@@ -126,9 +140,13 @@ async function collect(shop: ShopCode, options: Options, userAgent: string): Pro
   const get = createShopGet({ origin: adapter.origin, userAgent });
 
   try {
+    // GaGa's catalogue is thousands of single-page requests, so a targeted run reads only
+    // the pages whose address looks like a game GaGa publishes.
+    const wanted = targeted ? rows.filter((row) => row.publisherShops.includes("gaga")) : [];
     const products = await adapter.listCatalog(get, {
       known,
       limit,
+      select: targeted ? (urls) => [...new Set(wanted.flatMap((row) => selectGagaUrls(urls, [row.title, ...row.names])))] : undefined,
       checkpointEvery: GAGA_SAVE_EVERY,
       onProgress: (done, total) => {
         if (shop === "gaga" && done % GAGA_SAVE_EVERY === 0) console.log(`  gaga: ${done} of ${total ?? "?"} new pages`);
@@ -136,12 +154,48 @@ async function collect(shop: ShopCode, options: Options, userAgent: string): Pro
       // A long crawl is saved as it goes, so an error hours in does not lose it.
       onCheckpoint: (soFar) => writeJson(path, { complete: false, products: soFar } satisfies CatalogCache),
     });
-    writeJson(path, { complete: limit === undefined, products } satisfies CatalogCache);
+    writeJson(path, { complete: limit === undefined && !targeted, products } satisfies CatalogCache);
     console.log(`  ${shop}: ${products.length} products${limit === undefined ? "" : ` (limited to ${limit})`}`);
     return { shop, products };
   } catch (error) {
     return { shop, error: error instanceof Error ? `${error.name}: ${error.message}` : String(error) };
   }
+}
+
+/** The confirmed prices as a table a person can open: one row per game and shop, in rank order. */
+function writePricesCsv(rows: GameRow[], products: ShopProduct[], links: Link[]) {
+  const productByKey = new Map(products.map((product) => [`${product.shop}/${product.externalId}`, product]));
+  const cell = (value: string | number | boolean | null) => {
+    const text = value === null ? "" : String(value);
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+  const lines = [["rank", "game", "shop", "product", "price_rub", "old_price_rub", "in_stock", "publisher_shop", "url"].join(",")];
+
+  rows.forEach((row, index) => {
+    for (const link of links) {
+      if (link.bggId !== row.bggId || link.status !== "confirmed") continue;
+      const product = productByKey.get(`${link.shop}/${link.externalId}`);
+      if (!product) continue;
+      lines.push(
+        [
+          index + 1,
+          row.title,
+          link.shop,
+          product.title,
+          product.price,
+          product.oldPrice,
+          product.available,
+          row.publisherShops.includes(link.shop),
+          product.url,
+        ]
+          .map(cell)
+          .join(","),
+      );
+    }
+  });
+
+  mkdirSync(CACHE_DIR, { recursive: true });
+  writeFileSync(join(CACHE_DIR, "prices.csv"), `${lines.join("\n")}\n`);
 }
 
 async function main() {
@@ -152,21 +206,22 @@ async function main() {
   console.log(`Games in the BGG cache: ${rows.length}`);
 
   const tesera = options.teseraGames > 0 ? await addTeseraNames(rows, options.teseraGames, userAgent) : {};
-  const games: GameNames[] = rows.map((row) =>
-    mergeNames(row.bggId, row.title, row.names, tesera[row.bggId]?.names ?? []),
-  );
+  const games: GameNames[] = rows.map((row) => ({ ...mergeNames(row.bggId, row.title, row.names, tesera[row.bggId]?.names ?? []), publisherShops: row.publisherShops,
+  }));
 
   console.log("Shops:");
   const outcomes: ShopOutcome[] = [];
-  for (const shop of options.shops) outcomes.push(await collect(shop, options, userAgent));
+  for (const shop of options.shops) outcomes.push(await collect(shop, options, userAgent, rows));
 
   const products = outcomes.flatMap((outcome) => ("products" in outcome ? outcome.products : []));
   const links = matchProducts(games, products);
   const shuffled = <T>(items: T[], n: number) => [...items].sort(() => Math.random() - 0.5).slice(0, n);
   const report = buildReport(games, outcomes, links, shuffled);
 
+  writeJson(join(CACHE_DIR, "games.json"), rows.map((row, index) => ({ ...row, names: games[index].names })));
   writeJson(join(CACHE_DIR, "links.json"), links);
   writeJson(join(CACHE_DIR, "report.json"), report);
+  writePricesCsv(rows, products, links);
   console.log(`\n${formatReport(report)}`);
 
   const partial = options.lavkaPages !== undefined || options.gagaLimit !== undefined;

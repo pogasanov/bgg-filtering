@@ -54,12 +54,15 @@ describe("parseCrowdgamesPage", () => {
 });
 
 describe("crowdgamesAdapter.listCatalog", () => {
-  function pagedGet(pages: Record<number, unknown>) {
+  type Page = { status: string; count: number; products: unknown[] };
+  /** Pages keyed by "collection:page"; anything else is an empty page. */
+  function pagedGet(pages: Record<string, Page>) {
     const urls: string[] = [];
     const get: Get = async (url) => {
       urls.push(url);
-      const page = Number(new URL(url).searchParams.get("page"));
-      return JSON.stringify(pages[page] ?? { status: "ok", count: 3, products: [] });
+      const target = new URL(url);
+      const collection = target.pathname.replace("/collection/", "").replace(".json", "");
+      return JSON.stringify(pages[`${collection}:${target.searchParams.get("page")}`] ?? { status: "ok", count: 0, products: [] });
     };
     return { get, urls };
   }
@@ -71,28 +74,26 @@ describe("crowdgamesAdapter.listCatalog", () => {
     available: true,
     variants: [{ price: "100.0", old_price: null, barcode: null }],
   });
+  const one = (ids: number[], count = ids.length): Page => ({ status: "ok", count, products: ids.map(product) });
 
-  it("pages until it has every product", async () => {
-    const { get, urls } = pagedGet({
-      1: { status: "ok", count: 3, products: [product(1), product(2)] },
-      2: { status: "ok", count: 3, products: [product(3)] },
-    });
+  it("reads the retail catalogue and the new arrivals, each product once", async () => {
+    const { get, urls } = pagedGet({ "shop:1": one([1, 2], 3), "shop:2": one([3], 3), "all:1": one([3, 4]) });
     const products = await crowdgamesAdapter.listCatalog(get);
-    expect(products.map((item) => item.externalId)).toEqual(["1", "2", "3"]);
+    expect(products.map((item) => item.externalId)).toEqual(["1", "2", "3", "4"]);
     expect(urls).toEqual([
+      "https://www.crowdgames.ru/collection/shop.json?page=1",
+      "https://www.crowdgames.ru/collection/shop.json?page=2",
       "https://www.crowdgames.ru/collection/all.json?page=1",
-      "https://www.crowdgames.ru/collection/all.json?page=2",
     ]);
   });
 
   it("fails rather than report a catalogue shorter than the shop's own count", async () => {
-    const { get, urls } = pagedGet({ 1: { status: "ok", count: 3, products: [product(1)] } });
+    const { get } = pagedGet({ "shop:1": one([1], 3), "all:1": one([1]) });
     await expect(crowdgamesAdapter.listCatalog(get)).rejects.toThrow(/incomplete/);
-    expect(urls).toHaveLength(2);
   });
 
-  it("fails when the first page has no products", async () => {
-    const { get } = pagedGet({ 1: { status: "ok", count: 0, products: [] } });
+  it("fails when the retail catalogue has no products", async () => {
+    const { get } = pagedGet({ "all:1": one([1]) });
     await expect(crowdgamesAdapter.listCatalog(get)).rejects.toThrow(/empty or unrecognised/);
   });
 });

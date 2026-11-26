@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { gagaAdapter, parseGagaProduct, parseGagaSitemap } from "@/lib/prices/shops/gaga";
+import { gagaAdapter, parseGagaProduct, parseGagaSitemap, selectGagaUrls } from "@/lib/prices/shops/gaga";
 import { shopAdapters } from "@/lib/prices/shops";
 import type { Get, ShopProduct } from "@/lib/prices/types";
 
@@ -153,5 +153,77 @@ describe("gagaAdapter.listCatalog — review fixes", () => {
     };
     await expect(gagaAdapter.listCatalog(get, { checkpointEvery: 2, onCheckpoint: (products) => saved.push(products) })).rejects.toThrow("429");
     expect(saved.at(-1)?.map((item) => item.externalId)).toEqual(["1", "2"]);
+  });
+});
+
+describe("selectGagaUrls", () => {
+  const url = (slug: string) => `https://gaga.ru/game/${slug}/`;
+  const urls = [
+    "twilight-struggle",
+    "twilight-struggle-red-sea",
+    "ruiny-ostrova-arnak",
+    "ruiny-ostrova-arnak-lidery-ekspedicii",
+    "krasnyj-sobor",
+    "vojna-kolca-suvenirnyj-plejmat",
+    "tzolkin",
+    "tzolkin-eng",
+    "through-the-ages",
+    "karkasson",
+    "unmatched-bitva-legend",
+    "unmatched-bitva-legend-tom-2",
+  ].map(url);
+
+  it("finds a page whose address is the game's name", () => {
+    expect(selectGagaUrls(urls, ["Twilight Struggle", "Сумеречная борьба"])).toContain(url("twilight-struggle"));
+  });
+
+  it("transliterates Russian names, in either common spelling", () => {
+    expect(selectGagaUrls(urls, ["Lost Ruins of Arnak", "Руины острова Арнак"])).toContain(url("ruiny-ostrova-arnak"));
+    expect(selectGagaUrls(urls, ["The Red Cathedral", "Красный собор"])).toContain(url("krasnyj-sobor"));
+  });
+
+  it("tries the name without its subtitle and without apostrophes", () => {
+    expect(selectGagaUrls(urls, ["Tzolk'in: The Mayan Calendar"])).toContain(url("tzolkin"));
+    expect(selectGagaUrls(urls, ["Through the Ages: A New Story of Civilization"])).toContain(url("through-the-ages"));
+  });
+
+  it("adds a few pages that start with the name, shortest first", () => {
+    const picked = selectGagaUrls(urls, ["Unmatched: Battle of Legends, Volume One", "Unmatched. Битва легенд. Том 1"]);
+    expect(picked).toContain(url("unmatched-bitva-legend"));
+  });
+
+  it("reads one page when the address is the game's name, not its expansions too", () => {
+    expect(selectGagaUrls(urls, ["Twilight Struggle"])).toEqual([url("twilight-struggle")]);
+    expect(selectGagaUrls(urls, ["Tzolk'in: The Mayan Calendar"])).toEqual([url("tzolkin")]);
+  });
+
+  it("falls back to at most two longer addresses when nothing matches exactly", () => {
+    const longer = ["orlean-vtorzhenie", "orlean-chuma", "orlean-torgovlya-i-intrigi", "orlean-nabor"].map(url);
+    expect(selectGagaUrls(longer, ["Orléans", "Орлеан"])).toEqual([url("orlean-chuma"), url("orlean-nabor")]);
+  });
+
+  it("does not pick unrelated pages", () => {
+    expect(selectGagaUrls(urls, ["Twilight Struggle"])).not.toContain(url("karkasson"));
+    expect(selectGagaUrls(urls, ["Gizmos"])).toEqual([]);
+  });
+
+  it("ignores names too short to be an address", () => {
+    expect(selectGagaUrls([url("go"), url("go-west")], ["Go"])).toEqual([url("go")]);
+  });
+});
+
+describe("gagaAdapter.listCatalog — select", () => {
+  it("requests only the pages asked for", async () => {
+    const calls: string[] = [];
+    const get: Get = async (target) => {
+      calls.push(target);
+      if (target.endsWith("/sitemap.xml")) {
+        return `<urlset>${["a", "b", "c"].map((slug) => `<url><loc>https://gaga.ru/game/${slug}/</loc></url>`).join("")}</urlset>`;
+      }
+      return `<button class="btn add_to_cart" data-gid="1" data-price="500" data-name="B" data-vendor="V">`;
+    };
+    const products = await gagaAdapter.listCatalog(get, { select: (all) => all.filter((target) => target.endsWith("/b/")) });
+    expect(products).toHaveLength(1);
+    expect(calls).toEqual(["https://gaga.ru/sitemap.xml", "https://gaga.ru/game/b/"]);
   });
 });

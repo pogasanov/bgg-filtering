@@ -20,9 +20,13 @@ export const stopWords: readonly string[] = [
   "набор",
   "миниатюр",
   "аксессуар",
+  // Marked-down, damaged and second-hand listings of a game are not its price.
+  "уцен",
+  "комиссион",
+  "мят",
 ];
 /** Stop words too short to be safe as stems. */
-const exactStopWords: readonly string[] = ["доп"];
+const exactStopWords: readonly string[] = ["доп", "без"];
 
 /** A name must be at least this long to match inside a longer title. */
 const MIN_CONTAINED_NAME_LENGTH = 5;
@@ -33,6 +37,7 @@ export type LinkReason =
   | "several-products"
   | "claimed-by-several-games"
   | "name-within-another-game"
+  | "original-language-title"
   | "title-contains-name"
   | "barcode";
 
@@ -54,7 +59,8 @@ const reasonRank: Record<LinkReason, number> = {
   "several-products": 2,
   "claimed-by-several-games": 3,
   "name-within-another-game": 4,
-  "title-contains-name": 5,
+  "original-language-title": 5,
+  "title-contains-name": 6,
 };
 
 function isStopToken(token: string): boolean {
@@ -63,13 +69,25 @@ function isStopToken(token: string): boolean {
 
 const hasCyrillic = (text: string) => /[а-я]/.test(text);
 
-/** Whether `inner` occurs in `outer` as consecutive whole tokens. */
-function containsTokens(outer: string[], inner: string[]): boolean {
+
+/** Words that turn a game's name into another edition of the same game rather than a different game. */
+const editionWords: ReadonlySet<string> = new Set([
+  "издание", "новое", "второе", "третье", "обновленное", "юбилейное", "коллекционное", "делюкс", "версия",
+  "edition", "revised", "second", "third", "2nd", "3rd", "new", "anniversary", "deluxe", "big", "box", "2", "3",
+]);
+
+/** The tokens of `outer` left over after removing one occurrence of `inner`, or `null` when it does not occur. */
+function tokensAround(outer: string[], inner: string[]): string[] | null {
   for (let start = 0; start + inner.length <= outer.length; start += 1) {
-    if (inner.every((token, offset) => outer[start + offset] === token)) return true;
+    if (inner.every((token, offset) => outer[start + offset] === token)) {
+      return [...outer.slice(0, start), ...outer.slice(start + inner.length)];
+    }
   }
-  return false;
+  return null;
 }
+
+/** Shops prefix some titles with what the product is; the name starts after it. */
+const GENERIC_PREFIX = /^настольная игра /;
 
 const productKey = (product: ShopProduct) => `${product.shop}\u0000${product.externalId}`;
 
@@ -84,6 +102,7 @@ export function matchProducts(games: GameNames[], products: ShopProduct[]): Link
   // in the same script are not joined: "Dune" + "Imperium" would claim another game.
   const gamesByExactTitle = new Map<string, Set<number>>();
   const allNames: ContainedName[] = [];
+  const publisherShopsByGame = new Map(games.map((game) => [game.bggId, game.publisherShops]));
   const containedByFirstToken = new Map<string, ContainedName[]>();
 
   for (const game of games) {
@@ -111,7 +130,7 @@ export function matchProducts(games: GameNames[], products: ShopProduct[]): Link
   const indexed: IndexedProduct[] = products
     .filter((product) => product.variantCount === 1)
     .map((product) => {
-      const title = normalizeTitle(product.title);
+      const title = normalizeTitle(product.title).replace(GENERIC_PREFIX, "");
       return { product, title, tokens: title === "" ? [] : title.split(" ") };
     });
 
@@ -140,18 +159,32 @@ export function matchProducts(games: GameNames[], products: ShopProduct[]): Link
   const confirmedBarcodes = new Map<string, { bggId: number; shop: ShopCode }[]>();
   for (const [key, items] of soleClaims) {
     const bggId = Number(key.split("\u0000")[0]);
-    if (items.length > 1) {
+    // A shop often lists the import under the original name next to the Russian edition.
+    // The one product with a Russian title is the edition being tracked.
+    const russian = items.filter((item) => hasCyrillic(item.title));
+    const chosen = items.length === 1 ? items : russian.length === 1 ? russian : null;
+    if (chosen === null) {
       for (const item of items) propose(bggId, item.product, "candidate", "several-products");
       continue;
     }
-    const { product, tokens } = items[0];
-    // "Агрикола" is one game's whole name and the start of another's ("Агрикола. Новое издание").
-    // The shop may mean either edition, so the owner decides.
-    const withinAnother = allNames.some(
-      (name) => name.bggId !== bggId && name.tokens.length > tokens.length && containsTokens(name.tokens, tokens),
-    );
+    const { product, tokens } = chosen[0];
+    // "Агрикола" is one game's whole name and, with edition words added, another's
+    // ("Агрикола. Новое издание"). The shop may mean either edition, so the owner decides.
+    // A real subtitle ("Крылья: Азия") is a different game and raises no such doubt.
+    const withinAnother = allNames.some((name) => {
+      if (name.bggId === bggId || name.tokens.length <= tokens.length) return false;
+      const extra = tokensAround(name.tokens, tokens);
+      return extra !== null && extra.every((token) => editionWords.has(token));
+    });
     if (withinAnother) {
       propose(bggId, product, "candidate", "name-within-another-game");
+      continue;
+    }
+    // A title with no Russian in it is the Russian edition only in its publisher's own shop
+    // ("Res Arcana" at GaGa). Elsewhere it is an import, a different product at a different price.
+    const publisherShops = publisherShopsByGame.get(bggId);
+    if (publisherShops && !hasCyrillic(chosen[0].title) && !publisherShops.includes(product.shop)) {
+      propose(bggId, product, "candidate", "original-language-title");
       continue;
     }
     propose(bggId, product, "confirmed", "exact-title");

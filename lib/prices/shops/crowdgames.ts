@@ -50,26 +50,41 @@ export function parseCrowdgamesPage(json: string): { count: number; products: Sh
   return { count: data.count, products };
 }
 
+/**
+ * `shop` is the retail catalogue; `all` holds new arrivals and pre-orders, some of
+ * which are not in `shop` yet. Together they are what a visitor can buy.
+ */
+const COLLECTIONS = ["shop", "all"] as const;
+
 export const crowdgamesAdapter: ShopAdapter = {
   code: "crowdgames",
   origin: ORIGIN,
   async listCatalog(get, opts) {
     const byId = new Map<string, ShopProduct>();
-    let total: number | null = null;
 
-    for (let page = 1; page <= MAX_PAGES; page += 1) {
-      const { count, products } = parseCrowdgamesPage(await get(`${ORIGIN}/collection/all.json?page=${page}`));
-      total = count;
-      if (products.length === 0) break;
-      for (const product of products) byId.set(product.externalId, product);
-      opts?.onProgress?.(byId.size, total);
-      if (byId.size >= count) break;
+    for (const collection of COLLECTIONS) {
+      const seen = new Set<string>();
+      let total: number | null = null;
+
+      for (let page = 1; page <= MAX_PAGES; page += 1) {
+        const { count, products } = parseCrowdgamesPage(await get(`${ORIGIN}/collection/${collection}.json?page=${page}`));
+        // A page past the end may report a count of zero, so the largest count seen is the shop's claim.
+        total = Math.max(total ?? 0, count);
+        if (products.length === 0) break;
+        for (const product of products) {
+          seen.add(product.externalId);
+          if (!byId.has(product.externalId)) byId.set(product.externalId, product);
+        }
+        opts?.onProgress?.(byId.size, null);
+        if (seen.size >= count) break;
+      }
+
+      if (collection === "shop" && seen.size === 0) throw new Error("CrowdGames catalogue empty or unrecognised");
+      if (total !== null && seen.size < total) {
+        throw new Error(`CrowdGames catalogue incomplete: read ${seen.size} of ${total} products in "${collection}"`);
+      }
     }
 
-    if (byId.size === 0) throw new Error("CrowdGames catalogue empty or unrecognised");
-    if (total !== null && byId.size < total) {
-      throw new Error(`CrowdGames catalogue incomplete: read ${byId.size} of ${total} products`);
-    }
     return [...byId.values()];
   },
 };

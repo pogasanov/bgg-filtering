@@ -22,7 +22,13 @@ export type ShopProduct = {
 };
 
 /** `names` includes `primaryName` and is de-duplicated. */
-export type GameNames = { bggId: number; primaryName: string; names: string[] };
+export type GameNames = {
+  bggId: number;
+  primaryName: string;
+  names: string[];
+  /** Tracked shops whose publisher released the game in Russian. Absent means unknown. */
+  publisherShops?: ShopCode[];
+};
 
 export type Get = (url: string, opts?: { encoding?: "utf-8" | "windows-1251" }) => Promise<string>;
 
@@ -33,6 +39,8 @@ export type CatalogOptions = {
   /** Called with everything read so far after every `checkpointEvery` new pages, so a long crawl can be saved. */
   onCheckpoint?: (products: ShopProduct[]) => void;
   checkpointEvery?: number;
+  /** Given every product page the shop lists, returns the ones to request (for shops read page by page). */
+  select?: (urls: string[]) => string[];
 };
 
 export type ShopAdapter = {
