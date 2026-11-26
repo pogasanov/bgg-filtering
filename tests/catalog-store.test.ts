@@ -23,7 +23,7 @@ function game(id: number, overrides: Partial<NormalizedGame> = {}): NormalizedGa
     id,
     rank: id,
     title: `Game ${id}`,
-    titleRu: null,
+    ruNames: [],
     year: 2020,
     thumbnailUrl: null,
     geekRating: 7.8,
@@ -197,16 +197,16 @@ describe("upsertGames — repeat sync", () => {
   test("refreshes every stored column of a game, not only the single-word ones", async () => {
     const { db, close } = await createTestDb();
     try {
-      await upsertGames(db, [game(1, { title: "Old", titleRu: "Старое", geekRating: 7, averageRating: 7.5, numVoters: 10, minPlayers: 1, maxPlayers: 2, playingTime: 30, weight: 2, year: 2000, thumbnailUrl: "https://a/1.jpg", alternateNames: ["a"], publisherIds: [1] })], new Date("2026-01-01T00:00:00Z"));
-      await upsertGames(db, [game(1, { title: "New", titleRu: "Новое", geekRating: 8, averageRating: 8.5, numVoters: 20, minPlayers: 2, maxPlayers: 5, playingTime: 90, weight: 3, year: 2001, thumbnailUrl: "https://a/2.jpg", alternateNames: ["b"], publisherIds: [2] })], new Date("2026-02-02T00:00:00Z"));
+      await upsertGames(db, [game(1, { title: "Old", ruNames: ["Старое"], geekRating: 7, averageRating: 7.5, numVoters: 10, minPlayers: 1, maxPlayers: 2, playingTime: 30, weight: 2, year: 2000, thumbnailUrl: "https://a/1.jpg", alternateNames: ["a"], publisherIds: [1] })], new Date("2026-01-01T00:00:00Z"));
+      await upsertGames(db, [game(1, { title: "New", ruNames: ["Новое"], geekRating: 8, averageRating: 8.5, numVoters: 20, minPlayers: 2, maxPlayers: 5, playingTime: 90, weight: 3, year: 2001, thumbnailUrl: "https://a/2.jpg", alternateNames: ["b"], publisherIds: [2] })], new Date("2026-02-02T00:00:00Z"));
 
       const [row] = await rows<Record<string, unknown>>(
         db,
-        sql`SELECT title, title_ru, geek_rating, average_rating, num_voters, min_players, max_players, playing_time, weight, year, thumbnail_url, alternate_names, publisher_ids, updated_at FROM games`,
+        sql`SELECT title, ru_names, geek_rating, average_rating, num_voters, min_players, max_players, playing_time, weight, year, thumbnail_url, alternate_names, publisher_ids, updated_at FROM games`,
       );
       expect({ ...row, updated_at: new Date(row.updated_at as string).toISOString() }).toEqual({
         title: "New",
-        title_ru: "Новое",
+        ru_names: ["Новое"],
         geek_rating: 8,
         average_rating: 8.5,
         num_voters: 20,

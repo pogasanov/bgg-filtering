@@ -30,7 +30,7 @@ describe("database migrations", () => {
         db,
         sql`select count(*)::int as count from drizzle.__drizzle_migrations`,
       );
-      expect(count).toBe(4);
+      expect(count).toBe(5);
     } finally {
       await close();
     }

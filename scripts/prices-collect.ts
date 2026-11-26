@@ -68,6 +68,7 @@ async function main() {
           : `  ${shop.shop}: FAILED — ${shop.error}`,
       );
     }
+    console.log(`  Russian titles changed: ${summary.russianTitlesChanged}`);
     const offers = await getCurrentOffers(db);
     console.log(
       `Stored: ${offers.length} current prices for ${new Set(offers.map((offer) => offer.bggId)).size} games; ` +

@@ -3,8 +3,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { GameFilters } from "@/lib/filtering";
 import { formatNumber } from "@/lib/labels";
+import { viewHref } from "@/lib/language-path";
 import { PAGE_SIZE, pageItems } from "@/lib/pagination";
-import { serializeView } from "@/lib/url-state";
 import { cn } from "@/lib/utils";
 
 type PaginationProps = {
@@ -31,10 +31,7 @@ function PageLink({ href, className, children, ...props }: { href: string; class
 export function Pagination({ page, pageCount, shown, filters }: PaginationProps) {
   if (pageCount <= 1) return null;
 
-  const href = (target: number) => {
-    const query = serializeView(filters, target);
-    return query ? `/?${query}` : "/";
-  };
+  const href = (target: number) => viewHref(filters, target);
   const first = (page - 1) * PAGE_SIZE + 1;
   const last = Math.min(page * PAGE_SIZE, shown);
 

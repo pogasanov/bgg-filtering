@@ -98,7 +98,7 @@ export async function upsertGames(db: Db, rows: NormalizedGame[], updatedAt: Dat
           bggId: game.id,
           rank: game.rank,
           title: game.title,
-          titleRu: game.titleRu,
+          ruNames: game.ruNames,
           alternateNames: game.alternateNames ?? [],
           publisherIds: game.publisherIds ?? [],
           year: game.year,
@@ -119,7 +119,7 @@ export async function upsertGames(db: Db, rows: NormalizedGame[], updatedAt: Dat
         set: excludedColumns(
           "rank",
           "title",
-          "titleRu",
+          "ruNames",
           "alternateNames",
           "publisherIds",
           "year",

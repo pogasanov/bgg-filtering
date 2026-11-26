@@ -1,6 +1,6 @@
 /**
- * Calls the site's /api/revalidate endpoint, then requests the home page once so the
- * stale-while-revalidate cycle regenerates it before the first visitor arrives.
+ * Calls the site's /api/revalidate endpoint, then requests the first page of each prebuilt language
+ * once so the stale-while-revalidate cycle regenerates it before the first visitor arrives.
  */
 export function createRevalidator(
   revalidateUrl: string,
@@ -15,6 +15,8 @@ export function createRevalidator(
     if (!response.ok) {
       throw new Error(`Revalidation failed with ${response.status} ${response.statusText}`);
     }
-    await fetchImpl(new URL("/", revalidateUrl).toString(), { method: "GET" }).catch(() => undefined);
+    for (const path of ["/", "/en"]) {
+      await fetchImpl(new URL(path, revalidateUrl).toString(), { method: "GET" }).catch(() => undefined);
+    }
   };
 }

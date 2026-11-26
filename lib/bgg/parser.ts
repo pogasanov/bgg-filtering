@@ -7,7 +7,7 @@ import {
   playerCounts,
 } from "./types";
 import { decodeEntities } from "@/lib/prices/html";
-import { russianTitle } from "./russian-title";
+import { russianCandidates } from "./russian-title";
 
 const xmlParser = new XMLParser({
   ignoreAttributes: false,
@@ -114,7 +114,7 @@ export function parseThingXml(xml: string): NormalizedGame[] {
       id: Number(item.id),
       rank: numberOrNull(boardGameRank?.value),
       title: String(primaryName?.value ?? "Untitled"),
-      titleRu: russianTitle(alternateNames),
+      ruNames: russianCandidates(alternateNames),
       year: numberOrNull(item.yearpublished?.value),
       thumbnailUrl: stringOrNull(item.thumbnail),
       geekRating: numberOrNull(ratings.bayesaverage?.value),

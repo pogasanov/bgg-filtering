@@ -31,7 +31,7 @@ function makeGame(overrides: Partial<NormalizedGame>): NormalizedGame {
     id: 1,
     rank: 1,
     title: "Base Game",
-    titleRu: null,
+    ruNames: [],
     year: 2020,
     thumbnailUrl: null,
     geekRating: 8,

@@ -36,7 +36,9 @@ export const games = pgTable(
     bggId: integer("bgg_id").primaryKey(),
     rank: integer("rank"),
     title: text("title").notNull(),
-    /** The Russian title, guessed from BGG's alternate names. */
+    /** BGG's alternate names that may be Russian. */
+    ruNames: text("ru_names").array().notNull().default(sql`'{}'`),
+    /** The Russian title chosen among `ru_names`; see `refreshRussianTitles`. */
     titleRu: text("title_ru"),
     /** Every other BGG name of the game, in any language; shops are searched by these. */
     alternateNames: text("alternate_names").array().notNull().default(sql`'{}'`),

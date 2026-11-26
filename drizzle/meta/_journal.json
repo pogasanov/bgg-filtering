@@ -29,6 +29,13 @@
       "when": 1795716201635,
       "tag": "0003_game_names_publishers",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795717146017,
+      "tag": "0004_game_ru_names",
+      "breakpoints": true
     }
   ]
 }

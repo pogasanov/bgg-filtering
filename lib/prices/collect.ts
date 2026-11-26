@@ -1,3 +1,4 @@
+import { refreshRussianTitles } from "@/lib/catalog/russian-titles";
 import type { Db } from "@/lib/db/client";
 import { createShopGet } from "@/lib/prices/http";
 import { matchProducts } from "@/lib/prices/match";
@@ -26,6 +27,8 @@ export async function fetchCatalogue(shop: ShopCode, games: GameNames[], userAge
 }
 
 export type CollectionSummary = {
+  /** How many games' Russian titles the new catalogues changed. */
+  russianTitlesChanged: number;
   shops: {
     shop: ShopCode;
     error: string | null;
@@ -77,5 +80,8 @@ export async function storeCollection(
     shops.push(summary);
   }
 
-  return { shops };
+  // The catalogues are evidence for which of a game's names is the Russian one.
+  const russianTitlesChanged = await refreshRussianTitles(db);
+
+  return { shops, russianTitlesChanged };
 }

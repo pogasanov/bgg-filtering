@@ -51,5 +51,6 @@ describe("POST /api/revalidate", () => {
     expect(await response.json()).toEqual({ revalidated: true });
     expect(mocks.revalidateTag).toHaveBeenCalledWith("bgg-catalog", "max");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/en");
   });
 });

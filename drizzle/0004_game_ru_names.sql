@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "ru_names" text[] DEFAULT '{}' NOT NULL;

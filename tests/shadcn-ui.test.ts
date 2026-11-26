@@ -60,9 +60,9 @@ describe("shadcn foundation", () => {
     }
   });
 
-  test("ships the chart primitive and one colour per shop", () => {
+  test("has one colour per shop and no chart primitive", () => {
     const css = read("app/globals.css");
-    expect(read("components/ui/chart.tsx")).toContain("data-slot=");
+    expect(read("components/ui/chart.tsx")).toBe("");
     for (const shop of ["crowdgames", "lavkaigr", "gaga"]) {
       expect(css).toContain(`--color-shop-${shop}: var(--shop-${shop})`);
     }

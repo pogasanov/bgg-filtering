@@ -31,8 +31,8 @@ export type NormalizedGame = {
   id: number;
   rank: number | null;
   title: string;
-  /** The Russian title from BGG's alternate names; `null` when it has none. */
-  titleRu: string | null;
+  /** BGG's alternate names that may be Russian; the Russian title is chosen among them. */
+  ruNames: string[];
   year: number | null;
   thumbnailUrl: string | null;
   geekRating: number | null;
@@ -57,7 +57,9 @@ export type NormalizedGame = {
 };
 
 /** A game as the page shows it: what BGG says about it plus what the tracked shops ask for it today. */
-export type ListedGame = NormalizedGame & {
+export type ListedGame = Omit<NormalizedGame, "ruNames"> & {
+  /** The Russian title, or `null` when none is known. */
+  titleRu: string | null;
   /** Offers from confirmed shop links, in `shopCodes` order. */
   offers: GameOffer[];
   /** The lowest price that can be paid today: in stock and recently checked. The "price" sort value. */

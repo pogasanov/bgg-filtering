@@ -71,7 +71,7 @@ describe("BGG XML parser", () => {
     expect(parsed[0]).toMatchObject({
       id: 174430,
       title: "Gloomhaven",
-      titleRu: "Мрачная Гавань",
+      ruNames: ["Мрачная Гавань"],
       year: 2017,
       rank: 4,
       geekRating: 8.294,
