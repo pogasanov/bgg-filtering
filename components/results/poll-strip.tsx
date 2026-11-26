@@ -1,7 +1,7 @@
 "use client";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { NormalizedGame } from "@/lib/bgg/types";
+import type { ListedGame } from "@/lib/bgg/types";
 import { pollCellLabel, pollCells, pollStripLabel, type PollCell } from "@/lib/poll";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +24,7 @@ function cellClass(cell: PollCell) {
  * square: with thousands of rows, per-square tooltips and tab stops would swamp the page.
  */
 type PollStripProps = {
-  game: NormalizedGame;
+  game: ListedGame;
   /**
    * Hoverable strips sit above the row link so the tooltip can open. On touch screens there is
    * no hover, so the strip steps aside and a tap on it opens the row like anywhere else.

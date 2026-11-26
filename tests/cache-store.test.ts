@@ -66,6 +66,19 @@ describe("SQLite cache store", () => {
     expect(games[0].languages).toEqual(["German"]);
   });
 
+  test("lists games without their descriptions", () => {
+    const dbPath = join(mkdtempSync(join(tmpdir(), "bgg-cache-")), "cache.sqlite");
+    const store = createCacheStore(dbPath);
+
+    store.upsertGames([game], "<items />");
+    const [full] = store.getGames();
+    const [listed] = store.getListedGames();
+    store.close();
+
+    expect(listed).not.toHaveProperty("description");
+    expect({ ...listed, description: game.description }).toEqual(full);
+  });
+
   test("adds empty language storage when opening a legacy cache", () => {
     const dbPath = join(mkdtempSync(join(tmpdir(), "bgg-cache-")), "cache.sqlite");
     const legacyDb = new Database(dbPath);

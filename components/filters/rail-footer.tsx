@@ -1,7 +1,7 @@
 "use client";
 
 import { RefreshCw } from "lucide-react";
-import { PoweredByBgg } from "@/components/powered-by-bgg";
+import { BggAttribution, PoweredByBgg } from "@/components/powered-by-bgg";
 import { Button } from "@/components/ui/button";
 import type { CacheStatus } from "@/lib/cache/store";
 import { cn } from "@/lib/utils";
@@ -12,18 +12,6 @@ type RailFooterProps = {
   syncError: string | null;
   onSync: () => void;
 };
-
-export function BggAttribution() {
-  return (
-    <p className="text-[11px] leading-snug text-muted-foreground">
-      Данные:{" "}
-      <a href="https://boardgamegeek.com" target="_blank" rel="noreferrer" className="underline underline-offset-2">
-        BoardGameGeek
-      </a>
-      . Не аффилировано с BGG. Только для личного некоммерческого использования.
-    </p>
-  );
-}
 
 /** Service controls live here, out of the way: attribution, cache date, sync and its errors. */
 export function RailFooter({ status, syncing, syncError, onSync }: RailFooterProps) {

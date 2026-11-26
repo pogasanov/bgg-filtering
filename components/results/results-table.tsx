@@ -6,13 +6,13 @@ import { GameThumb } from "@/components/results/game-thumb";
 import { PollStrip } from "@/components/results/poll-strip";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { NormalizedGame, SortDir, SortKey } from "@/lib/bgg/types";
+import type { ListedGame, SortDir, SortKey } from "@/lib/bgg/types";
 import { gameTags } from "@/lib/filtering";
 import { formatNumber, sortLabels } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 type ResultsTableProps = {
-  games: NormalizedGame[];
+  games: ListedGame[];
   sort: SortKey;
   sortDir: SortDir;
   onSort: (key: SortKey) => void;
@@ -23,7 +23,7 @@ const COLUMN_COUNT = 10;
 const headClass = "h-9 px-3 text-xs font-medium text-muted-foreground";
 const numClass = "px-3 text-right font-mono tabular-nums";
 
-export function playersRange(game: NormalizedGame): string {
+export function playersRange(game: ListedGame): string {
   const { minPlayers, maxPlayers } = game;
   if (minPlayers === null && maxPlayers === null) return "—";
   if (minPlayers === null || maxPlayers === null || minPlayers === maxPlayers) return String(minPlayers ?? maxPlayers);

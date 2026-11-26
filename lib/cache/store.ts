@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { emptyPlayerRecommendations } from "@/lib/bgg/parser";
-import { playerCounts, type NormalizedGame, type PlayerCount, type RecommendationVerdict } from "@/lib/bgg/types";
+import { playerCounts, type ListedGame, type NormalizedGame, type PlayerCount, type RecommendationVerdict } from "@/lib/bgg/types";
 
 type SyncStart =
   | {
@@ -243,17 +243,26 @@ export class CacheStore {
   }
 
   getGames(): NormalizedGame[] {
+    return this.readGames("description,") as NormalizedGame[];
+  }
+
+  /** The games without their descriptions: what the page needs, at a fraction of the size. */
+  getListedGames(): ListedGame[] {
+    return this.readGames("");
+  }
+
+  private readGames(extraColumns: "" | "description,"): ListedGame[] {
     const gameRows = this.db
       .prepare(
         `SELECT
-          bgg_id AS id, rank, title, year, description, geek_rating AS geekRating,
+          bgg_id AS id, rank, title, year, ${extraColumns} geek_rating AS geekRating,
           average_rating AS averageRating, num_voters AS numVoters, min_players AS minPlayers,
           max_players AS maxPlayers, playing_time AS playingTime, weight, bgg_url AS bggUrl,
           thumbnail_url AS thumbnailUrl
         FROM games
         ORDER BY COALESCE(rank, 999999), title`,
       )
-      .all() as Array<Omit<NormalizedGame, "categories" | "mechanics" | "languages" | "playerRecommendations">>;
+      .all() as Array<Omit<ListedGame, "categories" | "mechanics" | "languages" | "playerRecommendations">>;
     const tagRows = this.db.prepare("SELECT game_id AS gameId, kind, name FROM game_tags ORDER BY name").all() as Array<{
       gameId: number;
       kind: "category" | "mechanic";

@@ -46,6 +46,9 @@ export type NormalizedGame = {
   bggUrl: string;
 };
 
+/** A game as the page shows it. Descriptions are large and never displayed, so they stay on the server. */
+export type ListedGame = Omit<NormalizedGame, "description">;
+
 export type MatrixSelection = {
   playerCount: PlayerCount;
   verdict: MatrixVerdict;

@@ -4,11 +4,11 @@ import { memo } from "react";
 import { GameThumb } from "@/components/results/game-thumb";
 import { PollStrip } from "@/components/results/poll-strip";
 import { EmptyResults } from "@/components/results/results-table";
-import type { NormalizedGame } from "@/lib/bgg/types";
+import type { ListedGame } from "@/lib/bgg/types";
 import { formatNumber } from "@/lib/labels";
 
 type ResultsListProps = {
-  games: NormalizedGame[];
+  games: ListedGame[];
   onReset: () => void;
 };
 

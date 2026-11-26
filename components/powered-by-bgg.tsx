@@ -15,3 +15,15 @@ export function PoweredByBgg() {
     </a>
   );
 }
+
+export function BggAttribution() {
+  return (
+    <p className="text-[11px] leading-snug text-muted-foreground">
+      Данные:{" "}
+      <a href="https://boardgamegeek.com" target="_blank" rel="noreferrer" className="underline underline-offset-2">
+        BoardGameGeek
+      </a>
+      . Не аффилировано с BGG. Только для личного некоммерческого использования.
+    </p>
+  );
+}

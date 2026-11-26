@@ -24,7 +24,7 @@ export default async function Page({ searchParams }: PageProps) {
   const store = createCacheStore();
   try {
     return (
-      <BggApp initialGames={store.getGames()} initialStatus={store.getStatus()} initialFilters={initialFilters} />
+      <BggApp initialGames={store.getListedGames()} initialStatus={store.getStatus()} initialFilters={initialFilters} />
     );
   } finally {
     store.close();

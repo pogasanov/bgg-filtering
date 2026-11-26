@@ -1,4 +1,4 @@
-import { playerCounts, type NormalizedGame, type PlayerCount, type RecommendationVerdict } from "./bgg/types";
+import { playerCounts, type ListedGame, type PlayerCount, type RecommendationVerdict } from "./bgg/types";
 import { isNotPlayable } from "./filtering";
 import { playersLabel, verdictLabels } from "./labels";
 
@@ -12,7 +12,7 @@ export type PollCell = {
   notRecommended: number;
 };
 
-export function pollCells(game: NormalizedGame): PollCell[] {
+export function pollCells(game: ListedGame): PollCell[] {
   return playerCounts.map((playerCount) => {
     const poll = game.playerRecommendations[playerCount];
     return {
@@ -39,6 +39,6 @@ export function pollCellLabel(cell: PollCell): string {
   );
 }
 
-export function pollStripLabel(game: NormalizedGame): string {
+export function pollStripLabel(game: ListedGame): string {
   return pollCells(game).map(pollCellLabel).join("; ");
 }
