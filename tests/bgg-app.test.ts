@@ -95,4 +95,13 @@ describe("BggApp", () => {
     expect(html).toContain('aria-label="Сортировка"');
     expect(html.match(/aria-label="Powered by BoardGameGeek"/g)!.length).toBeGreaterThanOrEqual(2);
   });
+
+  test("keeps the search bar pinned to the top while the results scroll", () => {
+    const html = render([makeGame(1, 2000)]);
+    expect(html).toMatch(/<div(?=[^>]*data-search-bar)(?=[^>]*class="[^"]*\bsticky\b[^"]*\btop-0\b)/);
+  });
+
+  test("shows no legend under the results", () => {
+    expect(render([makeGame(1, 2000)])).not.toContain("Опрос по числу игроков");
+  });
 });

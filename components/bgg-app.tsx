@@ -5,7 +5,6 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, us
 import { FilterRail } from "@/components/filters/filter-rail";
 import { BggAttribution } from "@/components/filters/rail-footer";
 import { PoweredByBgg } from "@/components/powered-by-bgg";
-import { PollLegend } from "@/components/results/poll-legend";
 import { ResultsBar } from "@/components/results/results-bar";
 import { ResultsList } from "@/components/results/results-list";
 import { ResultsTable } from "@/components/results/results-table";
@@ -154,7 +153,8 @@ export function BggApp({ initialGames, initialStatus, initialFilters }: BggAppPr
       </aside>
 
       <main className="min-w-0">
-        <div className="flex gap-2 border-b px-4 py-2.5">
+        {/* Pinned so search and the phone filter button stay reachable; above the poll strips (z-10). */}
+        <div data-search-bar className="sticky top-0 z-20 flex gap-2 border-b bg-background px-4 py-2.5">
           <div className="relative flex-1">
             <Search
               className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
@@ -262,7 +262,6 @@ export function BggApp({ initialGames, initialStatus, initialFilters }: BggAppPr
                 <ResultsList games={filteredGames} onReset={resetFilters} />
               )}
             </div>
-            <PollLegend />
           </>
         )}
 
