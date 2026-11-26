@@ -14,9 +14,14 @@ import type { SyncRunResult } from "./types";
 
 export const STALE_LOCK_MS = 6 * 60 * 60 * 1000;
 
-/** `excluded.<column>` for every listed column, for an upsert that overwrites the stored row. */
-function excludedColumns(...columns: string[]) {
-  return Object.fromEntries(columns.map((column) => [column, sql.raw(`excluded.${column}`)]));
+/**
+ * For an upsert that overwrites the stored row: each listed property set to the incoming
+ * row's value. Drizzle keys `set` by property name ("geekRating") while SQL's `excluded`
+ * needs the column name ("geek_rating"); a key Drizzle does not know is silently ignored,
+ * so the two are paired here from the table itself rather than written by hand.
+ */
+function excludedColumns<Key extends keyof typeof games.$inferInsert>(...keys: Key[]) {
+  return Object.fromEntries(keys.map((key) => [key, sql.raw(`excluded."${games[key].name}"`)]));
 }
 
 export async function replaceRankedGames(
@@ -94,6 +99,8 @@ export async function upsertGames(db: Db, rows: NormalizedGame[], updatedAt: Dat
           rank: game.rank,
           title: game.title,
           titleRu: game.titleRu,
+          alternateNames: game.alternateNames ?? [],
+          publisherIds: game.publisherIds ?? [],
           year: game.year,
           geekRating: game.geekRating,
           averageRating: game.averageRating,
@@ -112,18 +119,20 @@ export async function upsertGames(db: Db, rows: NormalizedGame[], updatedAt: Dat
         set: excludedColumns(
           "rank",
           "title",
-          "title_ru",
+          "titleRu",
+          "alternateNames",
+          "publisherIds",
           "year",
-          "geek_rating",
-          "average_rating",
-          "num_voters",
-          "min_players",
-          "max_players",
-          "playing_time",
+          "geekRating",
+          "averageRating",
+          "numVoters",
+          "minPlayers",
+          "maxPlayers",
+          "playingTime",
           "weight",
-          "bgg_url",
-          "thumbnail_url",
-          "updated_at",
+          "bggUrl",
+          "thumbnailUrl",
+          "updatedAt",
         ),
       });
 

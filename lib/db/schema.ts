@@ -38,6 +38,10 @@ export const games = pgTable(
     title: text("title").notNull(),
     /** The Russian title, guessed from BGG's alternate names. */
     titleRu: text("title_ru"),
+    /** Every other BGG name of the game, in any language; shops are searched by these. */
+    alternateNames: text("alternate_names").array().notNull().default(sql`'{}'`),
+    /** BGG IDs of the game's publishers; the Russian ones say whose shop to look in. */
+    publisherIds: integer("publisher_ids").array().notNull().default(sql`'{}'`),
     year: integer("year"),
     geekRating: doublePrecision("geek_rating"),
     averageRating: doublePrecision("average_rating"),

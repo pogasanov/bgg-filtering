@@ -47,6 +47,13 @@ export type NormalizedGame = {
   languages: string[];
   playerRecommendations: PlayerRecommendations;
   bggUrl: string;
+  /**
+   * Every BGG name other than the primary one, and the BGG IDs of the game's publishers.
+   * Set when a game is parsed from BGG and used to find it in shops; a game read back
+   * for the catalogue does not carry them.
+   */
+  alternateNames?: string[];
+  publisherIds?: number[];
 };
 
 /** A game as the page shows it: what BGG says about it plus what the tracked shops ask for it today. */

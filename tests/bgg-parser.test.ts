@@ -114,3 +114,28 @@ test("reads the thumbnail URL and tolerates its absence", () => {
   expect(parseThingXml(withThumb)[0].thumbnailUrl).toBe("https://cf.geekdo-images.com/a/t.jpg");
   expect(parseThingXml(without)[0].thumbnailUrl).toBeNull();
 });
+
+describe("names and publishers", () => {
+  test("keeps every alternate name and the publisher IDs, for matching shop products", () => {
+    const [game] = parseThingXml(`
+      <items>
+        <item type="boardgame" id="266192">
+          <name type="primary" value="Wingspan"/>
+          <name type="alternate" value="Крылья"/>
+          <name type="alternate" value="L&amp;#039;envol"/>
+          <link type="boardgamecategory" id="1089" value="Animals"/>
+          <link type="boardgamepublisher" id="23202" value="Stonemaier Games"/>
+          <link type="boardgamepublisher" id="34801" value="Lavka Games"/>
+        </item>
+      </items>`);
+
+    expect(game.alternateNames).toEqual(["Крылья", "L'envol"]);
+    expect(game.publisherIds).toEqual([23202, 34801]);
+  });
+
+  test("gives empty lists when a game has no alternate names or publishers", () => {
+    const [game] = parseThingXml(`<items><item type="boardgame" id="1"><name type="primary" value="Solo"/></item></items>`);
+    expect(game.alternateNames).toEqual([]);
+    expect(game.publisherIds).toEqual([]);
+  });
+});

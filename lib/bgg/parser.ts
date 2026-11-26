@@ -6,6 +6,7 @@ import {
   type PlayerRecommendations,
   playerCounts,
 } from "./types";
+import { decodeEntities } from "@/lib/prices/html";
 import { russianTitle } from "./russian-title";
 
 const xmlParser = new XMLParser({
@@ -92,7 +93,12 @@ export function parseThingXml(xml: string): NormalizedGame[] {
     const primaryName = names.find((name: any) => name.type === "primary") ?? names[0];
     const alternateNames = names
       .filter((name: any) => name !== primaryName && name.value !== undefined)
-      .map((name: any) => String(name.value));
+      // BGG double-encodes some names, leaving "&#039;" in the parsed value.
+      .map((name: any) => decodeEntities(String(name.value)));
+    const publisherIds = asArray(item.link)
+      .filter((link: any) => link.type === "boardgamepublisher")
+      .map((link: any) => Number(link.id))
+      .filter((id: number) => Number.isInteger(id));
     const ratings = item.statistics?.ratings ?? {};
     const ranks = asArray(ratings.ranks?.rank);
     const boardGameRank = ranks.find((rank: any) => rank.type === "subtype" && rank.name === "boardgame");
@@ -123,6 +129,8 @@ export function parseThingXml(xml: string): NormalizedGame[] {
       languages,
       playerRecommendations,
       bggUrl: `https://boardgamegeek.com/boardgame/${item.id}`,
+      alternateNames,
+      publisherIds,
     };
   });
 }
