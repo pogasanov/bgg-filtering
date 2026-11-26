@@ -245,4 +245,4 @@ Results and caches are written to `data/price-cache/`. Requests obey each shop's
 - `--shops crowdgames,lavkaigr,gaga` limits the run to some shops.
 - `--from-cache` stores the catalogues a `prices:dry-run` already saved under `data/price-cache/` instead of asking the shops again.
 
-It needs `DATABASE_URL` and, for now, the legacy `data/bgg-cache.sqlite`: game names and Russian publishers come from the raw BGG XML, which the Postgres database does not keep yet. Apply migrations first with `pnpm db:migrate`.
+It needs `DATABASE_URL`. Game names and Russian publishers come from the database, where the BGG sync stores every alternate name and publisher ID of a game; run the sync once before the first price run. Apply migrations first with `pnpm db:migrate`.
