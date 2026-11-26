@@ -36,7 +36,7 @@ export function TagFilter({ allTags, selected, counts, onChange }: TagFilterProp
   }
 
   return (
-    <div className="grid gap-2">
+    <div className="grid grid-cols-1 gap-2">
       <div className="relative">
         <Search
           className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
@@ -50,7 +50,8 @@ export function TagFilter({ allTags, selected, counts, onChange }: TagFilterProp
           className="h-8 pl-8 text-xs shadow-none md:text-xs"
         />
       </div>
-      <ScrollArea className="h-64">
+      {/* Radix sizes the viewport content as a table, which lets long names push the counts out of view. */}
+      <ScrollArea className="h-64 [&_[data-slot=scroll-area-viewport]>div]:!block">
         <div className="pr-3">
           {options.length === 0 ? <p className="py-2 text-xs text-muted-foreground">Ничего не найдено</p> : null}
           {options.map((tag) => (

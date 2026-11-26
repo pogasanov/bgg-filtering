@@ -28,7 +28,7 @@ export function ResultsBar({ shown, total, chips, onChange, onReset, children }:
       {children}
       {chips.length > 0 ? (
         <>
-          <ul className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto lg:flex-wrap lg:overflow-visible">
+          <ul className="order-last flex min-w-0 basis-full gap-1.5 overflow-x-auto lg:order-none lg:flex-1 lg:basis-0 lg:flex-wrap lg:overflow-visible">
             {chips.map((chip) => (
               <li key={chip.id} className="flex-none">
                 <Badge variant="outline" className="gap-1 rounded-[4px] py-0.5 pr-0.5 pl-2 font-normal">
@@ -45,7 +45,7 @@ export function ResultsBar({ shown, total, chips, onChange, onReset, children }:
               </li>
             ))}
           </ul>
-          <Button variant="ghost" size="sm" onClick={onReset} className="h-7 flex-none text-xs text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={onReset} className="ml-auto h-7 flex-none text-xs text-muted-foreground">
             Сбросить всё
           </Button>
         </>
