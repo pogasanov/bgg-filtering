@@ -9,5 +9,6 @@ work
 .agents
 tsconfig.tsbuildinfo
 boardgames_ranks.csv
+worker/dist/
 .superpowers
 docs/research/

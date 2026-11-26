@@ -7,7 +7,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import { buildUserAgent, createShopGet } from "@/lib/prices/http";
 import { matchProducts } from "@/lib/prices/match";
 import { alternateNamesByGame, mergeNames } from "@/lib/prices/names";
@@ -67,9 +67,9 @@ function writeJson(path: string, data: unknown) {
 
 function loadGames(): { bggId: number; title: string; names: string[] }[] {
   if (!existsSync(DB_PATH)) {
-    throw new Error(`No BGG cache at ${DB_PATH}. Sync BGG in the app first, or copy data/bgg-cache.sqlite here.`);
+    throw new Error(`No legacy BGG cache at ${DB_PATH}. Copy data/bgg-cache.sqlite from a checkout that has it.`);
   }
-  const db = new Database(DB_PATH, { readonly: true, fileMustExist: true });
+  const db = new DatabaseSync(DB_PATH, { readOnly: true });
   try {
     const rows = db.prepare("SELECT bgg_id AS bggId, title, raw_xml AS rawXml FROM games ORDER BY rank").all() as {
       bggId: number;

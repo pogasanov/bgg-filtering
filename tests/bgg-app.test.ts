@@ -4,7 +4,7 @@ import { describe, expect, test, vi } from "vitest";
 import { BggApp } from "@/components/bgg-app";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { emptyPlayerRecommendations } from "@/lib/bgg/parser";
-import type { CacheStatus } from "@/lib/cache/store";
+import type { CatalogStatus } from "@/lib/catalog/types";
 import type { NormalizedGame } from "@/lib/bgg/types";
 import type { GameFilters } from "@/lib/filtering";
 import { gamesView } from "@/lib/games-view";
@@ -13,17 +13,9 @@ import { defaultFilters } from "@/lib/url-state";
 // The components read the router; outside Next there is none.
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace() {}, refresh() {} }) }));
 
-const status: CacheStatus = {
+const status: CatalogStatus = {
   gameCount: 3,
-  cacheUpdatedAt: null,
-  latestSync: {
-    status: null,
-    startedAt: null,
-    finishedAt: null,
-    fetchedCount: null,
-    error: null,
-  },
-  syncLocked: false,
+  updatedAt: null,
 };
 
 function makeGame(id: number, year: number | null, languages: string[] = []): NormalizedGame {
@@ -32,7 +24,6 @@ function makeGame(id: number, year: number | null, languages: string[] = []): No
     rank: id,
     title: "Game " + id,
     year,
-    description: "",
     thumbnailUrl: null,
     geekRating: 8,
     averageRating: 8,
@@ -82,15 +73,18 @@ describe("BggApp", () => {
     expect(html).toContain("Убрать фильтр: с 2010");
   });
 
-  test("empty cache shows setup guidance instead of the table", () => {
+  test("empty catalog says the data is not loaded yet instead of showing the table", () => {
     const html = render([]);
     expect(slotCount(html, "alert")).toBe(1);
-    expect(html).toContain("Кэш пуст");
+    expect(html).toContain("Игр пока нет");
+    expect(html).not.toContain("BGG_TOKEN");
     expect(slotCount(html, "table")).toBe(0);
   });
 
-  test("never renders game descriptions", () => {
-    expect(render([{ ...makeGame(1, 2000), description: "SECRET-DESCRIPTION" }])).not.toContain("SECRET-DESCRIPTION");
+  test("describes the site as public and non-commercial", () => {
+    const html = render([makeGame(1, 2000)]);
+    expect(html).toContain("Некоммерческий сайт.");
+    expect(html).not.toContain("личного");
   });
 
   test("has a phone filter trigger, sort control and a BGG footer outside the rail", () => {

@@ -35,10 +35,6 @@ function numberOrNull(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function stringOrEmpty(value: unknown): string {
-  return typeof value === "string" ? value : "";
-}
-
 
 function stringOrNull(value: unknown): string | null {
   if (value === undefined || value === null) return null;
@@ -109,7 +105,6 @@ export function parseThingXml(xml: string): NormalizedGame[] {
       rank: numberOrNull(boardGameRank?.value),
       title: String(primaryName?.value ?? "Untitled"),
       year: numberOrNull(item.yearpublished?.value),
-      description: stringOrEmpty(item.description),
       thumbnailUrl: stringOrNull(item.thumbnail),
       geekRating: numberOrNull(ratings.bayesaverage?.value),
       averageRating: numberOrNull(ratings.average?.value),

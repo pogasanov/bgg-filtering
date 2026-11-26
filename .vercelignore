@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+.env*
+data
+*.csv
+*.sqlite*
+*.log
+.claude
+.superpowers
+.worktrees
+.agents
+work
+worker/dist
+tsconfig.tsbuildinfo

@@ -16,9 +16,6 @@ export function AppFilterRail() {
       allLanguages={state.facets.allLanguages}
       yearScale={state.facets.yearScale}
       status={state.status}
-      syncing={state.syncing}
-      syncError={state.syncError}
-      onSync={state.sync}
     />
   );
 }

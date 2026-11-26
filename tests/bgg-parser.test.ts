@@ -78,7 +78,6 @@ describe("BGG XML parser", () => {
       maxPlayers: 4,
       playingTime: 120,
       weight: 3.89,
-      description: "Vanquish monsters with <em>strategic</em> cardplay.",
       categories: ["Adventure", "Fantasy"],
       mechanics: ["Deck, Bag, and Pool Building"],
       languages: ["English", "French", "German"],

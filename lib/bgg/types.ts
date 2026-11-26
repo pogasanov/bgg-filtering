@@ -30,7 +30,6 @@ export type NormalizedGame = {
   rank: number | null;
   title: string;
   year: number | null;
-  description: string;
   thumbnailUrl: string | null;
   geekRating: number | null;
   averageRating: number | null;
@@ -46,8 +45,8 @@ export type NormalizedGame = {
   bggUrl: string;
 };
 
-/** A game as the page shows it. Descriptions are large and never displayed, so they stay on the server. */
-export type ListedGame = Omit<NormalizedGame, "description">;
+/** A game as the page shows it. Descriptions are never parsed or stored, so it is the full game. */
+export type ListedGame = NormalizedGame;
 
 export type MatrixSelection = {
   playerCount: PlayerCount;

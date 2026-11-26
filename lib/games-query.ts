@@ -1,6 +1,4 @@
-import { statSync } from "node:fs";
-import type { ListedGame } from "./bgg/types";
-import { createCacheStore, getDefaultCachePath, type CacheStatus } from "./cache/store";
+import type { Catalog } from "./catalog/types";
 import type { GameFilters } from "./filtering";
 import { buildGamesView, gameFacets, matchGames, type GameFacets, type GameMatches, type GamesView } from "./games-view";
 import { serializeFilters } from "./url-state";
@@ -9,31 +7,15 @@ import { serializeFilters } from "./url-state";
 const MAX_CACHED_MATCHES = 200;
 
 type Snapshot = {
-  /** Changes whenever the database is written to, which makes the whole snapshot stale. */
+  /** Identifies the catalog the results were computed from; a sync changes it. */
   version: string;
-  games: ListedGame[];
-  status: CacheStatus;
   facets: GameFacets;
   matches: Map<string, GameMatches>;
 };
 
 let snapshot: Snapshot | null = null;
 
-/**
- * Identifies the database contents by the size and modification time of its files. Every write lands in
- * the database or its write-ahead log, so this notices a sync from any process without opening the
- * database: on a large cache even counting the games takes longer than answering from memory.
- */
-function databaseVersion(dbPath: string): string {
-  return [dbPath, `${dbPath}-wal`]
-    .map((path) => {
-      const stats = statSync(path, { throwIfNoEntry: false });
-      return stats ? `${path}:${stats.mtimeMs}:${stats.size}` : `${path}:none`;
-    })
-    .join("|");
-}
-
-function cachedMatches(current: Snapshot, filters: GameFilters): GameMatches {
+function cachedMatches(current: Snapshot, catalog: Catalog, filters: GameFilters): GameMatches {
   // The serialised filters name the result: the same view always has the same query string.
   const key = serializeFilters(filters);
   const cached = current.matches.get(key);
@@ -44,7 +26,7 @@ function cachedMatches(current: Snapshot, filters: GameFilters): GameMatches {
     return cached;
   }
 
-  const matches = matchGames(current.games, filters);
+  const matches = matchGames(catalog.games, filters);
   current.matches.set(key, matches);
   if (current.matches.size > MAX_CACHED_MATCHES) {
     current.matches.delete(current.matches.keys().next().value as string);
@@ -53,21 +35,21 @@ function cachedMatches(current: Snapshot, filters: GameFilters): GameMatches {
 }
 
 /**
- * One page of games for the filters. The games and the cache status are read from the database once
- * and kept in memory together with the result of each filter combination, so a repeated view costs
- * no database work at all. Any write to the database (a sync starting or finishing) starts over.
+ * One page of the catalog for the filters. The catalog itself comes from the Next.js data cache;
+ * this keeps what is computed from it (the filter options and the result of each filter combination)
+ * in the server's memory, so a repeated view is not filtered, sorted and counted again.
+ * A sync gives the catalog a new update time, which starts the results over.
  */
-export function queryGames(filters: GameFilters, page: number, dbPath = getDefaultCachePath()): GamesView {
-  // Taken before reading: a write that lands during the read leaves a newer version on disk, and the next call reloads.
-  const version = databaseVersion(dbPath);
+export function queryGames(catalog: Catalog, filters: GameFilters, page: number): GamesView {
+  const version = `${catalog.status.updatedAt}|${catalog.games.length}`;
   if (snapshot?.version !== version) {
-    const store = createCacheStore(dbPath);
-    try {
-      const games = store.getListedGames();
-      snapshot = { version, games, status: store.getStatus(), facets: gameFacets(games), matches: new Map() };
-    } finally {
-      store.close();
-    }
+    snapshot = { version, facets: gameFacets(catalog.games), matches: new Map() };
   }
-  return buildGamesView(snapshot.games.length, snapshot.facets, cachedMatches(snapshot, filters), snapshot.status, page);
+  return buildGamesView(
+    catalog.games.length,
+    snapshot.facets,
+    cachedMatches(snapshot, catalog, filters),
+    catalog.status,
+    page,
+  );
 }

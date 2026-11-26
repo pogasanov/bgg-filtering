@@ -23,7 +23,7 @@ export function BggAttribution() {
       <a href="https://boardgamegeek.com" target="_blank" rel="noreferrer" className="underline underline-offset-2">
         BoardGameGeek
       </a>
-      . Не аффилировано с BGG. Только для личного некоммерческого использования.
+      . Не аффилировано с BGG. Некоммерческий сайт.
     </p>
   );
 }

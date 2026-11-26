@@ -1,5 +1,5 @@
 import type { ListedGame } from "./bgg/types";
-import type { CacheStatus } from "./cache/store";
+import type { CatalogStatus } from "./catalog/types";
 import { filterGames, gameTags, tagCounts, type GameFilters } from "./filtering";
 import { clampPage, pageCount, pageSlice } from "./pagination";
 import { buildYearScale } from "./year-scale";
@@ -29,7 +29,7 @@ export type GamesView = {
   pageCount: number;
   tagCounts: Map<string, number>;
   facets: GameFacets;
-  status: CacheStatus;
+  status: CatalogStatus;
 };
 
 export function gameFacets(games: ListedGame[]): GameFacets {
@@ -48,7 +48,7 @@ export function buildGamesView(
   total: number,
   facets: GameFacets,
   matches: GameMatches,
-  status: CacheStatus,
+  status: CatalogStatus,
   requestedPage: number,
 ): GamesView {
   const page = clampPage(requestedPage, matches.games.length);
@@ -65,6 +65,6 @@ export function buildGamesView(
 }
 
 /** The view straight from a list of games, with nothing cached. */
-export function gamesView(games: ListedGame[], status: CacheStatus, filters: GameFilters, page = 1): GamesView {
+export function gamesView(games: ListedGame[], status: CatalogStatus, filters: GameFilters, page = 1): GamesView {
   return buildGamesView(games.length, gameFacets(games), matchGames(games, filters), status, page);
 }

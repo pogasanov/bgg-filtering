@@ -17,9 +17,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace() {}, refresh() 
 
 const status = {
   gameCount: 1,
-  cacheUpdatedAt: null,
-  latestSync: { status: null, startedAt: null, finishedAt: null, fetchedCount: null, error: null },
-  syncLocked: false,
+  updatedAt: null,
 };
 
 function render<P extends object>(component: ComponentType<P>, props: P) {

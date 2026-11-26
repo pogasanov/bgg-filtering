@@ -16,7 +16,7 @@ import {
 } from "react";
 import { activeFilterChips, type FilterChip } from "@/lib/active-filters";
 import type { SortKey } from "@/lib/bgg/types";
-import type { CacheStatus } from "@/lib/cache/store";
+import type { CatalogStatus } from "@/lib/catalog/types";
 import { defaultSortDir, type GameFilters } from "@/lib/filtering";
 import type { GameFacets } from "@/lib/games-view";
 import { defaultFilters, serializeFilters } from "@/lib/url-state";
@@ -30,12 +30,9 @@ type GamesState = {
   chips: FilterChip[];
   facets: GameFacets;
   tagCounts: Map<string, number>;
-  status: CacheStatus;
+  status: CatalogStatus;
   resetFilters: () => void;
   sortBy: (key: SortKey) => void;
-  syncing: boolean;
-  syncError: string | null;
-  sync: () => void;
 };
 
 type GamesProviderProps = {
@@ -43,7 +40,7 @@ type GamesProviderProps = {
   initialFilters: GameFilters;
   facets: GameFacets;
   tagCounts: Map<string, number>;
-  status: CacheStatus;
+  status: CatalogStatus;
   children: ReactNode;
 };
 
@@ -65,9 +62,7 @@ export function useGames(): GamesState {
 export function GamesProvider({ initialFilters, facets, tagCounts, status, children }: GamesProviderProps) {
   const router = useRouter();
   const [filters, setFilters] = useState(initialFilters);
-  const [syncError, setSyncError] = useState<string | null>(null);
   const [isPending, startNavigation] = useTransition();
-  const [syncing, startSync] = useTransition();
   // The last query asked of the router. Compared instead of the address bar, which lags behind a navigation in flight.
   const requestedQuery = useRef(serializeFilters(initialFilters));
   const requestedSearch = useRef(initialFilters.search);
@@ -104,23 +99,6 @@ export function GamesProvider({ initialFilters, facets, tagCounts, status, child
     });
   }, []);
 
-  const sync = useCallback(() => {
-    setSyncError(null);
-    startSync(async () => {
-      try {
-        const response = await fetch("/api/sync", { method: "POST" });
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => ({}))) as { error?: string };
-          setSyncError(payload.error ?? "Синхронизация не удалась.");
-        }
-      } catch {
-        setSyncError("Не удалось синхронизировать: сервер не ответил.");
-      }
-      // Re-render the page on the server so it shows the new games and cache date.
-      startSync(() => router.refresh());
-    });
-  }, [router]);
-
   const state: GamesState = {
     filters,
     setFilters,
@@ -131,9 +109,6 @@ export function GamesProvider({ initialFilters, facets, tagCounts, status, child
     status,
     resetFilters,
     sortBy,
-    syncing,
-    syncError,
-    sync,
   };
 
   return <GamesContext value={state}>{children}</GamesContext>;

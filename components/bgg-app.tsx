@@ -38,11 +38,8 @@ export function BggApp({ view, filters }: BggAppProps) {
           {view.total === 0 ? (
             <div className="p-4">
               <Alert>
-                <AlertTitle>Кэш пуст</AlertTitle>
-                <AlertDescription>
-                  Добавьте BGG_TOKEN в .env.local, положите boardgames_ranks.csv в корень проекта и нажмите
-                  «Синхронизировать».
-                </AlertDescription>
+                <AlertTitle>Игр пока нет</AlertTitle>
+                <AlertDescription>Данные об играх ещё не загружены. Загляните чуть позже.</AlertDescription>
               </Alert>
             </div>
           ) : (

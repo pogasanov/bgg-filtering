@@ -1,42 +1,20 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
 import { BggAttribution, PoweredByBgg } from "@/components/powered-by-bgg";
-import { Button } from "@/components/ui/button";
-import type { CacheStatus } from "@/lib/cache/store";
-import { cn } from "@/lib/utils";
+import type { CatalogStatus } from "@/lib/catalog/types";
+import { formatUpdatedDate } from "@/lib/labels";
 
 type RailFooterProps = {
-  status: CacheStatus;
-  syncing: boolean;
-  syncError: string | null;
-  onSync: () => void;
+  status: CatalogStatus;
 };
 
-/** Service controls live here, out of the way: attribution, cache date, sync and its errors. */
-export function RailFooter({ status, syncing, syncError, onSync }: RailFooterProps) {
-  const busy = syncing || status.syncLocked;
-
+/** Attribution and the date of the last weekly sync, out of the way at the bottom of the rail. */
+export function RailFooter({ status }: RailFooterProps) {
   return (
     <div className="grid gap-2.5 px-4 py-4">
       <PoweredByBgg />
       <BggAttribution />
-      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-        <span suppressHydrationWarning>
-          {status.cacheUpdatedAt
-            ? `Обновлено ${new Date(status.cacheUpdatedAt).toLocaleDateString("ru-RU")}`
-            : "Кэш пуст"}
-        </span>
-        <Button variant="link" size="sm" onClick={onSync} disabled={busy} className="h-auto gap-1 p-0 text-[11px]">
-          <RefreshCw className={cn("size-3", busy && "animate-spin")} aria-hidden="true" />
-          {busy ? "Синхронизация…" : "Синхронизировать"}
-        </Button>
-      </div>
-      {syncError ? (
-        <p role="alert" className="text-[11px] leading-snug text-destructive">
-          {syncError}
-        </p>
-      ) : null}
+      <p className="text-[11px] text-muted-foreground">{formatUpdatedDate(status.updatedAt)}</p>
     </div>
   );
 }

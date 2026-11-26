@@ -6,7 +6,7 @@ import { MatrixGrid } from "@/components/filters/matrix-grid";
 import { RailFooter } from "@/components/filters/rail-footer";
 import { TagFilter } from "@/components/filters/tag-filter";
 import { YearFilter } from "@/components/filters/year-filter";
-import type { CacheStatus } from "@/lib/cache/store";
+import type { CatalogStatus } from "@/lib/catalog/types";
 import type { GameFilters } from "@/lib/filtering";
 import { yearRangeLabel } from "@/lib/year-presets";
 
@@ -17,10 +17,7 @@ export type FilterRailProps = {
   tagCounts: Map<string, number>;
   allLanguages: string[];
   yearScale: number[];
-  status: CacheStatus;
-  syncing: boolean;
-  syncError: string | null;
-  onSync: () => void;
+  status: CatalogStatus;
 };
 
 /** The filter groups and the service footer. Used as the desktop rail and inside the phone sheet. */
@@ -87,7 +84,7 @@ export function FilterRail(props: FilterRailProps) {
       </div>
 
       <div data-rail-footer className="flex-none border-t">
-        <RailFooter status={props.status} syncing={props.syncing} syncError={props.syncError} onSync={props.onSync} />
+        <RailFooter status={props.status} />
       </div>
     </div>
   );
