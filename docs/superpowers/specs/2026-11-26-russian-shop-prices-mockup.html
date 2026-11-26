@@ -1,0 +1,106 @@
+<style>
+  .pm { background:#fff; color:#171717; font:13px/1.4 ui-sans-serif,system-ui,sans-serif; border:1px solid #e5e5e5; border-radius:8px; overflow:hidden; }
+  .pm table { width:100%; border-collapse:collapse; }
+  .pm th { background:#f7f7f7; color:#737373; font-size:12px; font-weight:500; text-align:right; padding:8px 12px; white-space:nowrap; }
+  .pm th.l, .pm td.l { text-align:left; }
+  .pm td { padding:8px 12px; text-align:right; border-top:1px solid #ececec; font-family:ui-monospace,monospace; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .pm td.l { font-family:inherit; white-space:normal; }
+  .pm .g { display:flex; gap:10px; align-items:center; }
+  .pm .th { width:36px; height:36px; border-radius:4px; background:#e5e5e5; flex:none; }
+  .pm .t { font-weight:500; } .pm .s { color:#737373; font-size:12px; }
+  .pm .mut { color:#737373; }
+  .pm .sale { color:#15803d; font-weight:600; }
+  .pm .old { color:#a3a3a3; text-decoration:line-through; font-size:11px; display:block; }
+  .pm tr.open td { background:#fafafa; }
+  .pm .panel td { background:#fafafa; padding:14px 16px 18px; font-family:inherit; text-align:left; white-space:normal; }
+  .pm .chev { color:#a3a3a3; margin-right:4px; }
+  .pm .grid { display:grid; grid-template-columns:1fr 250px; gap:20px; align-items:start; }
+  .pm .lab { font-size:11px; color:#737373; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
+  .pm .shop { display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-top:1px solid #ececec; }
+  .pm .shop:first-of-type { border-top:0; }
+  .pm .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .pm .num { font-family:ui-monospace,monospace; }
+  .pm .badge { background:#dcfce7; color:#14532d; font-size:11px; border-radius:4px; padding:1px 5px; margin-left:6px; }
+  .pm .rng { display:inline-flex; border:1px solid #e5e5e5; border-radius:6px; overflow:hidden; font-size:11px; }
+  .pm .rng span { padding:2px 8px; color:#737373; } .pm .rng span.on { background:#171717; color:#fff; }
+  .pm svg text { font:10px ui-monospace,monospace; fill:#737373; }
+  .note { font-size:13px; opacity:.8; margin:6px 0 18px; }
+</style>
+
+<h2>Раскрытие строки с графиком цены</h2>
+<p class="subtitle">На основе новой таблицы из ворктри с редизайном. Данные вымышленные. Какой вариант ближе — A или B?</p>
+
+<div class="section">
+<h3>A. Одна линия — лучшая цена, магазины списком</h3>
+<p class="note">В таблице новая колонка «Цена» (минимальная среди магазинов). Клик по строке раскрывает панель; на BGG ведёт отдельная ссылка внутри панели.</p>
+<div class="pm">
+<table>
+<tr><th>#</th><th class="l">Игра</th><th>Год</th><th>Игроки</th><th>Geek</th><th>Цена, ₽</th></tr>
+<tr><td class="mut">3</td><td class="l"><div class="g"><div class="th"></div><div><div class="t"><span class="chev">›</span>Ark Nova</div><div class="s">Животные · Экономика</div></div></div></td><td class="mut">2021</td><td>1–4</td><td><b>8.33</b></td><td>7 990</td></tr>
+<tr class="open"><td class="mut">27</td><td class="l"><div class="g"><div class="th"></div><div><div class="t"><span class="chev">⌄</span>Крылья</div><div class="s">Wingspan · Животные · Карточная</div></div></div></td><td class="mut">2019</td><td>1–5</td><td><b>7.96</b></td><td><span class="old">5 990</span><span class="sale">4 490</span></td></tr>
+<tr class="panel"><td colspan="6">
+  <div class="grid">
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><div class="lab">Лучшая цена за период</div><div class="rng"><span>30 дн</span><span class="on">90 дн</span><span>Год</span><span>Всё</span></div></div>
+      <svg viewBox="0 0 520 150" width="100%">
+        <g stroke="#ececec"><line x1="40" y1="20" x2="510" y2="20"/><line x1="40" y1="65" x2="510" y2="65"/><line x1="40" y1="110" x2="510" y2="110"/></g>
+        <text x="4" y="24">6 000</text><text x="4" y="69">5 000</text><text x="4" y="114">4 000</text>
+        <text x="40" y="140">сен</text><text x="200" y="140">окт</text><text x="360" y="140">ноя</text>
+        <polyline fill="none" stroke="#171717" stroke-width="2" points="40,21 150,21 150,34 300,34 300,21 420,21 420,88 510,88"/>
+        <circle cx="510" cy="88" r="4" fill="#15803d"/>
+        <text x="430" y="80" style="fill:#15803d">4 490 · −25%</text>
+      </svg>
+    </div>
+    <div>
+      <div class="lab">Сейчас в магазинах</div>
+      <div class="shop"><span>Лавка игр <span class="badge">−25%</span></span><span class="num sale">4 490</span></div>
+      <div class="shop"><span>Hobby Games</span><span class="num">5 990</span></div>
+      <div class="shop"><span>GaGa</span><span class="num">5 990</span></div>
+      <div class="shop"><span class="mut">CrowdGames</span><span class="mut">нет в продаже</span></div>
+      <div class="s" style="margin-top:8px">Минимум за всё время: 4 290 · обновлено сегодня 06:00 · <u>BGG ↗</u></div>
+    </div>
+  </div>
+</td></tr>
+<tr><td class="mut">41</td><td class="l"><div class="g"><div class="th"></div><div><div class="t"><span class="chev">›</span>Цитадели</div><div class="s">Citadels · Карточная · Блеф</div></div></div></td><td class="mut">2000</td><td>2–8</td><td><b>7.08</b></td><td>990</td></tr>
+</table>
+</div>
+</div>
+
+<div class="section">
+<h3>B. Линия на каждый магазин</h3>
+<p class="note">Тот же каркас, но на графике видно, какой магазин когда снижал цену. Нагляднее при сравнении магазинов, шумнее при 4–5 линиях.</p>
+<div class="pm">
+<table>
+<tr class="open"><td class="mut" style="border-top:0">27</td><td class="l" style="border-top:0"><div class="g"><div class="th"></div><div><div class="t"><span class="chev">⌄</span>Крылья</div><div class="s">Wingspan · Животные · Карточная</div></div></div></td><td class="mut" style="border-top:0">2019</td><td style="border-top:0">1–5</td><td style="border-top:0"><b>7.96</b></td><td style="border-top:0"><span class="old">5 990</span><span class="sale">4 490</span></td></tr>
+<tr class="panel"><td colspan="6">
+  <div class="grid">
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><div class="lab">Цена по магазинам</div><div class="rng"><span>30 дн</span><span class="on">90 дн</span><span>Год</span><span>Всё</span></div></div>
+      <svg viewBox="0 0 520 150" width="100%">
+        <g stroke="#ececec"><line x1="40" y1="20" x2="510" y2="20"/><line x1="40" y1="65" x2="510" y2="65"/><line x1="40" y1="110" x2="510" y2="110"/></g>
+        <text x="4" y="24">6 000</text><text x="4" y="69">5 000</text><text x="4" y="114">4 000</text>
+        <text x="40" y="140">сен</text><text x="200" y="140">окт</text><text x="360" y="140">ноя</text>
+        <polyline fill="none" stroke="#2563eb" stroke-width="2" points="40,21 420,21 420,88 510,88"/>
+        <polyline fill="none" stroke="#d97706" stroke-width="2" points="40,24 150,24 150,34 300,34 300,24 510,24"/>
+        <polyline fill="none" stroke="#7c3aed" stroke-width="2" points="40,43 220,43 220,18 510,18"/>
+        <circle cx="510" cy="88" r="4" fill="#2563eb"/>
+      </svg>
+    </div>
+    <div>
+      <div class="lab">Сейчас в магазинах</div>
+      <div class="shop"><span><i class="dot" style="background:#2563eb"></i>Лавка игр <span class="badge">−25%</span></span><span class="num sale">4 490</span></div>
+      <div class="shop"><span><i class="dot" style="background:#d97706"></i>Hobby Games</span><span class="num">5 990</span></div>
+      <div class="shop"><span><i class="dot" style="background:#7c3aed"></i>GaGa</span><span class="num">5 990</span></div>
+      <div class="shop"><span class="mut">CrowdGames</span><span class="mut">нет в продаже</span></div>
+      <div class="s" style="margin-top:8px">Минимум за всё время: 4 290 · обновлено сегодня 06:00 · <u>BGG ↗</u></div>
+    </div>
+  </div>
+</td></tr>
+</table>
+</div>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)"><div class="letter">A</div><div class="content"><h3>Одна линия — лучшая цена</h3><p>Чище, сразу видно «выгодно ли сейчас»</p></div></div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)"><div class="letter">B</div><div class="content"><h3>Линия на каждый магазин</h3><p>Видно историю каждого магазина</p></div></div>
+</div>
