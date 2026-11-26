@@ -1,0 +1,330 @@
+User-agent: *
+
+# Служебные страницы
+Disallow: /page/test-anons
+Disallow: /cart_items
+Disallow: /add_to_cart
+Disallow: /product_by_id
+Disallow: /auth
+Disallow: /login
+Disallow: /orders
+Disallow: /client_account
+Disallow: /admin
+Disallow: /search
+Disallow: /search_suggestions
+Disallow: /bank_receipts
+Disallow: /bank_ru_receipts
+Disallow: /juridical_person_receipts
+Disallow: /compares
+Disallow: /captchas
+Disallow: /ru_captcha
+Disallow: /payments/
+
+# Технические URL и параметры
+Disallow: *?*theme_preview
+Disallow: *?*theme_preview_disable
+Disallow: /*/reviews
+Disallow: *?*options
+Disallow: *?*characteristics
+Disallow: *?*archiveru
+
+# Технические фильтры каталога — маски сохраняем
+Disallow: /collection/*/prodolzhitelnost-partii/
+Disallow: /collection/*/kolichestvo-igrokov/
+Disallow: /collection/*/tip-igry/
+Disallow: /collection/*/tselevaya-auditoriya/
+Disallow: /collection/*/samovyvoz-magazin/
+Disallow: /collection/*/usloviya-dostavki/
+Disallow: /collection/*/status_dla_dostavki/
+Disallow: /collection/*/dostavka_za_zero/
+Disallow: /collection/*/nazvanie-modeli/
+Disallow: /collection/*/Coupon/
+Disallow: /collection/*/rassrochka-CG/
+
+# Ранее закрытые технические коллекции (строго точные URL)
+Disallow: /collection/vtorye-platezhi$
+Disallow: /collection/nastolnye-igry$
+Disallow: /collection/vf$
+Disallow: /collection/kt_4exp$
+Disallow: /collection/MD_ex_3_4$
+Disallow: /collection/MD_ex_1_2$
+Disallow: /collection/snoubordy$
+Disallow: /collection/skeytbordy$
+Disallow: /collection/aktsiya_15$
+Disallow: /collection/api$
+Disallow: /collection/arhiv$
+Disallow: /collection/arhiv-sp$
+Disallow: /collection/rassrochki$
+Disallow: /collection/katalog-1-638cb6$
+Disallow: /collection/rassrochki-2$
+Disallow: /collection/tovary-s-igroy-i-promo$
+Disallow: /collection/tovary-s-igroy-i-promo-2$
+Disallow: /collection/katalog-1-e32f29$
+Disallow: /collection/katalog-1-bb59c0$
+Disallow: /collection/nabory$
+Disallow: /collection/tselye-tovary$
+Disallow: /collection/igra-i-dopolneniya$
+Disallow: /protektory-2$
+
+# Подтверждённые технические / временные коллекции (строго точные URL)
+Disallow: /collection/1-volna-predzakaza$
+Disallow: /collection/2-volna$
+Disallow: /collection/aksessuary$
+Disallow: /collection/aksessuary-2$
+Disallow: /collection/aksessuary-5a6599$
+Disallow: /collection/aksessuary-72d2be$
+Disallow: /collection/aksessuary-7d8a66$
+Disallow: /collection/aksessuary-bf0696$
+Disallow: /collection/aksessuary-c647af$
+Disallow: /collection/aksessuary-dlya-kollektsii$
+Disallow: /collection/aksessuary-dlya-masterov-plameni$
+Disallow: /collection/aksessuary-dlya-proshlyh-izdaniy$
+Disallow: /collection/aktsiya$
+Disallow: /collection/drugie-igry-serii-pax$
+Disallow: /collection/hochu-vsyo$
+Disallow: /collection/igra$
+Disallow: /collection/igra-i-aksessuary$
+Disallow: /collection/igra-v-predzakaze$
+Disallow: /collection/igry$
+Disallow: /collection/katalog$
+Disallow: /collection/katalog-1-d22e78$
+Disallow: /collection/katalog-2-12bb5b$
+Disallow: /collection/katalog-2-3587d8$
+Disallow: /collection/katalog-2-9882f4$
+Disallow: /collection/komplekty$
+Disallow: /collection/komplekty-2$
+Disallow: /collection/komplekty-igr$
+Disallow: /collection/kruiz-v-rassrochku$
+Disallow: /collection/kupit-v-roznitse$
+Disallow: /collection/mastera-plameni-duel-2$
+Disallow: /collection/mi-agentstvo-vremya$
+Disallow: /collection/mi-myortvyy-sezon$
+Disallow: /collection/mi-o-myshah-i-taynah$
+Disallow: /collection/miniatyury-dlya-igry$
+Disallow: /collection/nippon-zaibatsu-sabisu$
+Disallow: /collection/novoe-dopolnenie$
+Disallow: /collection/oskvernyonnyy-graal$
+Disallow: /collection/pax-pamir-bolshaya-igra$
+Disallow: /collection/pervaya-volna-predzakaz$
+Disallow: /collection/pervaya-volna-rassrochka$
+Disallow: /collection/poluchit-kruiz-uzhe-seychas$
+Disallow: /collection/predzakaz$
+Disallow: /collection/predzakaz-dop-neizvedannye-vody$
+Disallow: /collection/primal-probuzhdenie-2$
+Disallow: /collection/promo-2$
+Disallow: /collection/promonabor$
+Disallow: /collection/protektory-2$
+Disallow: /collection/protektory-3$
+Disallow: /collection/protektory-e15b9b$
+Disallow: /collection/protektory-k-sagrade$
+Disallow: /collection/protektory-k-velikoy-biblioteke$
+Disallow: /collection/protektory-predzakaz$
+Disallow: /collection/rassrochka$
+Disallow: /collection/rassrochka-2$
+Disallow: /collection/rassrochka-na-aksessuary$
+Disallow: /collection/rassrochka-na-aksessuary-2$
+Disallow: /collection/tovary$
+Disallow: /collection/velikaya-biblioteka-2$
+Disallow: /collection/vtoraya-volna-predzakaz$
+Disallow: /collection/komplekty-99e5c1$
+Disallow: /collection/komplekty-3$
+Disallow: /collection/protektory-51c72c$
+Disallow: /collection/katalog-3-6844ee$
+Disallow: /collection/rassrochka-9a2d30$
+Disallow: /collection/rassrochka-410093$
+Disallow: /collection/rassrochka-3$
+Disallow: /collection/rassrochki-fc068f$
+Disallow: /collection/rassrochki-89fdcc$
+Disallow: /collection/igra-2$
+Disallow: /collection/igra-i-dopolneniya-2$
+Disallow: /collection/igra-i-aksessuary-2$
+Disallow: /collection/igra-i-protektory$
+Disallow: /collection/tselye-tovary-2$
+Disallow: /collection/aksessuary-793583$
+
+# Ранее закрытые товарные URL (точное совпадение)
+Disallow: /collection/shop/product/zloveschaya-akademiya$
+Disallow: /collection/shop/product/zloveschaya-akademiya-promonabor-kart-sobytiy$
+Disallow: /collection/shop/product/gerakl-i-ego-12-podvigov$
+Disallow: /collection/shop/product/promonabor-velikan-kak-dlya-igry-gerakl-i-ego-12-podvigov$
+Disallow: /collection/galakticheskiy-kruiz-dostizheniya/product/galakticheskiy-kruiz-komfort-predzakaz$
+Disallow: /collection/klinki-priliva-2-hroniki-izloma/product/klinki-priliva-2-organayzer-dlya-igry-rassrochka-platyozh-1$
+Disallow: /collection/klinki-priliva-2-hroniki-izloma/product/klinki-priliva-2-organayzer-igra-i-miniatyury-v-odnoy-korobke-rassrochka-platyozh-1$
+Disallow: /collection/klinki-priliva-2-hroniki-izloma/product/klinki-priliva-2-organayzer-2-predzakaz$
+Disallow: /collection/klinki-priliva-2-hroniki-izloma/product/klinki-priliva-2-organayzer-1-predzakaz$
+
+# Технические коллекции «Остатки»
+Disallow: /collection/ostatki$
+Disallow: /collection/ostatki-2$
+
+# Дублирующий тег дневников разработки
+Disallow: /blogs/dnevniki-razrabotki/tags/dnevniki-razrabotki$
+
+User-agent: Yandex
+
+# Служебные страницы
+Disallow: /page/test-anons
+Disallow: /cart_items
+Disallow: /add_to_cart
+Disallow: /product_by_id
+Disallow: /auth
+Disallow: /login
+Disallow: /orders
+Disallow: /client_account
+Disallow: /admin
+Disallow: /search
+Disallow: /search_suggestions
+Disallow: /bank_receipts
+Disallow: /bank_ru_receipts
+Disallow: /juridical_person_receipts
+Disallow: /compares
+Disallow: /captchas
+Disallow: /ru_captcha
+Disallow: /payments/
+
+# Технические URL и параметры
+Disallow: *?*theme_preview
+Disallow: *?*theme_preview_disable
+Disallow: /*/reviews
+Disallow: *?*options
+Disallow: *?*characteristics
+Disallow: *?*archiveru
+
+# Технические фильтры каталога — маски сохраняем
+Disallow: /collection/*/prodolzhitelnost-partii/
+Disallow: /collection/*/kolichestvo-igrokov/
+Disallow: /collection/*/tip-igry/
+Disallow: /collection/*/tselevaya-auditoriya/
+Disallow: /collection/*/samovyvoz-magazin/
+Disallow: /collection/*/usloviya-dostavki/
+Disallow: /collection/*/status_dla_dostavki/
+Disallow: /collection/*/dostavka_za_zero/
+Disallow: /collection/*/nazvanie-modeli/
+Disallow: /collection/*/Coupon/
+Disallow: /collection/*/rassrochka-CG/
+
+# Ранее закрытые технические коллекции (строго точные URL)
+Disallow: /collection/vtorye-platezhi$
+Disallow: /collection/nastolnye-igry$
+Disallow: /collection/vf$
+Disallow: /collection/kt_4exp$
+Disallow: /collection/MD_ex_3_4$
+Disallow: /collection/MD_ex_1_2$
+Disallow: /collection/snoubordy$
+Disallow: /collection/skeytbordy$
+Disallow: /collection/aktsiya_15$
+Disallow: /collection/api$
+Disallow: /collection/arhiv$
+Disallow: /collection/arhiv-sp$
+Disallow: /collection/rassrochki$
+Disallow: /collection/katalog-1-638cb6$
+Disallow: /collection/rassrochki-2$
+Disallow: /collection/tovary-s-igroy-i-promo$
+Disallow: /collection/tovary-s-igroy-i-promo-2$
+Disallow: /collection/katalog-1-e32f29$
+Disallow: /collection/katalog-1-bb59c0$
+Disallow: /collection/nabory$
+Disallow: /collection/tselye-tovary$
+Disallow: /collection/igra-i-dopolneniya$
+Disallow: /protektory-2$
+
+# Подтверждённые технические / временные коллекции (строго точные URL)
+Disallow: /collection/1-volna-predzakaza$
+Disallow: /collection/2-volna$
+Disallow: /collection/aksessuary$
+Disallow: /collection/aksessuary-2$
+Disallow: /collection/aksessuary-5a6599$
+Disallow: /collection/aksessuary-72d2be$
+Disallow: /collection/aksessuary-7d8a66$
+Disallow: /collection/aksessuary-bf0696$
+Disallow: /collection/aksessuary-c647af$
+Disallow: /collection/aksessuary-dlya-kollektsii$
+Disallow: /collection/aksessuary-dlya-masterov-plameni$
+Disallow: /collection/aksessuary-dlya-proshlyh-izdaniy$
+Disallow: /collection/aktsiya$
+Disallow: /collection/drugie-igry-serii-pax$
+Disallow: /collection/hochu-vsyo$
+Disallow: /collection/igra$
+Disallow: /collection/igra-i-aksessuary$
+Disallow: /collection/igra-v-predzakaze$
+Disallow: /collection/igry$
+Disallow: /collection/katalog$
+Disallow: /collection/katalog-1-d22e78$
+Disallow: /collection/katalog-2-12bb5b$
+Disallow: /collection/katalog-2-3587d8$
+Disallow: /collection/katalog-2-9882f4$
+Disallow: /collection/komplekty$
+Disallow: /collection/komplekty-2$
+Disallow: /collection/komplekty-igr$
+Disallow: /collection/kruiz-v-rassrochku$
+Disallow: /collection/kupit-v-roznitse$
+Disallow: /collection/mastera-plameni-duel-2$
+Disallow: /collection/mi-agentstvo-vremya$
+Disallow: /collection/mi-myortvyy-sezon$
+Disallow: /collection/mi-o-myshah-i-taynah$
+Disallow: /collection/miniatyury-dlya-igry$
+Disallow: /collection/nippon-zaibatsu-sabisu$
+Disallow: /collection/novoe-dopolnenie$
+Disallow: /collection/oskvernyonnyy-graal$
+Disallow: /collection/pax-pamir-bolshaya-igra$
+Disallow: /collection/pervaya-volna-predzakaz$
+Disallow: /collection/pervaya-volna-rassrochka$
+Disallow: /collection/poluchit-kruiz-uzhe-seychas$
+Disallow: /collection/predzakaz$
+Disallow: /collection/predzakaz-dop-neizvedannye-vody$
+Disallow: /collection/primal-probuzhdenie-2$
+Disallow: /collection/promo-2$
+Disallow: /collection/promonabor$
+Disallow: /collection/protektory-2$
+Disallow: /collection/protektory-3$
+Disallow: /collection/protektory-e15b9b$
+Disallow: /collection/protektory-k-sagrade$
+Disallow: /collection/protektory-k-velikoy-biblioteke$
+Disallow: /collection/protektory-predzakaz$
+Disallow: /collection/rassrochka$
+Disallow: /collection/rassrochka-2$
+Disallow: /collection/rassrochka-na-aksessuary$
+Disallow: /collection/rassrochka-na-aksessuary-2$
+Disallow: /collection/tovary$
+Disallow: /collection/velikaya-biblioteka-2$
+Disallow: /collection/vtoraya-volna-predzakaz$
+Disallow: /collection/komplekty-99e5c1$
+Disallow: /collection/komplekty-3$
+Disallow: /collection/protektory-51c72c$
+Disallow: /collection/katalog-3-6844ee$
+Disallow: /collection/rassrochka-9a2d30$
+Disallow: /collection/rassrochka-410093$
+Disallow: /collection/rassrochka-3$
+Disallow: /collection/rassrochki-fc068f$
+Disallow: /collection/rassrochki-89fdcc$
+Disallow: /collection/igra-2$
+Disallow: /collection/igra-i-dopolneniya-2$
+Disallow: /collection/igra-i-aksessuary-2$
+Disallow: /collection/igra-i-protektory$
+Disallow: /collection/tselye-tovary-2$
+Disallow: /collection/aksessuary-793583$
+
+# Технические коллекции «Остатки»
+Disallow: /collection/ostatki$
+Disallow: /collection/ostatki-2$
+
+# Дублирующий тег дневников разработки
+Disallow: /blogs/dnevniki-razrabotki/tags/dnevniki-razrabotki$
+
+# Ранее закрытые товарные URL (точное совпадение)
+Disallow: /collection/shop/product/zloveschaya-akademiya$
+Disallow: /collection/shop/product/zloveschaya-akademiya-promonabor-kart-sobytiy$
+Disallow: /collection/shop/product/gerakl-i-ego-12-podvigov$
+Disallow: /collection/shop/product/promonabor-velikan-kak-dlya-igry-gerakl-i-ego-12-podvigov$
+Disallow: /collection/galakticheskiy-kruiz-dostizheniya/product/galakticheskiy-kruiz-komfort-predzakaz$
+Disallow: /collection/klinki-priliva-2-hroniki-izloma/product/klinki-priliva-2-organayzer-dlya-igry-rassrochka-platyozh-1$
+Disallow: /collection/klinki-priliva-2-hroniki-izloma/product/klinki-priliva-2-organayzer-igra-i-miniatyury-v-odnoy-korobke-rassrochka-platyozh-1$
+Disallow: /collection/klinki-priliva-2-hroniki-izloma/product/klinki-priliva-2-organayzer-2-predzakaz$
+Disallow: /collection/klinki-priliva-2-hroniki-izloma/product/klinki-priliva-2-organayzer-1-predzakaz$
+
+# GET-параметры
+Clean-param: price_min&price_max&order&page_size&variant_id&yadiscount&from&cs&spush&disableGlobalInfoCollect&ref&__proto__[1111]&m&q&subid&email&e&hl&domain&fireglass&ct&hhtmFrom&_ym_debug&oqcqn2jpeazo7ko22gsqpt7l6q&pvlndxyr7a576vp2idc4dk2mv4&d_from&sa&ignorethis&crpugom6yzjvhs72jq7nmtzvkm&ved&d_to&cs%5B%5D&mc_cid&mc_eid&f%5B%5D&source&fireglass_rsn&d%5B%5D&p%5B%5D&a&yandex-source
+Clean-param: ch&c_from&c_to&_proto__[pollyquery]&__proto__[11111111]&push_animated&show_loading&webview_progress_bar&theme&pm-test-form&mindbox_nocache&z-test-quiz&qz-test-quiz-structure&m-message-key-id&m-message-click-id&_ccrz_cb&ec&51FCE0FC-3D2A-C54D-B885-B55662FAF527_kfa_cup_C6FA3ED5_6D17_47D1_B6E2_F4B02CC905E0_
+
+Sitemap: https://www.crowdgames.ru/sitemap.xml
+Host: https://www.crowdgames.ru

@@ -24,6 +24,7 @@ CREATE TABLE games (
   playing_time integer,
   weight double precision,
   bgg_url text NOT NULL,
+  thumbnail_url text,
   updated_at timestamptz NOT NULL
 );
 

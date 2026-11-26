@@ -36,6 +36,12 @@ function numberOrNull(value: unknown): number | null {
 }
 
 
+function stringOrNull(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  return text === "" ? null : text;
+}
+
 function normalizePlayerCount(value: unknown): PlayerCount | null {
   const text = String(value ?? "").trim();
   if (text === "1" || text === "2" || text === "3" || text === "4" || text === "5" || text === "6") return text;
@@ -75,7 +81,7 @@ export function parseThingXml(xml: string): NormalizedGame[] {
         versions.flatMap((version: any) =>
           asArray(version.link)
             .filter(
-              (link: any) => link.type === "boardgamelanguage" && link.value !== undefined && String(link.value).trim() !== "",
+              (link: any) => link.type === "language" && link.value !== undefined && String(link.value).trim() !== "",
             )
             .map((link: any) => String(link.value)),
         ),
@@ -99,6 +105,7 @@ export function parseThingXml(xml: string): NormalizedGame[] {
       rank: numberOrNull(boardGameRank?.value),
       title: String(primaryName?.value ?? "Untitled"),
       year: numberOrNull(item.yearpublished?.value),
+      thumbnailUrl: stringOrNull(item.thumbnail),
       geekRating: numberOrNull(ratings.bayesaverage?.value),
       averageRating: numberOrNull(ratings.average?.value),
       numVoters: numberOrNull(ratings.usersrated?.value),

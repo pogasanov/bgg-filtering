@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<url>
+		<loc>https://gaga.ru/</loc>
+		<changefreq>weekly</changefreq>
+		<priority>1.0</priority>
+	</url>
+<url>
+			<loc>https://gaga.ru/game/bonanza-igra/</loc>
+			<changefreq>weekly</changefreq>
+		<priority>0.9</priority>
+		</url>
+<url>
+			<loc>https://gaga.ru/game/citadels-classic/</loc>
+			<changefreq>weekly</changefreq>
+		<priority>0.9</priority>
+		</url>
+<url>
+			<loc>https://gaga.ru/game/korova-006/</loc>
+			<changefreq>weekly</changefreq>
+		<priority>0.9</priority>
+		</url>
+<url>
+		<loc>https://gaga.ru/news/5/</loc>
+		<changefreq>monthly</changefreq>
+		<priority>0.5</priority>
+	</url>
+<url>
+			<loc>https://gaga.ru/game/kolonizatory/</loc>
+			<changefreq>weekly</changefreq>
+		<priority>0.9</priority>
+		</url>
+<url>
+			<loc>https://gaga.ru/game/fish/</loc>
+			<changefreq>weekly</changefreq>
+		<priority>0.9</priority>
+		</url>
+<url>
+			<loc>https://gaga.ru/game/lost-cities/</loc>
+			<changefreq>weekly</changefreq>
+		<priority>0.9</priority>
+		</url>
+<url>
+			<loc>https://gaga.ru/catalog/codex/</loc>
+			<changefreq>weekly</changefreq>
+		<priority>0.9</priority>
+	</url>
+<url>
+			<loc>https://gaga.ru/catalog/cutterland/</loc>
+			<changefreq>weekly</changefreq>
+		<priority>0.9</priority>
+	</url>
+</urlset>

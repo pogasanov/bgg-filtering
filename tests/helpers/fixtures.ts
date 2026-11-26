@@ -9,6 +9,7 @@ export function makeGame(id: number, overrides: Partial<NormalizedGame> = {}): N
     rank: id,
     title: `Game ${id}`,
     year: 2020,
+    thumbnailUrl: null,
     geekRating: 7.5,
     averageRating: 8,
     numVoters: 100,

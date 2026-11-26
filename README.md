@@ -2,7 +2,9 @@
 
 A public, non-commercial Next.js site for filtering top BoardGameGeek games by categories, mechanics, and player-count recommendation polls.
 
-- **Site:** Next.js on Vercel (Hobby). Pages are prerendered and cached; ordinary page views never query the database.
+Filters live in a rail on the left with the player-count × verdict matrix on top; results are a sortable table with the poll verdict for every player count shown in each row. The current filters and sort are kept in the URL, so a reload or a copied link restores the view. The theme follows the operating system.
+
+- **Site:** Next.js on Vercel (Hobby). The page renders per request so filters can come from the URL, but its data comes from the Next.js data cache: ordinary page views never query the database.
 - **Database:** Postgres on Neon (Free).
 - **Weekly sync:** a Node script run by a Modal cron job (Starter) every Monday at 03:00 UTC. It refreshes game details from the BGG XML API, then asks the site to revalidate.
 - **Errors and logs:** Sentry (Developer plan), for both the site and the worker.
@@ -136,6 +138,7 @@ Neon Free allows 1 GB. The worker logs the database size after every run and war
 - Requests use `https://boardgamegeek.com` without a `www` subdomain.
 - The UI credits BoardGameGeek by name and includes a visible, linked "Powered by BGG" mark.
 - The site is public and non-commercial: no ads and no affiliate links. Confirm that the XML API application registration covers a public non-commercial website, and re-register if it was registered for local use only.
+- Game thumbnails are the URLs returned by the XML API. They are stored with the game during sync and loaded by the browser directly from BoardGameGeek's image host; no extra API requests are made for them.
 - BGG API data must not be used to train AI or LLM systems.
 - Game descriptions and raw XML are not stored.
 
@@ -151,3 +154,19 @@ Neon Free allows 1 GB. The worker logs the database size after every run and war
 | `pnpm worker:build` | Bundle the worker to `worker/dist/sync.cjs` |
 | `pnpm worker:deploy` / `pnpm worker:run` / `pnpm worker:sentry-check` | Deploy, run once, or send a Sentry check through Modal (profile `bgg`) |
 | `pnpm vc <vercel args>` | Vercel CLI authenticated only with `VERCEL_TOKEN` |
+| `pnpm prices:dry-run` | Local check of the Russian shop price collectors (see below) |
+
+## Price dry run
+
+`pnpm prices:dry-run` fetches a little from CrowdGames, Lavka Igr and GaGa, matches the products against the games in the legacy local cache `data/bgg-cache.sqlite`, and prints how many games got a confirmed price, how many only have candidates, and a sample of confirmed links to check by eye. It needs Node 22.15 or newer (it reads the cache with the built-in `node:sqlite`).
+
+The site no longer writes that file: it is the SQLite cache from before the move to Postgres, kept because it still holds the raw XML the matcher reads alternate names from. Storing alternate names in Postgres is part of the price-tracking work.
+
+By default it reads only enough to prove the parsers work: the whole CrowdGames catalogue (two requests), two listing pages of Lavka Igr, three GaGa product pages, and Tesera names for three games.
+
+- `--shops crowdgames,lavkaigr,gaga` limits the run to some shops.
+- `--lavka-pages N`, `--gaga-limit N`, `--tesera N` change those limits; `--tesera 0` skips Tesera.
+- `--full` removes the limits. GaGa alone is about 5,700 pages and three hours.
+- `--refresh` ignores cached complete catalogues.
+
+Results and caches are written to `data/price-cache/`. Requests obey each shop's `robots.txt`, run one at a time at least two seconds apart, and identify themselves as `BggPlayerFinderBot`; set `PRICE_BOT_INFO_URL` to add a link to the site. The exit code is 1 if any shop failed.

@@ -1,0 +1,20 @@
+User-Agent: *
+Host: https://www.lavkaigr.ru
+Disallow: /admin*
+Disallow: /ajax*
+Disallow: /games*
+Disallow: /robokassa*
+Disallow: /shop/cart*
+Disallow: /?transaction_id
+Clean-param: shp_object_id
+
+Sitemap: https://www.lavkaigr.ru/sitemap.xml
+Disallow: /shop/family/parki-standartnoe-izdanie/
+Disallow: /shop/golovolomki/karmannyi-detektiv-delo-1-14/
+Disallow: /shop/promomaterialy/promonabor-zemlya-izobilie-pogoda/
+Disallow: /shop/promomaterialy/promonabor-zemlya-bonusy-kikstartera/
+Disallow: /shop/promomaterialy/promonabor-zemlya-izobilie-bonusy-kikstartera/
+Disallow: /shop/aksessuary/nabor-plastikovyh-figurok-dlya-igry-tirany-podzemya-1/
+Disallow: /shop/aksessuary/vojna-kolca-plejmat/
+Disallow: /shop/strategicheskie/tirany-podzemya/
+

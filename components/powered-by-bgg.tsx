@@ -1,3 +1,4 @@
+/** The linked BGG mark required by the API terms. Its orange is the one brand colour in the interface. */
 export function PoweredByBgg() {
   return (
     <a
@@ -5,15 +6,24 @@ export function PoweredByBgg() {
       target="_blank"
       rel="noreferrer"
       aria-label="Powered by BoardGameGeek"
-      className="inline-flex items-center gap-3 rounded-md border bg-white px-3 py-2 text-[#34305a] shadow-sm transition-colors hover:bg-[var(--muted)]"
+      className="inline-flex w-fit items-center gap-2 rounded-sm text-foreground outline-none hover:opacity-80 focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
-      <span className="flex h-9 w-9 items-center justify-center bg-[#ff5100] text-sm font-black text-white">
+      <span className="flex h-6 w-8 items-center justify-center bg-[#ff5100] text-[10px] font-black text-white">
         BGG
       </span>
-      <span className="leading-none">
-        <span className="block text-[0.65rem] font-bold uppercase tracking-wide">Powered by</span>
-        <span className="block text-lg font-black uppercase tracking-normal">BGG</span>
-      </span>
+      <span className="text-[11px] font-semibold tracking-wide uppercase">Powered by BGG</span>
     </a>
+  );
+}
+
+export function BggAttribution() {
+  return (
+    <p className="text-[11px] leading-snug text-muted-foreground">
+      Данные:{" "}
+      <a href="https://boardgamegeek.com" target="_blank" rel="noreferrer" className="underline underline-offset-2">
+        BoardGameGeek
+      </a>
+      . Не аффилировано с BGG. Некоммерческий сайт.
+    </p>
   );
 }

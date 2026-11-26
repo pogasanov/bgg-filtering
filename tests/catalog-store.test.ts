@@ -19,6 +19,7 @@ function game(id: number, overrides: Partial<NormalizedGame> = {}): NormalizedGa
     rank: id,
     title: `Game ${id}`,
     year: 2020,
+    thumbnailUrl: null,
     geekRating: 7.8,
     averageRating: 8.1,
     numVoters: 1000,
@@ -84,6 +85,16 @@ describe("catalog store", () => {
     expect(stored.languages).toEqual(["English", "French"]);
     expect(stored.playerRecommendations["2"].verdict).toBe("best");
     expect(stored.geekRating).toBe(7.8);
+  });
+
+  test("round-trips the thumbnail URL", async () => {
+    const db = await setup();
+    await replaceRankedGames(db, [ranked(1), ranked(2)], NOW);
+    await upsertGames(db, [game(1, { thumbnailUrl: "https://cf.geekdo-images.com/a/t.jpg" }), game(2)], NOW);
+
+    const games = (await getCatalog(db)).games;
+
+    expect(games.map((item) => item.thumbnailUrl)).toEqual(["https://cf.geekdo-images.com/a/t.jpg", null]);
   });
 
   test("replaces languages on update", async () => {

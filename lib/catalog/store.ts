@@ -73,6 +73,7 @@ export async function upsertGames(db: Db, games: NormalizedGame[], updatedAt: Da
     game.playingTime,
     game.weight,
     game.bggUrl,
+    game.thumbnailUrl,
   ]);
   const tagRows = games.flatMap((game) => [
     ...game.categories.map((name) => [game.id, "category", name]),
@@ -97,12 +98,12 @@ export async function upsertGames(db: Db, games: NormalizedGame[], updatedAt: Da
     await tx.query(
       `INSERT INTO games (
          bgg_id, rank, title, year, geek_rating, average_rating, num_voters,
-         min_players, max_players, playing_time, weight, bgg_url, updated_at
+         min_players, max_players, playing_time, weight, bgg_url, thumbnail_url, updated_at
        )
-       SELECT t.*, $13::timestamptz
+       SELECT t.*, $14::timestamptz
        FROM unnest(
          $1::int[], $2::int[], $3::text[], $4::int[], $5::float8[], $6::float8[], $7::int[],
-         $8::int[], $9::int[], $10::int[], $11::float8[], $12::text[]
+         $8::int[], $9::int[], $10::int[], $11::float8[], $12::text[], $13::text[]
        ) AS t
        ON CONFLICT (bgg_id) DO UPDATE SET
          rank = excluded.rank,
@@ -116,8 +117,9 @@ export async function upsertGames(db: Db, games: NormalizedGame[], updatedAt: Da
          playing_time = excluded.playing_time,
          weight = excluded.weight,
          bgg_url = excluded.bgg_url,
+         thumbnail_url = excluded.thumbnail_url,
          updated_at = excluded.updated_at`,
-      [...columns(gameRows, 12), updatedAt],
+      [...columns(gameRows, 13), updatedAt],
     );
 
     await tx.query("DELETE FROM game_tags WHERE game_id = ANY($1::int[])", [ids]);
@@ -204,7 +206,8 @@ export async function getCatalog(db: Db): Promise<Catalog> {
     `SELECT g.bgg_id AS id, g.rank, g.title, g.year, g.geek_rating AS "geekRating",
             g.average_rating AS "averageRating", g.num_voters AS "numVoters",
             g.min_players AS "minPlayers", g.max_players AS "maxPlayers",
-            g.playing_time AS "playingTime", g.weight, g.bgg_url AS "bggUrl"
+            g.playing_time AS "playingTime", g.weight, g.bgg_url AS "bggUrl",
+            g.thumbnail_url AS "thumbnailUrl"
      FROM games g
      JOIN ranked_games r ON r.bgg_id = g.bgg_id
      ORDER BY COALESCE(g.rank, r.rank), g.title`,

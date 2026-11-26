@@ -30,6 +30,7 @@ export type NormalizedGame = {
   rank: number | null;
   title: string;
   year: number | null;
+  thumbnailUrl: string | null;
   geekRating: number | null;
   averageRating: number | null;
   numVoters: number | null;
@@ -44,9 +45,14 @@ export type NormalizedGame = {
   bggUrl: string;
 };
 
+/** A game as the page shows it. Descriptions are never parsed or stored, so it is the full game. */
+export type ListedGame = NormalizedGame;
+
 export type MatrixSelection = {
   playerCount: PlayerCount;
   verdict: MatrixVerdict;
 };
 
-export type SortKey = "rank" | "geekRating" | "averageRating" | "year";
+export const sortKeys = ["rank", "year", "playingTime", "weight", "geekRating", "averageRating", "numVoters"] as const;
+export type SortKey = (typeof sortKeys)[number];
+export type SortDir = "asc" | "desc";

@@ -1,0 +1,97 @@
+{
+  "status": "ok",
+  "count": 4,
+  "products": [
+    {
+      "id": 1639345377,
+      "title": "Крышеснос",
+      "permalink": "kryshesnos",
+      "url": "/collection/shop/product/kryshesnos",
+      "available": true,
+      "variants": [
+        {
+          "id": 1928706017,
+          "title": "",
+          "price": "1190.0",
+          "old_price": null,
+          "base_price": "1190.0",
+          "quantity": 23,
+          "sku": "16305",
+          "barcode": "4627119443885",
+          "available": true
+        }
+      ]
+    },
+    {
+      "id": 1659251849,
+      "title": "Ants (Муравьи)",
+      "permalink": "ants-muravi",
+      "url": "/collection/shop/product/ants-muravi",
+      "available": false,
+      "variants": [
+        {
+          "id": 1957481025,
+          "title": "",
+          "price": "9990.0",
+          "old_price": null,
+          "base_price": "9990.0",
+          "quantity": 0,
+          "sku": "CC744",
+          "barcode": "8034055587447",
+          "available": false
+        }
+      ]
+    },
+    {
+      "id": 1663785953,
+      "title": "Дополнение №2. «Пучина безумия. Ужасы без числа». Предзаказ",
+      "permalink": "dopolnenie-2-puchina-bezumiya-uzhasy-bez-chisla-predzakaz",
+      "url": "/collection/puchina-bezumiya/product/dopolnenie-2-puchina-bezumiya-uzhasy-bez-chisla-predzakaz",
+      "available": true,
+      "variants": [
+        {
+          "id": 1963147657,
+          "title": "",
+          "price": "4620.0",
+          "old_price": "4990.0",
+          "base_price": "4620.0",
+          "quantity": 47,
+          "sku": "PZ-16450",
+          "barcode": "4627119444905",
+          "available": true
+        }
+      ]
+    },
+    {
+      "id": 1664266241,
+      "title": "«Пучина безумия». Протекторы Crowd Games для карт 43 × 65 мм. Предзаказ",
+      "permalink": "puchina-bezumiya-protektory-crowd-games-dlya-kart-44-67-mm-predzakaz",
+      "url": "/collection/puchina-bezumiya/product/puchina-bezumiya-protektory-crowd-games-dlya-kart-44-67-mm-predzakaz",
+      "available": true,
+      "variants": [
+        {
+          "id": 1963735009,
+          "title": "Стандарт 60мк",
+          "price": "159.0",
+          "old_price": null,
+          "base_price": "159.0",
+          "quantity": 1,
+          "sku": "2007 (PZ-16449)",
+          "barcode": null,
+          "available": true
+        },
+        {
+          "id": 1963793513,
+          "title": "Премиум 100мк",
+          "price": "159.0",
+          "old_price": null,
+          "base_price": "159.0",
+          "quantity": 38,
+          "sku": "2003 (PZ-16449)",
+          "barcode": null,
+          "available": true
+        }
+      ]
+    }
+  ]
+}

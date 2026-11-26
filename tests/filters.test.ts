@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { filterGames, gameTags } from "@/lib/filtering";
+import { defaultSortDir, filterGames, gameTags, tagCounts, type GameFilters } from "@/lib/filtering";
 import type { NormalizedGame } from "@/lib/bgg/types";
 
 function makeGame(overrides: Partial<NormalizedGame>): NormalizedGame {
@@ -8,6 +8,7 @@ function makeGame(overrides: Partial<NormalizedGame>): NormalizedGame {
     rank: 1,
     title: "Base Game",
     year: 2020,
+    thumbnailUrl: null,
     geekRating: 8,
     averageRating: 8.2,
     numVoters: 100,
@@ -241,5 +242,43 @@ describe("game filtering", () => {
     });
 
     expect(result.map((game) => game.id)).toEqual([31]);
+  });
+});
+
+const base: GameFilters = { search: "", language: "", tags: [], matrix: [], sort: "rank", minYear: null, maxYear: null };
+
+describe("sorting", () => {
+  const weighted = [makeGame({ id: 1, weight: 2 }), makeGame({ id: 2, weight: 4 }), makeGame({ id: 3, weight: null })];
+
+  test("sorts by a new key in its default direction", () => {
+    expect(filterGames(weighted, { ...base, sort: "weight" }).map((x) => x.id)).toEqual([2, 1, 3]);
+  });
+
+  test("reverses direction and still keeps missing values last", () => {
+    expect(filterGames(weighted, { ...base, sort: "weight", sortDir: "asc" }).map((x) => x.id)).toEqual([1, 2, 3]);
+  });
+
+  test("rank descending keeps unranked games last", () => {
+    const ranked = [makeGame({ id: 1, rank: 1 }), makeGame({ id: 2, rank: 5 }), makeGame({ id: 3, rank: null })];
+    expect(filterGames(ranked, { ...base, sort: "rank", sortDir: "desc" }).map((x) => x.id)).toEqual([2, 1, 3]);
+  });
+
+  test("default directions", () => {
+    expect(defaultSortDir("rank")).toBe("asc");
+    expect(defaultSortDir("numVoters")).toBe("desc");
+  });
+});
+
+describe("tag counts", () => {
+  test("counts games per tag under the other filters, ignoring the tag selection", () => {
+    const games = [
+      makeGame({ id: 1, year: 2020, categories: ["Economic"], mechanics: ["Worker Placement"] }),
+      makeGame({ id: 2, year: 2020, categories: ["Economic"], mechanics: [] }),
+      makeGame({ id: 3, year: 1990, categories: ["Economic"], mechanics: ["Worker Placement"] }),
+    ];
+    const counts = tagCounts(games, { ...base, minYear: 2000, tags: ["Worker Placement"] });
+    expect(counts.get("Economic")).toBe(2);
+    expect(counts.get("Worker Placement")).toBe(1);
+    expect(counts.has("Deck Building")).toBe(false);
   });
 });

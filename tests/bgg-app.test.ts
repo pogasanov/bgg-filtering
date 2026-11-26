@@ -1,10 +1,13 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, test, vi } from "vitest";
-import { BggApp, formatNumber, formatUpdatedDate } from "@/components/bgg-app";
+import { describe, expect, test } from "vitest";
+import { BggApp } from "@/components/bgg-app";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { emptyPlayerRecommendations } from "@/lib/bgg/parser";
 import type { CatalogStatus } from "@/lib/catalog/types";
 import type { NormalizedGame } from "@/lib/bgg/types";
+import type { GameFilters } from "@/lib/filtering";
+import { defaultFilters } from "@/lib/url-state";
 
 const status: CatalogStatus = {
   gameCount: 3,
@@ -17,6 +20,7 @@ function makeGame(id: number, year: number | null, languages: string[] = []): No
     rank: id,
     title: "Game " + id,
     year,
+    thumbnailUrl: null,
     geekRating: 8,
     averageRating: 8,
     numVoters: 100,
@@ -36,128 +40,62 @@ function slotCount(html: string, slot: string) {
   return html.match(new RegExp(`data-slot="${slot}"`, "g"))?.length ?? 0;
 }
 
-describe("shadcn control composition", () => {
-  test("renders the open year domain as a two-thumb slider", () => {
-    const html = renderToStaticMarkup(
-      createElement(BggApp, {
-        games: [makeGame(1, 1995), makeGame(2, 2020), makeGame(3, null)],
-        status: status,
-      }),
-    );
+function render(games: NormalizedGame[], initialFilters: GameFilters = defaultFilters) {
+  // The root layout provides the tooltip context; mirror it here.
+  return renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(BggApp, { initialGames: games, initialStatus: { ...status, gameCount: games.length }, initialFilters }),
+    ),
+  );
+}
 
-    expect(slotCount(html, "slider")).toBe(1);
-    expect(slotCount(html, "slider-thumb")).toBe(2);
-    expect(html).toContain('aria-valuemin="0"');
-    expect(html).toContain('aria-valuemax="3"');
-    expect(html).not.toContain('aria-valuemin="1994"');
-    expect(html).toContain(">No min<");
-    expect(html).toContain(">No max<");
-    expect(html).not.toContain('class="year-range-input"');
-  });
-
-  test("gives an extreme year outlier only one ordinal step", () => {
-    const html = renderToStaticMarkup(
-      createElement(BggApp, {
-        games: [
-          makeGame(1, -2200),
-          makeGame(2, 2020),
-          makeGame(3, 2021),
-          makeGame(4, 2022),
-        ],
-        status: { ...status, gameCount: 4 },
-      }),
-    );
-
-    expect(html).toContain('aria-valuemin="0"');
-    expect(html).toContain('aria-valuemax="5"');
-    expect(html).not.toContain('aria-valuemin="-2201"');
-  });
-
-  test("disables the year slider when no known years exist", () => {
-    const html = renderToStaticMarkup(
-      createElement(BggApp, {
-        games: [makeGame(1, null)],
-        status: { ...status, gameCount: 1 },
-      }),
-    );
-
-    expect(slotCount(html, "slider")).toBe(1);
-    expect(html).toContain('data-disabled=""');
-  });
-
-  test("renders shadcn form, matrix, and scrolling controls", () => {
-    const game = {
-      ...makeGame(1, 2024, ["German", "English", "German"]),
-      categories: ["Strategy"],
-    };
-    const html = renderToStaticMarkup(
-      createElement(BggApp, {
-        games: [game],
-        status: { ...status, gameCount: 1 },
-      }),
-    );
-
-    expect(html).toContain("Translation language");
-    expect(html).toContain("Any language");
-    expect(slotCount(html, "select-trigger")).toBe(2);
-    expect(slotCount(html, "checkbox")).toBe(1);
-    expect(slotCount(html, "scroll-area")).toBe(1);
+describe("BggApp", () => {
+  test("renders the rail, search, count and one table without cards or a hero", () => {
+    const html = render([makeGame(1, 2000), makeGame(2, 2020)]);
+    expect(html.match(/data-matrix-cell="/g)).toHaveLength(28);
+    expect(html).toContain('aria-label="Поиск по названию"');
     expect(slotCount(html, "table")).toBe(1);
+    expect(slotCount(html, "card")).toBe(0);
+    expect(html).not.toContain("<h1");
+    expect(html).toContain('aria-label="Powered by BoardGameGeek"');
   });
 
-  test("renders empty-cache guidance as an alert", () => {
-    const html = renderToStaticMarkup(
-      createElement(BggApp, {
-        games: [],
-        status: { ...status, gameCount: 0 },
-      }),
-    );
+  test("applies initial filters from the URL", () => {
+    const html = render([makeGame(1, 1990), makeGame(2, 2020)], { ...defaultFilters, minYear: 2010 });
+    expect(html).toContain("Game 2<");
+    expect(html).not.toContain("Game 1<");
+    expect(html).toContain("Убрать фильтр: с 2010");
+  });
 
+  test("empty catalog says the data is not loaded yet instead of showing the table", () => {
+    const html = render([]);
     expect(slotCount(html, "alert")).toBe(1);
-    expect(html).toContain("No games yet");
-  });
-
-  test("has no sync control", () => {
-    const html = renderToStaticMarkup(createElement(BggApp, { games: [makeGame(1, 2020)], status }));
-
-    expect(html).not.toContain("Sync BGG");
-  });
-
-  test("shows the UTC update date", () => {
-    const html = renderToStaticMarkup(
-      createElement(BggApp, {
-        games: [makeGame(1, 2020)],
-        status: { gameCount: 1, updatedAt: "2026-11-30T23:30:00.000Z" },
-      }),
-    );
-
-    expect(html).toContain("Updated 2026-11-30");
-  });
-
-  test("says when data has never been updated", () => {
-    expect(formatUpdatedDate(null)).toBe("Not updated yet");
-  });
-
-  test("formats numbers identically regardless of the runtime default locale", () => {
-    const spy = vi.spyOn(Number.prototype, "toLocaleString").mockImplementation(function (
-      this: number,
-      locales?: Intl.LocalesArgument,
-      options?: Intl.NumberFormatOptions,
-    ) {
-      return new Intl.NumberFormat(locales ?? "de-DE", options).format(this);
-    });
-    try {
-      expect(formatNumber(7.851)).toBe("7.85");
-      expect(formatNumber(123456, 0)).toBe("123,456");
-    } finally {
-      spy.mockRestore();
-    }
+    expect(html).toContain("Игр пока нет");
+    expect(html).not.toContain("BGG_TOKEN");
+    expect(slotCount(html, "table")).toBe(0);
   });
 
   test("describes the site as public and non-commercial", () => {
-    const html = renderToStaticMarkup(createElement(BggApp, { games: [makeGame(1, 2020)], status }));
+    const html = render([makeGame(1, 2000)]);
+    expect(html).toContain("Некоммерческий сайт.");
+    expect(html).not.toContain("личного");
+  });
 
-    expect(html).not.toContain("local browsing");
-    expect(html).toContain("Non-commercial site.");
+  test("has a phone filter trigger, sort control and a BGG footer outside the rail", () => {
+    const html = render([makeGame(1, 2000)], { ...defaultFilters, tags: ["X"] });
+    expect(html).toMatch(/<button[^>]*aria-label="Фильтры, активных: 1"/);
+    expect(html).toContain('aria-label="Сортировка"');
+    expect(html.match(/aria-label="Powered by BoardGameGeek"/g)!.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test("keeps the search bar pinned to the top while the results scroll", () => {
+    const html = render([makeGame(1, 2000)]);
+    expect(html).toMatch(/<div(?=[^>]*data-search-bar)(?=[^>]*class="[^"]*\bsticky\b[^"]*\btop-0\b)/);
+  });
+
+  test("shows no legend under the results", () => {
+    expect(render([makeGame(1, 2000)])).not.toContain("Опрос по числу игроков");
   });
 });
