@@ -23,7 +23,7 @@ function game(id: number, overrides: Partial<NormalizedGame> = {}): NormalizedGa
     id,
     rank: id,
     title: `Game ${id}`,
-    titleRu: null,
+    ruNames: [],
     year: 2020,
     thumbnailUrl: null,
     geekRating: 7.8,

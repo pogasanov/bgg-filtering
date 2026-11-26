@@ -1,5 +1,6 @@
 import { REQUEST_SPACING_MS, THING_BATCH_SIZE } from "@/lib/bgg/client";
 import type { NormalizedGame, TopRankItem } from "@/lib/bgg/types";
+import { refreshRussianTitles } from "@/lib/catalog/russian-titles";
 import { finishSync, getRankedGames, tryStartSync, upsertGames } from "@/lib/catalog/store";
 import type { SyncRunResult } from "@/lib/catalog/types";
 import type { Db } from "@/lib/db/client";
@@ -97,6 +98,11 @@ export async function runSync(deps: SyncDeps): Promise<SyncOutcome> {
         failedIds.push(...ids);
         log.error("Batch failed", error, { syncRunId, ids });
       }
+    }
+
+    if (succeededBatches > 0) {
+      const changed = await refreshRussianTitles(db);
+      log.info("Russian titles refreshed", { syncRunId, changed });
     }
 
     const status: SyncRunResult["status"] =

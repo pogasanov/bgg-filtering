@@ -36,7 +36,7 @@ function makeGame(id: number, year: number | null, languages: string[] = ["Russi
     id,
     rank: id,
     title: "Game " + id,
-    titleRu: null,
+    ruNames: [],
     year,
     thumbnailUrl: null,
     geekRating: 8,
