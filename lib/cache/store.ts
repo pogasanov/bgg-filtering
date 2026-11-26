@@ -93,6 +93,7 @@ export class CacheStore {
         playing_time INTEGER,
         weight REAL,
         bgg_url TEXT NOT NULL,
+        thumbnail_url TEXT,
         raw_xml TEXT NOT NULL,
         updated_at TEXT NOT NULL
       );
@@ -129,6 +130,12 @@ export class CacheStore {
       CREATE INDEX IF NOT EXISTS idx_player_recommendations_lookup
         ON player_recommendations(player_count, verdict);
     `);
+
+    // Caches created before thumbnails were stored lack this column.
+    const gameColumns = this.db.prepare("PRAGMA table_info(games)").all() as Array<{ name: string }>;
+    if (!gameColumns.some((column) => column.name === "thumbnail_url")) {
+      this.db.exec("ALTER TABLE games ADD COLUMN thumbnail_url TEXT");
+    }
   }
 
   tryStartSync(): SyncStart {
@@ -176,11 +183,11 @@ export class CacheStore {
       const gameStmt = this.db.prepare(`
         INSERT INTO games (
           bgg_id, rank, title, year, description, geek_rating, average_rating, num_voters,
-          min_players, max_players, playing_time, weight, bgg_url, raw_xml, updated_at
+          min_players, max_players, playing_time, weight, bgg_url, thumbnail_url, raw_xml, updated_at
         )
         VALUES (
           @id, @rank, @title, @year, @description, @geekRating, @averageRating, @numVoters,
-          @minPlayers, @maxPlayers, @playingTime, @weight, @bggUrl, @rawXml, @updatedAt
+          @minPlayers, @maxPlayers, @playingTime, @weight, @bggUrl, @thumbnailUrl, @rawXml, @updatedAt
         )
         ON CONFLICT(bgg_id) DO UPDATE SET
           rank = excluded.rank,
@@ -195,6 +202,7 @@ export class CacheStore {
           playing_time = excluded.playing_time,
           weight = excluded.weight,
           bgg_url = excluded.bgg_url,
+          thumbnail_url = excluded.thumbnail_url,
           raw_xml = excluded.raw_xml,
           updated_at = excluded.updated_at
       `);
@@ -240,7 +248,8 @@ export class CacheStore {
         `SELECT
           bgg_id AS id, rank, title, year, description, geek_rating AS geekRating,
           average_rating AS averageRating, num_voters AS numVoters, min_players AS minPlayers,
-          max_players AS maxPlayers, playing_time AS playingTime, weight, bgg_url AS bggUrl
+          max_players AS maxPlayers, playing_time AS playingTime, weight, bgg_url AS bggUrl,
+          thumbnail_url AS thumbnailUrl
         FROM games
         ORDER BY COALESCE(rank, 999999), title`,
       )

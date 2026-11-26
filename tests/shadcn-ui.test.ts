@@ -10,7 +10,7 @@ function read(relativePath: string) {
 
 describe("shadcn foundation", () => {
   test("checks in the generated supporting primitives", () => {
-    const names = ["alert", "checkbox", "label", "scroll-area", "separator", "slider", "table"];
+    const names = ["alert", "checkbox", "label", "scroll-area", "slider", "table"];
 
     for (const name of names) {
       expect(read(`components/ui/${name}.tsx`), `${name} should be generated`).toContain("data-slot=");
@@ -35,5 +35,28 @@ describe("shadcn foundation", () => {
       tailwind: { baseColor: "neutral", config: "" },
       iconLibrary: "lucide",
     });
+  });
+
+  test("ships the redesign foundation", () => {
+    const css = read("app/globals.css");
+    const layout = read("app/layout.tsx");
+    for (const name of ["sheet", "collapsible", "toggle", "toggle-group", "tooltip"]) {
+      expect(read(`components/ui/${name}.tsx`), `${name} should be generated`).toContain("data-slot=");
+    }
+    expect(css).toContain("@media (prefers-color-scheme: dark)");
+    expect(css).toContain("--color-poll-best: var(--poll-best)");
+    expect(css).toContain("--color-poll-rec: var(--poll-rec)");
+    expect(css).toContain("--color-poll-no: var(--poll-no)");
+    expect(css).toContain("--color-meter: var(--meter)");
+    expect(css).toContain("--font-sans: var(--font-geist-sans)");
+    expect(layout).toContain('lang="ru"');
+    expect(layout).toContain("geist/font");
+    expect(layout).toContain("TooltipProvider");
+  });
+
+  test("keeps only the primitives the interface uses", () => {
+    for (const name of ["card", "separator"]) {
+      expect(read(`components/ui/${name}.tsx`), `${name} should be removed`).toBe("");
+    }
   });
 });

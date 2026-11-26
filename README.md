@@ -2,6 +2,8 @@
 
 A local Next.js app for filtering top BoardGameGeek games from a local ranks CSV by categories, mechanics, and player-count recommendation polls.
 
+Filters live in a rail on the left with the player-count × verdict matrix on top; results are a sortable table with the poll verdict for every player count shown in each row. The current filters and sort are kept in the URL, so a reload or a copied link restores the view. The theme follows the operating system.
+
 ## Local Setup
 
 1. Copy `.env.example` to `.env.local`.
@@ -9,7 +11,7 @@ A local Next.js app for filtering top BoardGameGeek games from a local ranks CSV
 3. Place the downloaded `boardgames_ranks.csv` in the project root.
 4. Run `npm run dev`.
 5. Open the local URL printed by Next.js.
-6. Click `Sync BGG` to populate `data/bgg-cache.sqlite`.
+6. Click `Синхронизировать` at the bottom of the filter rail to populate `data/bgg-cache.sqlite`.
 
 The SQLite cache is the source of truth. Keep `data/` outside `.next` and preserve it across redeploys if you want cached BGG data to survive.
 
@@ -20,7 +22,8 @@ The SQLite cache is the source of truth. Keep `data/` outside `.next` and preser
 - API results are cached in SQLite and refresh is manual, keeping repeat API traffic low.
 - Requests use `https://boardgamegeek.com` without a `www` subdomain.
 - XML API detail requests are batched at the documented maximum of 20 item IDs and delayed between batches.
-- The UI credits BoardGameGeek by name and includes a visible, linked "Powered by BGG" mark.
+- The UI credits BoardGameGeek by name and includes a visible, linked "Powered by BGG" mark: in the filter rail on desktop and in the page footer on phones.
+- Game thumbnails are the URLs returned by the XML API. They are stored in the cache during sync and loaded by the browser directly from BoardGameGeek's image host; no extra API requests are made for them. Caches created before thumbnails were stored show placeholder tiles until the next sync.
 - The app is intended for non-commercial local browsing only.
 - BGG API data must not be used to train AI or LLM systems.
 - Game descriptions from the XML API are cached but not rendered in the UI, to avoid displaying modified User Submission text.
