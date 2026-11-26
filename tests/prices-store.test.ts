@@ -199,7 +199,7 @@ describe("getCurrentOffers", () => {
     await recordPrices(db, [a, g], DAY1);
     await recordPrices(db, [{ ...a, price: 4490, oldPrice: 5990 }, g], DAY2);
 
-    const offers = await getCurrentOffers(db);
+    const offers = await getCurrentOffers(db, DAY2);
     expect(offers).toEqual([
       {
         bggId: 1,
@@ -211,6 +211,7 @@ describe("getCurrentOffers", () => {
         available: true,
         changedAt: DAY1,
         checkedAt: DAY2,
+        recentHigh: 5790,
       },
       {
         bggId: 1,
@@ -222,6 +223,7 @@ describe("getCurrentOffers", () => {
         available: true,
         changedAt: DAY2,
         checkedAt: DAY2,
+        recentHigh: 5990,
       },
     ]);
   });

@@ -13,6 +13,9 @@ import { gameLanguages, games, gameTags, playerRecommendations, rankedGames, syn
 import { defaultSortDir, type GameFilters } from "@/lib/filtering";
 import type { CatalogFrame, GamesView } from "@/lib/games-view";
 import { clampPage, PAGE_SIZE, pageCount } from "@/lib/pagination";
+import { bestOffer, isStale, salePercent, STALE_AFTER_DAYS, type GameOffer } from "@/lib/prices/offers";
+import { getCurrentOffers } from "@/lib/prices/store";
+import { shopCodes } from "@/lib/prices/types";
 import { defaultFilters } from "@/lib/url-state";
 import { buildYearScale } from "@/lib/year-scale";
 
@@ -27,7 +30,30 @@ const sortColumns = {
   geekRating: games.geekRating,
   averageRating: games.averageRating,
   numVoters: games.numVoters,
-} satisfies Record<SortKey, unknown>;
+} satisfies Record<Exclude<SortKey, "price">, unknown>;
+
+/**
+ * The lowest current price of a game among its confirmed shop links, as a scalar subquery.
+ * With `inStockOnly` it is the price that can be paid today, matching `bestOffer`; without, the
+ * lowest recent price in or out of stock, matching `lowestKnownOffer`. A shop not checked within
+ * the staleness window never counts.
+ */
+function currentPrice(now: Date, inStockOnly: boolean): SQL {
+  const freshSince = new Date(now.getTime() - STALE_AFTER_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const inStock = inStockOnly ? sql`AND h.available IS DISTINCT FROM false` : sql``;
+  return sql`(
+    SELECT min(h.price)
+    FROM product_links l
+    JOIN price_checks c ON c.shop = l.shop AND c.external_id = l.external_id
+    JOIN LATERAL (
+      SELECT price, available FROM price_history
+      WHERE shop = l.shop AND external_id = l.external_id
+      ORDER BY observed_at DESC LIMIT 1
+    ) h ON true
+    WHERE l.bgg_id = ${games.bggId} AND l.status = 'confirmed'
+      AND h.price IS NOT NULL AND c.checked_at >= ${freshSince}::timestamptz ${inStock}
+  )`;
+}
 
 /** The catalog order, which also breaks ties under any other sort. */
 const catalogOrder = [sql`coalesce(${games.rank}, ${rankedGames.rank})`, asc(games.title), asc(games.bggId)];
@@ -80,16 +106,29 @@ export function filterCondition(filters: GameFilters): SQL | undefined {
   return and(...conditions);
 }
 
-function sortOrder(filters: GameFilters): SQL[] {
-  const column = sortColumns[filters.sort];
+function sortOrder(filters: GameFilters, now: Date): SQL[] {
   // Missing values go last whichever way the column is sorted.
   const direction = (filters.sortDir ?? defaultSortDir(filters.sort)) === "asc" ? sql`asc` : sql`desc`;
-  return [sql`${column} ${direction} nulls last`, ...catalogOrder];
+  if (filters.sort === "price") {
+    return [
+      sql`${currentPrice(now, true)} ${direction} nulls last`,
+      // Among games nobody can buy today, those with a known price come before those with none.
+      sql`(${currentPrice(now, false)} is null) asc`,
+      ...catalogOrder,
+    ];
+  }
+  return [sql`${sortColumns[filters.sort]} ${direction} nulls last`, ...catalogOrder];
 }
 
 async function countGames(db: Db, where: SQL | undefined): Promise<number> {
   const [row] = await db.select({ count: count() }).from(games).innerJoin(rankedGames, isRanked).where(where);
   return Number(row?.count ?? 0);
+}
+
+/** The ids of the listed games: what a per-game request is checked against before it may query anything. */
+export async function queryListedIds(db: Db): Promise<number[]> {
+  const rows = await db.select({ id: games.bggId }).from(games).innerJoin(rankedGames, isRanked);
+  return rows.map((row) => row.id);
 }
 
 /** How many games the catalog lists. */
@@ -132,12 +171,41 @@ const listedColumns = {
 
 type GameRow = { [Key in keyof typeof listedColumns]: ListedGame[Key] };
 
-/** Adds tags, languages and poll results to the game rows, keeping their order. */
-async function withDetails(db: Db, rows: GameRow[]): Promise<ListedGame[]> {
+/**
+ * What the tracked shops ask for these games today, per game and in `shopCodes` order.
+ * Staleness and sales are judged against `now`, once, so everything rendered from one query agrees.
+ */
+async function offersByGame(db: Db, ids: number[], now: Date): Promise<Map<number, GameOffer[]>> {
+  const byGame = new Map<number, GameOffer[]>();
+  for (const row of await getCurrentOffers(db, now, ids)) {
+    const checkedAt = row.checkedAt.toISOString();
+    byGame.set(row.bggId, [
+      ...(byGame.get(row.bggId) ?? []),
+      {
+        shop: row.shop,
+        url: row.url,
+        price: row.price,
+        oldPrice: row.oldPrice,
+        available: row.available,
+        checkedAt,
+        stale: isStale(checkedAt, now),
+        salePercent: salePercent(row.price, row.oldPrice, row.recentHigh),
+      },
+    ]);
+  }
+  for (const offers of byGame.values()) {
+    offers.sort((a, b) => shopCodes.indexOf(a.shop) - shopCodes.indexOf(b.shop));
+  }
+  return byGame;
+}
+
+/** Adds tags, languages, poll results and shop offers to the game rows, keeping their order. */
+async function withDetails(db: Db, rows: GameRow[], now: Date): Promise<ListedGame[]> {
   const ids = rows.map((row) => row.id);
   if (ids.length === 0) return [];
 
-  const [tagRows, languageRows, recommendationRows] = await Promise.all([
+  const [offers, tagRows, languageRows, recommendationRows] = await Promise.all([
+    offersByGame(db, ids, now),
     db
       .select({ gameId: gameTags.gameId, kind: gameTags.kind, name: gameTags.name })
       .from(gameTags)
@@ -189,11 +257,18 @@ async function withDetails(db: Db, rows: GameRow[]): Promise<ListedGame[]> {
     mechanics: tagsByGame.get(row.id)?.mechanics ?? [],
     languages: languagesByGame.get(row.id) ?? [],
     playerRecommendations: recommendationsByGame.get(row.id) ?? emptyPlayerRecommendations(),
+    offers: offers.get(row.id) ?? [],
+    bestPrice: bestOffer(offers.get(row.id) ?? [])?.price ?? null,
   }));
 }
 
 /** One page of the games passing the filters. A page number past the end lands on the last page. */
-export async function queryGamesView(db: Db, filters: GameFilters, requestedPage = 1): Promise<GamesView> {
+export async function queryGamesView(
+  db: Db,
+  filters: GameFilters,
+  requestedPage = 1,
+  now: Date = new Date(),
+): Promise<GamesView> {
   const where = filterCondition(filters);
   const [shown, total, counts] = await Promise.all([
     countGames(db, where),
@@ -206,12 +281,12 @@ export async function queryGamesView(db: Db, filters: GameFilters, requestedPage
     .from(games)
     .innerJoin(rankedGames, isRanked)
     .where(where)
-    .orderBy(...sortOrder(filters))
+    .orderBy(...sortOrder(filters, now))
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE);
 
   return {
-    games: await withDetails(db, rows as GameRow[]),
+    games: await withDetails(db, rows as GameRow[], now),
     shown,
     total,
     page,

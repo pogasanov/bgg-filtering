@@ -10,7 +10,9 @@ import { ResultsTable } from "@/components/results/results-table";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { activeFilterChips } from "@/lib/active-filters";
 import { defaultFilters } from "@/lib/url-state";
+import { PriceCell } from "@/components/results/price-cell";
 import { pollGame } from "./fixtures";
+import { offer } from "./price-fixtures";
 
 // The components read the router; outside Next there is none.
 vi.mock("next/navigation", () => ({
@@ -55,11 +57,10 @@ test("thumbnail falls back to a placeholder tile", () => {
   expect(html).toContain('alt=""');
 });
 
-test("table renders one linked row per game with dashes for missing numbers", () => {
+test("table renders one row per game with dashes for missing numbers", () => {
   const sparse = { ...pollGame, description: "SECRET", playingTime: null, weight: null, rank: null, minPlayers: null, maxPlayers: null };
   const html = render(ResultsTable, { games: [sparse], sort: "rank", sortDir: "asc" });
-  expect(html).toContain(`href="${pollGame.bggUrl}"`);
-  expect(html).toContain('target="_blank"');
+  expect(html.match(/<tr/g)).toHaveLength(2);
   expect(html).toContain('aria-sort="ascending"');
   expect(html.match(/—/g)!.length).toBeGreaterThanOrEqual(4);
   expect(html).toContain("Economic · Worker Placement");
@@ -91,7 +92,6 @@ test("bar shows the count, chips and reset only when filtered", () => {
 test("phone list shows thumbnail, title, strip and rating per game", () => {
   const html = render(ResultsList, { games: [pollGame] });
   expect(html.match(/<li/g)).toHaveLength(1);
-  expect(html).toContain(`href="${pollGame.bggUrl}"`);
   expect(html.match(/data-verdict="/g)).toHaveLength(7);
   expect(html).toContain('data-thumb="placeholder"');
   expect(render(ResultsList, { games: [] })).toContain("Ничего не найдено");
@@ -126,4 +126,45 @@ test("'not recommended' squares use their own colour and keep an outline", () =>
   };
   const html = render(PollStrip, { game });
   expect(html).toMatch(/<span(?=[^>]*data-verdict="not-recommended")(?=[^>]*class="[^"]*bg-poll-no[^"]*ring-poll-no-border)/);
+});
+
+const pricedGame = { ...pollGame, offers: [offer({ price: 1390 })], bestPrice: 1390 };
+
+test("price cell: best in stock, sale, out-of-stock fallback, nothing", () => {
+  expect(render(PriceCell, { offers: [offer({ price: 1390 })] })).toContain("1\u00a0390\u00a0₽");
+  const sale = render(PriceCell, { offers: [offer({ price: 1700, salePercent: 15 })] });
+  expect(sale).toContain("−15%");
+  expect(sale).toContain("text-poll-best");
+  const out = render(PriceCell, { offers: [offer({ price: 2100, available: false })] });
+  expect(out).toContain("2\u00a0100\u00a0₽");
+  expect(out).toContain("нет в наличии");
+  expect(out).toContain("text-muted-foreground");
+  expect(render(PriceCell, { offers: [] })).toContain("—");
+  expect(render(PriceCell, { offers: [offer({ stale: true })] })).toContain("—");
+});
+
+test("table has a sortable price column and rows that toggle a panel instead of linking out", () => {
+  const html = render(ResultsTable, { games: [pricedGame], sort: "price", sortDir: "asc" });
+  expect(html).toContain("Цена");
+  expect(html).toContain('aria-sort="ascending"');
+  expect(html).toMatch(/<button(?=[^>]*aria-expanded="false")(?=[^>]*aria-controls="prices-5")/);
+  expect(html).not.toContain(`href="${pollGame.bggUrl}"`);
+  expect(html).toContain("1\u00a0390\u00a0₽");
+  expect(html).not.toContain('id="prices-5"');
+});
+
+test("the voters column gives way to the price on narrower screens", () => {
+  const html = render(ResultsTable, { games: [pricedGame], sort: "rank", sortDir: "asc" });
+  expect(html.match(/hidden xl:table-cell/g)).toHaveLength(2);
+});
+
+test("phone list item toggles the same panel and shows the price", () => {
+  const html = render(ResultsList, { games: [pricedGame] });
+  expect(html).toMatch(/<button(?=[^>]*aria-expanded="false")(?=[^>]*aria-controls="prices-m-5")/);
+  expect(html).not.toContain(`href="${pollGame.bggUrl}"`);
+  expect(html).toContain("1\u00a0390\u00a0₽");
+});
+
+test("closed phone items stay cheap to render off screen", () => {
+  expect(render(ResultsList, { games: [pricedGame] })).toMatch(/<li[^>]*content-visibility:auto/);
 });

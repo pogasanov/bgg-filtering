@@ -210,6 +210,9 @@ export async function recordRun(db: Db, run: PriceRun): Promise<void> {
   await db.insert(priceRuns).values(run);
 }
 
+/** How far back a price counts as "recent" when deciding whether today's price is a sale. */
+const RECENT_HIGH_DAYS = 30;
+
 export type Offer = {
   bggId: number;
   shop: ShopCode;
@@ -222,6 +225,8 @@ export type Offer = {
   changedAt: Date;
   /** When the product was last read successfully. */
   checkedAt: Date;
+  /** The highest price it had in the 30 days before `now`, including the one in force when they began. */
+  recentHigh: number | null;
 };
 
 type OfferRow = {
@@ -234,14 +239,28 @@ type OfferRow = {
   available: boolean | null;
   changed_at: Date | string;
   checked_at: Date | string;
+  recent_high: number | null;
 };
 
-/** The current price of every confirmed link that has been read at least once. */
-export async function getCurrentOffers(db: Db): Promise<Offer[]> {
+/**
+ * The current price of every confirmed link that has been read at least once.
+ * With `bggIds`, only for those games: a page of the site asks for its own rows.
+ */
+export async function getCurrentOffers(db: Db, now: Date = new Date(), bggIds?: number[]): Promise<Offer[]> {
+  if (bggIds !== undefined && bggIds.length === 0) return [];
+  const onlyGames = bggIds === undefined ? sql`` : sql`AND l.bgg_id IN (${sql.join(bggIds.map((id) => sql`${id}`), sql`, `)})`;
+  const windowStart = new Date(now.getTime() - RECENT_HIGH_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const rows = resultRows<OfferRow>(
     await db.execute(sql`
       SELECT l.bgg_id, l.shop, p.title, p.url, h.price, h.old_price, h.available,
-             h.observed_at AS changed_at, c.checked_at
+             h.observed_at AS changed_at, c.checked_at,
+             GREATEST(
+               (SELECT max(price) FROM price_history
+                 WHERE shop = l.shop AND external_id = l.external_id AND observed_at >= ${windowStart}::timestamptz),
+               (SELECT price FROM price_history
+                 WHERE shop = l.shop AND external_id = l.external_id AND observed_at < ${windowStart}::timestamptz
+                 ORDER BY observed_at DESC LIMIT 1)
+             ) AS recent_high
       FROM product_links l
       JOIN shop_products p ON p.shop = l.shop AND p.external_id = l.external_id
       JOIN price_checks c ON c.shop = l.shop AND c.external_id = l.external_id
@@ -252,7 +271,7 @@ export async function getCurrentOffers(db: Db): Promise<Offer[]> {
         ORDER BY observed_at DESC
         LIMIT 1
       ) h ON true
-      WHERE l.status = 'confirmed'
+      WHERE l.status = 'confirmed' ${onlyGames}
       ORDER BY l.bgg_id, l.shop
     `),
   );
@@ -267,6 +286,7 @@ export async function getCurrentOffers(db: Db): Promise<Offer[]> {
     available: row.available,
     changedAt: new Date(row.changed_at),
     checkedAt: new Date(row.checked_at),
+    recentHigh: row.recent_high,
   }));
 }
 

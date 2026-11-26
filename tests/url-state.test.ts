@@ -30,7 +30,7 @@ test("omits a default direction", () => {
 
 test("ignores garbage and de-duplicates", () => {
   const parsed = parseFilters(
-    new URLSearchParams("m=9:best&m=2:great&m=2:best&m=2:best&ymin=abc&ymax=20x0&sort=price&dir=sideways&tag=A&tag=A"),
+    new URLSearchParams("m=9:best&m=2:great&m=2:best&m=2:best&ymin=abc&ymax=20x0&sort=cost&dir=sideways&tag=A&tag=A"),
   );
   expect(parsed).toEqual({ ...defaultFilters, matrix: [{ playerCount: "2", verdict: "best" }], tags: ["A"] });
 });

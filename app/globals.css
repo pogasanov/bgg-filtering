@@ -30,6 +30,9 @@
   --color-poll-best-foreground: var(--poll-best-foreground);
   --color-poll-rec: var(--poll-rec);
   --color-poll-rec-foreground: var(--poll-rec-foreground);
+  --color-shop-crowdgames: var(--shop-crowdgames);
+  --color-shop-lavkaigr: var(--shop-lavkaigr);
+  --color-shop-gaga: var(--shop-gaga);
   --color-poll-no: var(--poll-no);
   --color-poll-no-foreground: var(--poll-no-foreground);
   --color-poll-no-border: var(--poll-no-border);
@@ -66,6 +69,10 @@
   --poll-best-foreground: #ffffff;
   --poll-rec: #86efac;
   --poll-rec-foreground: #14532d;
+  /* One fixed colour per shop, used only in the price panel. Kept away from the poll greens. */
+  --shop-crowdgames: #2563eb;
+  --shop-lavkaigr: #d97706;
+  --shop-gaga: #9333ea;
   --poll-no: #fee2e2;
   --poll-no-foreground: #991b1b;
   --poll-no-border: #fca5a5;
@@ -96,6 +103,9 @@
     --poll-best-foreground: #052e16;
     --poll-rec: #166534;
     --poll-rec-foreground: #bbf7d0;
+    --shop-crowdgames: #60a5fa;
+    --shop-lavkaigr: #fbbf24;
+    --shop-gaga: #c084fc;
     --poll-no: #3b1212;
     --poll-no-foreground: #fecaca;
     --poll-no-border: #7f1d1d;
