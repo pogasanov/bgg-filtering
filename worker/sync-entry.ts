@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { fetchThingBatch } from "@/lib/bgg/client";
-import { createPgDb, createPool } from "@/lib/db/client";
+import { createDb, createPool } from "@/lib/db/client";
 import { sentryDataCollection } from "@/lib/sentry-options";
 import { createRevalidator } from "@/lib/worker/revalidate";
 import { runWeeklySync } from "@/lib/worker/run-weekly-sync";
@@ -48,7 +48,7 @@ async function weeklySync(): Promise<number> {
       MONITOR_SLUG,
       async () => {
         const result = await runWeeklySync({
-          db: createPgDb(pool),
+          db: createDb(pool),
           fetchBatch: (ids) => fetchThingBatch(ids, env.BGG_TOKEN),
           log,
           revalidate: createRevalidator(env.REVALIDATE_URL, env.REVALIDATE_SECRET),

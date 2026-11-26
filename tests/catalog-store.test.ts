@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { afterEach, describe, expect, test } from "vitest";
 import {
   finishSync,
@@ -8,7 +9,7 @@ import {
 } from "@/lib/catalog/store";
 import type { Db } from "@/lib/db/client";
 import type { NormalizedGame, TopRankItem } from "@/lib/bgg/types";
-import { createTestDb } from "./helpers/test-db";
+import { createTestDb, rows } from "./helpers/test-db";
 
 const NOW = new Date("2026-11-30T03:00:00.000Z");
 const SIX_HOURS = 6 * 60 * 60 * 1000;
@@ -114,8 +115,9 @@ describe("catalog store", () => {
     const result = await replaceRankedGames(db, [ranked(2)], NOW);
 
     expect(result).toEqual({ ranked: 1, removedGames: 1 });
-    const [{ count }] = await db.query<{ count: number }>(
-      "select count(*)::int as count from game_tags where game_id = 1",
+    const [{ count }] = await rows<{ count: number }>(
+      db,
+      sql`select count(*)::int as count from game_tags where game_id = 1`,
     );
     expect(count).toBe(0);
   });
@@ -135,9 +137,9 @@ describe("catalog store", () => {
     const second = await tryStartSync(db, new Date(NOW.getTime() + SIX_HOURS + 1000));
 
     expect(second.started).toBe(true);
-    const [stuck] = await db.query<{ status: string; error_message: string }>(
-      "select status, error_message from sync_runs where id = $1",
-      [first.syncRunId],
+    const [stuck] = await rows<{ status: string; error_message: string }>(
+      db,
+      sql`select status, error_message from sync_runs where id = ${first.syncRunId}`,
     );
     expect(stuck).toEqual({ status: "error", error_message: "stale lock released" });
   });
@@ -154,10 +156,10 @@ describe("catalog store", () => {
       NOW,
     );
 
-    expect(await db.query("select * from sync_lock")).toEqual([]);
-    const [stored] = await db.query<{ failed_ids: number[]; status: string }>(
-      "select failed_ids, status from sync_runs where id = $1",
-      [run.syncRunId],
+    expect(await rows(db, sql`select * from sync_lock`)).toEqual([]);
+    const [stored] = await rows<{ failed_ids: number[]; status: string }>(
+      db,
+      sql`select failed_ids, status from sync_runs where id = ${run.syncRunId}`,
     );
     expect(stored).toEqual({ failed_ids: [5, 6], status: "partial" });
   });

@@ -1,13 +1,14 @@
+import { sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
-import { runMigrations } from "@/lib/db/migrate";
-import { createTestDb } from "./helpers/test-db";
+import { createTestDb, migrateTestDb, rows } from "./helpers/test-db";
 
 describe("database migrations", () => {
-  test("applies the init migration once and creates every table", async () => {
+  test("drizzle migrations create every table and apply only once", async () => {
     const { db, close } = await createTestDb();
     try {
-      const tables = await db.query<{ table_name: string }>(
-        "select table_name from information_schema.tables where table_schema = 'public' order by 1",
+      const tables = await rows<{ table_name: string }>(
+        db,
+        sql`select table_name from information_schema.tables where table_schema = 'public' order by 1`,
       );
       expect(tables.map((table) => table.table_name)).toEqual([
         "game_languages",
@@ -15,11 +16,16 @@ describe("database migrations", () => {
         "games",
         "player_recommendations",
         "ranked_games",
-        "schema_migrations",
         "sync_lock",
         "sync_runs",
       ]);
-      expect(await runMigrations(db)).toEqual([]);
+
+      await migrateTestDb(db);
+      const [{ count }] = await rows<{ count: number }>(
+        db,
+        sql`select count(*)::int as count from drizzle.__drizzle_migrations`,
+      );
+      expect(count).toBe(1);
     } finally {
       await close();
     }

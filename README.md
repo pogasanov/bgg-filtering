@@ -1,5 +1,7 @@
 # BGG Player Recommendation Finder
 
+Live at **https://bg.gsnv.dev**.
+
 A public, non-commercial Next.js site for filtering top BoardGameGeek games by categories, mechanics, and player-count recommendation polls.
 
 Filters live in a rail on the left with the player-count × verdict matrix on top; results are a sortable table with the poll verdict for every player count shown in each row. The current filters, sort and page are kept in the URL, so a reload or a copied link restores the view. Filtering and sorting run on the server, which renders 100 games per page. The theme follows the operating system.
@@ -12,7 +14,7 @@ Filters live in a rail on the left with the player-count × verdict matrix on to
 ## Local setup
 
 1. Install dependencies: `pnpm install`
-2. Copy `.env.example` to `.env.local` and fill in at least `DATABASE_URL` (a Neon branch or any Postgres) and `BGG_TOKEN`.
+2. Copy `.env.example` to `.env.local` and fill in at least `DATABASE_URL` (a Neon branch or any Postgres) and `BGG_TOKEN`. With the Neon CLI linked (`.neon`), `neon env pull` writes `DATABASE_URL` and `DATABASE_URL_UNPOOLED` for you.
 3. Create the schema: `pnpm db:migrate`
 4. Import the ranked list from a downloaded BGG ranks dump: `pnpm bgg:import-ranks ./boardgames_ranks.csv`
 5. Fetch game details once: `pnpm worker:local`. This needs `REVALIDATE_URL` and `REVALIDATE_SECRET` too. Point them at `http://localhost:3000/api/revalidate` while `pnpm dev` runs.
@@ -20,19 +22,30 @@ Filters live in a rail on the left with the player-count × verdict matrix on to
 
 Without `DATABASE_URL`, `pnpm dev` and `pnpm build` render an empty catalog.
 
+### Database schema
+
+The schema is Drizzle ORM code in `lib/db/schema.ts`, and the SQL migrations generated from it live in `drizzle/`. To change the schema:
+
+1. Edit `lib/db/schema.ts`.
+2. Generate a migration: `pnpm db:generate`.
+3. Review and commit the new file in `drizzle/`.
+4. Apply it: `pnpm db:migrate`.
+
+Migrations run over the direct connection `DATABASE_URL_UNPOOLED` when it is set, as Neon recommends for schema changes. The site and the worker use the pooled `DATABASE_URL` through node-postgres. On Vercel the pool is attached with `attachDatabasePool` from `@vercel/functions`.
+
 ## Deployment
 
 ### Accounts
 
 Use **dedicated personal accounts created for this project** on Neon, Vercel, Modal and Sentry. Never use other accounts that happen to be logged in on your machine. The tooling enforces this:
 
-- Vercel commands go through `pnpm vc …`. It always passes `VERCEL_TOKEN` from `.env.local` and refuses to run without it. Do not use `vercel login`.
+- Vercel commands go through `pnpm vc …`. Its CLI login lives in a separate config directory (`~/.config/vercel-bgg`, override with `VERCEL_GLOBAL_CONFIG`), so a global `vercel login` to another account never affects this project. `VERCEL_TOKEN` in `.env.local` is optional, for non-interactive runs.
 - Modal commands run with `MODAL_PROFILE=bgg`. If that profile does not exist, they fail instead of using another one.
 
 ### 1. Neon
 
 1. In the project's Neon account, create a project in **Frankfurt (AWS eu-central-1)**.
-2. Copy the **pooled** connection string. Put it in `.env.local` as `DATABASE_URL`.
+2. Link it and pull its connection strings into `.env.local`: `neon init` (see `neon.ts`), then `neon deploy`. This writes the pooled `DATABASE_URL` and the direct `DATABASE_URL_UNPOOLED`. The link lives in the git-ignored `.neon` file.
 3. Do **not** install the Neon integration in Vercel. It creates a database branch per preview deployment, and every branch counts against the 1 GB Free limit.
 4. Run migrations and import the ranked list:
 
@@ -50,7 +63,12 @@ In the project's Sentry account, create an organization and a Next.js project, t
 
 ### 3. Vercel
 
-1. In the project's Vercel account, create an access token (Account Settings → Tokens). Put it in `.env.local` as `VERCEL_TOKEN`.
+1. Log in with the project's Vercel account. This opens the browser, and the login is stored in `~/.config/vercel-bgg`, not in the global Vercel CLI config:
+
+```bash
+pnpm vc login
+```
+
 2. Link the repository to a new project:
 
 ```bash
@@ -83,7 +101,7 @@ modal token new --profile bgg --no-activate
 3. Create the worker secret:
 
 ```bash
-MODAL_PROFILE=bgg modal secret create bgg-sync DATABASE_URL=... BGG_TOKEN=... REVALIDATE_URL=https://<project>.vercel.app/api/revalidate REVALIDATE_SECRET=... SENTRY_DSN=...
+MODAL_PROFILE=bgg modal secret create bgg-sync DATABASE_URL=... BGG_TOKEN=... REVALIDATE_URL=https://bg.gsnv.dev/api/revalidate REVALIDATE_SECRET=... SENTRY_DSN=...
 ```
 
 4. Deploy the weekly schedule and run the first sync:
@@ -117,7 +135,7 @@ pnpm worker:run
 Each check sends one deliberate error, tagged `component:site` or `component:worker`:
 
 ```bash
-curl -H "Authorization: Bearer $REVALIDATE_SECRET" https://<project>.vercel.app/api/sentry-check
+curl -H "Authorization: Bearer $REVALIDATE_SECRET" https://bg.gsnv.dev/api/sentry-check
 ```
 
 ```bash
@@ -140,7 +158,20 @@ Most visitors are expected to come from Russia, where reachability is the main r
 - run an HTTP check from Russian nodes of a public checker such as check-host.net;
 - the page must load fully, with thumbnails.
 
-**Plan B, if the site is unreliable from Russia:**
+**Check of 2026-11-26** (check-host.net, nodes in Moscow and Saint Petersburg):
+
+| Target | Moscow | Saint Petersburg |
+|---|---|---|
+| `bgfilter.vercel.app` | 1 of 6 OK | 6 of 6 OK |
+| `nextjs.org`, `vercel.com` (custom domains on Vercel) | 3 of 3 OK each | 3 of 3 OK each |
+| thumbnails from `cf.geekdo-images.com` | OK | OK |
+| `bg.gsnv.dev` (project's own domain, attached later that day) | 5 of 5 OK | 5 of 5 OK |
+
+When the Moscow requests to `bgfilter.vercel.app` failed, the TCP connection to Vercel's IPs succeeded and the request then timed out. That points at filtering of the `*.vercel.app` name, not at blocked IPs.
+
+**Fix applied:** the site's public address is **https://bg.gsnv.dev**, a subdomain of `gsnv.dev`, whose DNS is on Vercel in another account. It is attached to the `bgfilter` project with `pnpm vc domains add bg.gsnv.dev bgfilter`. Share this address, not `bgfilter.vercel.app`.
+
+**Plan B, if a custom domain is unreliable from Russia too:**
 
 1. Rent a small Russian VPS (roughly 200–500 ₽ a month).
 2. Point the project's own domain at it.
@@ -169,12 +200,13 @@ Neon Free allows 1 GB. The worker logs the database size after every run and war
 |---|---|
 | `pnpm dev` / `pnpm build` | Run or build the site |
 | `pnpm test` / `pnpm typecheck` | Tests (Postgres-backed tests use in-process PGlite) and TypeScript checks |
-| `pnpm db:migrate` | Apply `db/migrations/*.sql` to `DATABASE_URL` |
+| `pnpm db:generate` | Generate a Drizzle migration in `drizzle/` from `lib/db/schema.ts` |
+| `pnpm db:migrate` | Apply pending Drizzle migrations (direct connection `DATABASE_URL_UNPOOLED`, else `DATABASE_URL`) |
 | `pnpm bgg:import-ranks <csv> [--limit N]` | Replace the stored ranked list (default top 500) |
 | `pnpm worker:local` | Run the weekly sync locally with `.env.local` |
 | `pnpm worker:build` | Bundle the worker to `worker/dist/sync.cjs` |
 | `pnpm worker:deploy` / `pnpm worker:run` / `pnpm worker:sentry-check` | Deploy, run once, or send a Sentry check through Modal (profile `bgg`) |
-| `pnpm vc <vercel args>` | Vercel CLI authenticated only with `VERCEL_TOKEN` |
+| `pnpm vc <vercel args>` | Vercel CLI with the project's own login (`~/.config/vercel-bgg`, or `VERCEL_TOKEN`) |
 | `pnpm prices:dry-run` | Local check of the Russian shop price collectors (see below) |
 
 ## Price dry run

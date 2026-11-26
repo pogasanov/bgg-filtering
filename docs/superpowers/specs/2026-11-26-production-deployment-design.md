@@ -28,6 +28,7 @@ Hosting research (2026-11-26) picked the stack: the project is non-commercial, l
   - **Plan B if the site is unreliable from Russia:** a small Russian VPS with its own domain runs a caching reverse proxy (Caddy) in front of Vercel. That VPS can later also host the shop price scrapers that need a Russian IP.
   - **BGG sync must run outside Russia:** `boardgamegeek.com`, including the XML API, sits behind Cloudflare. Thumbnails come from `cf.geekdo-images.com`, which is AWS CloudFront, not Cloudflare.
   - **Regions stay in Frankfurt:** it is the closest region to Russia that both Vercel and Neon offer.
+- **ORM: Drizzle** (decided 2026-11-26). The schema lives in `lib/db/schema.ts`, and migrations are generated into `drizzle/` by drizzle-kit. Migrations run over Neon's direct connection (`DATABASE_URL_UNPOOLED`). The app and the worker use node-postgres through the pooled `DATABASE_URL`, and on Vercel `attachDatabasePool` manages the pool. Neon is linked with the Neon CLI (`neon.ts`, git-ignored `.neon`).
 - **Dedicated accounts:** every service (Vercel, Neon, Modal, Sentry) uses a separate personal account created for this project. Nothing may be deployed to, or authenticated with, any other account that happens to be logged in on the owner's machine.
   - The tooling must name the project's account explicitly instead of relying on whatever CLI login is active.
   - The Modal CLI on the owner's machine is currently logged in to a different profile.

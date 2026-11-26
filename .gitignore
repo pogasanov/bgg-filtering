@@ -12,3 +12,7 @@ boardgames_ranks.csv
 worker/dist/
 .superpowers
 docs/research/
+.neon
+.vercel
+.env*
+!.env.example
