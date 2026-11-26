@@ -1,24 +1,33 @@
-import { unstable_cache } from "next/cache";
-import { getDb, hasDatabaseUrl } from "@/lib/db/client";
-import { getCatalog } from "./store";
-import { EMPTY_CATALOG, type Catalog } from "./types";
+import { getDb, hasDatabaseUrl, type Db } from "@/lib/db/client";
+import type { GameFilters } from "@/lib/filtering";
+import { emptyCatalogFrame, emptyGamesView, type CatalogFrame, type GamesView } from "@/lib/games-view";
+import { countCatalogGames, queryCatalogFrame, queryGamesView } from "./query";
 
 export const CATALOG_TAG = "bgg-catalog";
 
-const cachedCatalog = unstable_cache(async () => getCatalog(getDb()), ["bgg-catalog"], {
-  tags: [CATALOG_TAG],
-  revalidate: 86400,
-});
-
 /**
- * The catalog shown on the site. Reads go through the Next.js data cache, so a page view
- * never queries the database; the sync worker invalidates CATALOG_TAG after each run.
- * Without DATABASE_URL a local build renders an empty catalog; on Vercel that is a misconfiguration.
+ * The database the site reads. Without DATABASE_URL a local build renders an empty catalog;
+ * on Vercel that is a misconfiguration.
  */
-export async function loadCatalog(): Promise<Catalog> {
-  if (!hasDatabaseUrl()) {
-    if (process.env.VERCEL === "1") throw new Error("DATABASE_URL is not set");
-    return EMPTY_CATALOG;
-  }
-  return cachedCatalog();
+function catalogDb(): Db | null {
+  if (hasDatabaseUrl()) return getDb();
+  if (process.env.VERCEL === "1") throw new Error("DATABASE_URL is not set");
+  return null;
+}
+
+/** One page of results, filtered and sorted in Postgres. Cache the rendered output, not this. */
+export async function loadGamesView(filters: GameFilters, page: number): Promise<GamesView> {
+  const db = catalogDb();
+  return db ? queryGamesView(db, filters, page) : emptyGamesView();
+}
+
+/** The filter options and counts with no filters set. */
+export async function loadFrame(): Promise<CatalogFrame> {
+  const db = catalogDb();
+  return db ? queryCatalogFrame(db) : emptyCatalogFrame();
+}
+
+export async function loadGameCount(): Promise<number> {
+  const db = catalogDb();
+  return db ? countCatalogGames(db) : 0;
 }

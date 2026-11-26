@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { parseRanksCsv } from "@/lib/bgg/ranks";
+import { DEFAULT_RANKED_LIMIT, parseRanksCsv } from "@/lib/bgg/ranks";
 
 const csv = `id,name,yearpublished,rank,bayesaverage,average,usersrated,is_expansion
 3,"Third, Game",2022,3,7.1,7.3,300,0
@@ -31,6 +31,15 @@ describe("BGG ranks CSV", () => {
         numVoters: 400,
       },
     ]);
+  });
+
+  test("keeps the top 2500 ranked base games by default", () => {
+    const rows = Array.from({ length: 2600 }, (_, index) => `${index + 1},Game ${index + 1},2020,${index + 1},7,7,100,0`);
+    const items = parseRanksCsv([csv.split("\n")[0], ...rows].join("\n"));
+
+    expect(DEFAULT_RANKED_LIMIT).toBe(2500);
+    expect(items).toHaveLength(2500);
+    expect(items.at(-1)?.rank).toBe(2500);
   });
 
   test("rejects CSV files without required ranking columns", () => {

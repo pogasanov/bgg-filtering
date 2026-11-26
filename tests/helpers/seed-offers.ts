@@ -1,27 +1,13 @@
-import type { NormalizedGame, TopRankItem } from "@/lib/bgg/types";
-import { replaceRankedGames, upsertGames } from "@/lib/catalog/store";
 import type { Db } from "@/lib/db/client";
 import { priceChecks, priceHistory, productLinks, shopProducts } from "@/lib/db/schema";
-import { emptyPlayerRecommendations } from "@/lib/bgg/parser";
+import { storeCatalog } from "./catalog";
+import { makeGame } from "./fixtures";
 
 const SEEDED_AT = new Date("2026-11-20T00:00:00.000Z");
 
-function game(id: number): NormalizedGame {
-  return {
-    id, rank: id, title: `Game ${id}`, year: 2020, thumbnailUrl: null, geekRating: 7.8, averageRating: 8.1, numVoters: 1000,
-    minPlayers: 1, maxPlayers: 4, playingTime: 90, weight: 2.5, categories: [], mechanics: [], languages: [],
-    playerRecommendations: emptyPlayerRecommendations(), bggUrl: `https://boardgamegeek.com/boardgame/${id}`,
-  };
-}
-
-function ranked(id: number): TopRankItem {
-  return { id, rank: id, title: `Game ${id}`, year: 2020, geekRating: 7, averageRating: 8, numVoters: 100 };
-}
-
 /** Game 1: a confirmed Lavka Igr product that went from 2000 to 1700, and a candidate CrowdGames one at 900. */
 export async function seedOffers(db: Db): Promise<void> {
-  await replaceRankedGames(db, [ranked(1), ranked(2)], SEEDED_AT);
-  await upsertGames(db, [game(1), game(2)], SEEDED_AT);
+  await storeCatalog(db, [makeGame(1), makeGame(2)]);
   const seen = SEEDED_AT;
   await db.insert(shopProducts).values([
     { shop: "lavkaigr", externalId: "L1", url: "https://www.lavkaigr.ru/shop/l1", title: "Игра 1", firstSeenAt: seen, lastSeenAt: seen },

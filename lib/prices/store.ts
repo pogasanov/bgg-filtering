@@ -242,8 +242,13 @@ type OfferRow = {
   recent_high: number | null;
 };
 
-/** The current price of every confirmed link that has been read at least once. */
-export async function getCurrentOffers(db: Db, now: Date = new Date()): Promise<Offer[]> {
+/**
+ * The current price of every confirmed link that has been read at least once.
+ * With `bggIds`, only for those games: a page of the site asks for its own rows.
+ */
+export async function getCurrentOffers(db: Db, now: Date = new Date(), bggIds?: number[]): Promise<Offer[]> {
+  if (bggIds !== undefined && bggIds.length === 0) return [];
+  const onlyGames = bggIds === undefined ? sql`` : sql`AND l.bgg_id IN (${sql.join(bggIds.map((id) => sql`${id}`), sql`, `)})`;
   const windowStart = new Date(now.getTime() - RECENT_HIGH_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const rows = resultRows<OfferRow>(
     await db.execute(sql`
@@ -266,7 +271,7 @@ export async function getCurrentOffers(db: Db, now: Date = new Date()): Promise<
         ORDER BY observed_at DESC
         LIMIT 1
       ) h ON true
-      WHERE l.status = 'confirmed'
+      WHERE l.status = 'confirmed' ${onlyGames}
       ORDER BY l.bgg_id, l.shop
     `),
   );

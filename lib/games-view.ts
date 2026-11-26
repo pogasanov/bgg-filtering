@@ -1,9 +1,5 @@
 import type { ListedGame } from "./bgg/types";
-import type { Catalog, CatalogStatus } from "./catalog/types";
-import { filterGames, gameTags, tagCounts, type GameFilters } from "./filtering";
-import { clampPage, pageCount, pageSlice } from "./pagination";
-import { defaultFilters } from "./url-state";
-import { buildYearScale } from "./year-scale";
+import type { CatalogStatus } from "./catalog/types";
 
 /** What the filter controls offer. Depends on the catalog only, not on the filters. */
 export type GameFacets = {
@@ -35,33 +31,16 @@ export type GamesView = {
   tagCounts: Map<string, number>;
 };
 
-export function gameFacets(games: ListedGame[]): GameFacets {
+/** The frame of a catalog with no games: a local run without a database. */
+export function emptyCatalogFrame(): CatalogFrame {
   return {
-    allTags: [...new Set(games.flatMap((game) => gameTags(game)))].sort(),
-    allLanguages: [...new Set(games.flatMap((game) => game.languages))].sort(),
-    yearScale: buildYearScale(games.map((game) => game.year)),
+    facets: { allTags: [], allLanguages: [], yearScale: [] },
+    status: { gameCount: 0, updatedAt: null },
+    total: 0,
+    tagCounts: new Map(),
   };
 }
 
-export function catalogFrame(catalog: Catalog): CatalogFrame {
-  return {
-    facets: gameFacets(catalog.games),
-    status: catalog.status,
-    total: catalog.games.length,
-    tagCounts: tagCounts(catalog.games, defaultFilters),
-  };
-}
-
-/** Filters and sorts the games, then cuts one page. A page number past the end lands on the last page. */
-export function gamesView(games: ListedGame[], filters: GameFilters, requestedPage = 1): GamesView {
-  const matches = filterGames(games, filters);
-  const page = clampPage(requestedPage, matches.length);
-  return {
-    games: pageSlice(matches, page),
-    shown: matches.length,
-    total: games.length,
-    page,
-    pageCount: pageCount(matches.length),
-    tagCounts: tagCounts(games, filters),
-  };
+export function emptyGamesView(): GamesView {
+  return { games: [], shown: 0, total: 0, page: 1, pageCount: 1, tagCounts: new Map() };
 }

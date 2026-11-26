@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { CachedCatalogResults } from "@/components/results/catalog-results";
-import { loadCatalog } from "@/lib/catalog/load";
+import { loadGameCount } from "@/lib/catalog/load";
 import { pageCount } from "@/lib/pagination";
 import { defaultFilters, serializeView } from "@/lib/url-state";
 
@@ -10,9 +10,8 @@ export const ensureStatic = "navigation";
 
 /** Every page the catalog has now. A page that appears later is built on its first request and kept. */
 export async function generateStaticParams() {
-  const catalog = await loadCatalog();
   // At least one entry is required; with an empty catalog, page 2 simply shows the first page.
-  const last = Math.max(2, pageCount(catalog.games.length));
+  const last = Math.max(2, pageCount(await loadGameCount()));
   return Array.from({ length: last - 1 }, (_, index) => ({ page: String(index + 2) }));
 }
 
