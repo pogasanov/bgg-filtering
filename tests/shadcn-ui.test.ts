@@ -10,7 +10,7 @@ function read(relativePath: string) {
 
 describe("shadcn foundation", () => {
   test("checks in the generated supporting primitives", () => {
-    const names = ["alert", "checkbox", "label", "scroll-area", "separator", "slider", "table"];
+    const names = ["alert", "checkbox", "label", "scroll-area", "slider", "table"];
 
     for (const name of names) {
       expect(read(`components/ui/${name}.tsx`), `${name} should be generated`).toContain("data-slot=");
@@ -50,5 +50,11 @@ describe("shadcn foundation", () => {
     expect(layout).toContain('lang="ru"');
     expect(layout).toContain("geist/font");
     expect(layout).toContain("TooltipProvider");
+  });
+
+  test("keeps only the primitives the interface uses", () => {
+    for (const name of ["card", "separator"]) {
+      expect(read(`components/ui/${name}.tsx`), `${name} should be removed`).toBe("");
+    }
   });
 });

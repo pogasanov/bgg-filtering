@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
 import { GameThumb } from "@/components/results/game-thumb";
 import { PollStrip } from "@/components/results/poll-strip";
+import { ResultsList } from "@/components/results/results-list";
 import { ResultsBar } from "@/components/results/results-bar";
 import { ResultsTable } from "@/components/results/results-table";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -61,4 +62,13 @@ test("bar shows the count, chips and reset only when filtered", () => {
   expect(html).toContain("Сбросить всё");
   const plain = render(ResultsBar, { shown: 2000, total: 2000, chips: [], onChange() {}, onReset() {} });
   expect(plain).not.toContain("Сбросить всё");
+});
+
+test("phone list shows thumbnail, title, strip and rating per game", () => {
+  const html = render(ResultsList, { games: [pollGame], onReset() {} });
+  expect(html.match(/<li/g)).toHaveLength(1);
+  expect(html).toContain(`href="${pollGame.bggUrl}"`);
+  expect(html.match(/data-verdict="/g)).toHaveLength(7);
+  expect(html).toContain('data-thumb="placeholder"');
+  expect(render(ResultsList, { games: [], onReset() {} })).toContain("Ничего не найдено");
 });
