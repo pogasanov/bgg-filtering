@@ -37,7 +37,7 @@ Migrations run over the direct connection `DATABASE_URL_UNPOOLED` when it is set
 
 Use **dedicated personal accounts created for this project** on Neon, Vercel, Modal and Sentry. Never use other accounts that happen to be logged in on your machine. The tooling enforces this:
 
-- Vercel commands go through `pnpm vc …`. It always passes `VERCEL_TOKEN` from `.env.local` and refuses to run without it. Do not use `vercel login`.
+- Vercel commands go through `pnpm vc …`. Its CLI login lives in a separate config directory (`~/.config/vercel-bgg`, override with `VERCEL_GLOBAL_CONFIG`), so a global `vercel login` to another account never affects this project. `VERCEL_TOKEN` in `.env.local` is optional, for non-interactive runs.
 - Modal commands run with `MODAL_PROFILE=bgg`. If that profile does not exist, they fail instead of using another one.
 
 ### 1. Neon
@@ -61,7 +61,12 @@ In the project's Sentry account, create an organization and a Next.js project, t
 
 ### 3. Vercel
 
-1. In the project's Vercel account, create an access token (Account Settings → Tokens). Put it in `.env.local` as `VERCEL_TOKEN`.
+1. Log in with the project's Vercel account. This opens the browser, and the login is stored in `~/.config/vercel-bgg`, not in the global Vercel CLI config:
+
+```bash
+pnpm vc login
+```
+
 2. Link the repository to a new project:
 
 ```bash
@@ -186,7 +191,7 @@ Neon Free allows 1 GB. The worker logs the database size after every run and war
 | `pnpm worker:local` | Run the weekly sync locally with `.env.local` |
 | `pnpm worker:build` | Bundle the worker to `worker/dist/sync.cjs` |
 | `pnpm worker:deploy` / `pnpm worker:run` / `pnpm worker:sentry-check` | Deploy, run once, or send a Sentry check through Modal (profile `bgg`) |
-| `pnpm vc <vercel args>` | Vercel CLI authenticated only with `VERCEL_TOKEN` |
+| `pnpm vc <vercel args>` | Vercel CLI with the project's own login (`~/.config/vercel-bgg`, or `VERCEL_TOKEN`) |
 | `pnpm prices:dry-run` | Local check of the Russian shop price collectors (see below) |
 
 ## Price dry run
