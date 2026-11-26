@@ -21,10 +21,6 @@ export function CatalogShell({ frame, children }: CatalogShellProps) {
     <GamesProvider facets={frame.facets} baseTagCounts={frame.tagCounts} status={frame.status}>
       <div className="min-h-screen lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="sticky top-0 hidden h-screen flex-col overflow-hidden border-r lg:flex">
-          <div className="flex items-baseline justify-between border-b px-4 py-3.5">
-            <span className="text-sm font-semibold">Player-count finder</span>
-            <span className="font-mono text-[11px] text-muted-foreground">{formatNumber(frame.total, 0)} игр</span>
-          </div>
           <div className="min-h-0 flex-1">
             <AppFilterRail />
           </div>
