@@ -14,5 +14,6 @@ export async function POST(request: Request) {
 
   revalidateTag(CATALOG_TAG, "max");
   revalidatePath("/");
+  revalidatePath("/en");
   return NextResponse.json({ revalidated: true });
 }

@@ -45,9 +45,12 @@ export function ResultsBar({ shown, total, chips, onChange, onReset, children }:
               </li>
             ))}
           </ul>
-          <Button variant="ghost" size="sm" onClick={onReset} className="ml-auto h-7 flex-none text-xs text-muted-foreground">
-            Сбросить всё
-          </Button>
+          {/* With one chip its own cross does the same. */}
+          {chips.length > 1 ? (
+            <Button variant="ghost" size="sm" onClick={onReset} className="ml-auto h-7 flex-none text-xs text-muted-foreground">
+              Сбросить всё
+            </Button>
+          ) : null}
         </>
       ) : null}
     </div>

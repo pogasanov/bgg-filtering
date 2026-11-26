@@ -18,6 +18,7 @@ import { offer } from "./price-fixtures";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace() {}, refresh() {} }),
   useSelectedLayoutSegment: () => null,
+  useParams: () => ({}),
 }));
 
 const status = {
