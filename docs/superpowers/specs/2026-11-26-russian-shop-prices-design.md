@@ -15,7 +15,12 @@ This design builds on two pieces of work that live in other worktrees and are no
 - **Production deployment** (`docs/superpowers/specs/2026-11-26-production-deployment-design.md` in the `feat/hosting-research-site-0026a6` worktree). It moves the app to Vercel, Postgres on Neon, a scheduled worker on Modal, and Sentry. Its constraints and anti-goals apply here unchanged.
 - **Redesign** (branch `feat/website-design-requirements-38be50`). It replaces the game cards with a dense results table (`components/results/results-table.tsx`), a phone list (`components/results/results-list.tsx`) and Russian UI labels. The price UI is added to those components, not to the old cards.
 
-Sequencing (designer's call): the implementation plan is written only once both are merged to `main`, against the real worker, schema, migration runner and caching code. Today the deployment work exists only as a spec, so a plan written now would be guesswork. The reachability spike below does not depend on either and can run as soon as the owner has a Modal account.
+Sequencing (designer's call): the work is split in two.
+
+- **Part 1, no dependencies:** shop adapters, game names, matching rules and a local dry run that reports how many games match. Plan: `docs/superpowers/plans/2026-11-26-shop-prices-collectors.md`.
+- **Part 2, after both branches are merged to `main`:** database tables, the daily Modal job, the review command and the UI. Its plan is written against the real worker, schema, migration runner and caching code; today the deployment work exists only as a spec, so a plan written now would be guesswork.
+
+The reachability spike below needs only a Modal account and can run at any time.
 
 ## Decisions made by the owner
 
