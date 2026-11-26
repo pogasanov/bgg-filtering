@@ -23,6 +23,11 @@ Hosting research (2026-11-26) picked the stack: the project is non-commercial, l
   - The weekly job refreshes details for the stored list through the XML API. Ratings, ranks and vote counts come back fresh with `stats=1`.
   - BGG credentials never go to the server. A game that newly enters the top N appears only after the next manual import.
 - **Prices:** out of scope for now.
+- **Audience: mostly Russia** (decided 2026-11-26). The stack stays as designed, and reachability from Russia is checked right after the first deployment.
+  - **Why it needs checking:** Russian ISPs block individual shared Vercel IPs, which can take a `*.vercel.app` or custom domain down for Russian visitors. Cloudflare is throttled to the first 16 KB in Russia, and Hetzner, DigitalOcean and OVH are reported throttled too.
+  - **Plan B if the site is unreliable from Russia:** a small Russian VPS with its own domain runs a caching reverse proxy (Caddy) in front of Vercel. That VPS can later also host the shop price scrapers that need a Russian IP.
+  - **BGG sync must run outside Russia:** `boardgamegeek.com`, including the XML API, sits behind Cloudflare. Thumbnails come from `cf.geekdo-images.com`, which is AWS CloudFront, not Cloudflare.
+  - **Regions stay in Frankfurt:** it is the closest region to Russia that both Vercel and Neon offer.
 - **Dedicated accounts:** every service (Vercel, Neon, Modal, Sentry) uses a separate personal account created for this project. Nothing may be deployed to, or authenticated with, any other account that happens to be logged in on the owner's machine.
   - The tooling must name the project's account explicitly instead of relying on whatever CLI login is active.
   - The Modal CLI on the owner's machine is currently logged in to a different profile.

@@ -126,6 +126,27 @@ pnpm worker:sentry-check
 
 The weekly run reports to the `bgg-weekly-sync` cron monitor and sends its run logs to Sentry Logs. A run where some BGG batches failed is recorded as `partial` and fails the Modal run. The successful batches are still published.
 
+### Access from Russia
+
+Most visitors are expected to come from Russia, where reachability is the main risk, not the region:
+
+- **Vercel:** Russian ISPs block individual shared Vercel IPs because of other sites on them. A `*.vercel.app` or custom domain can stop opening for Russian visitors without warning, and Vercel offers no fix on Hobby.
+- **Cloudflare:** throttled to the first 16 KB of each connection from Russia since June 2025. Hetzner, DigitalOcean and OVH are reported throttled too.
+- **BoardGameGeek:** `boardgamegeek.com`, including the XML API, is behind Cloudflare, so the weekly sync must run outside Russia, as it does on Modal. Thumbnails come from `cf.geekdo-images.com` on AWS CloudFront.
+
+**Check after every domain or IP change:**
+
+- open the site from a Russian home ISP and a Russian mobile network;
+- run an HTTP check from Russian nodes of a public checker such as check-host.net;
+- the page must load fully, with thumbnails.
+
+**Plan B, if the site is unreliable from Russia:**
+
+1. Rent a small Russian VPS (roughly 200–500 ₽ a month).
+2. Point the project's own domain at it.
+3. Run Caddy as a caching reverse proxy to the Vercel deployment, for example as in caddy-vercel-edge. Visitors then connect to a Russian IP, and cached pages ride out short Vercel outages.
+4. Later, use the same VPS for the shop price scrapers that need a Russian IP.
+
 ### Storage
 
 Neon Free allows 1 GB. The worker logs the database size after every run and warns in Sentry above 800 MiB.

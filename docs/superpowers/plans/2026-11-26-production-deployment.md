@@ -823,3 +823,11 @@ These steps need the owner's accounts. The executor pauses and asks the owner fo
   - Both deliberate errors appear in Sentry, tagged `component:site` and `component:worker`.
   - The worker's run logs appear under Logs.
   - The `bgg-weekly-sync` monitor shows one OK check-in.
+
+- [ ] **Step 7: Check reachability from Russia (owner chose "check first")**
+
+  - **Automated check from Russian vantage points:** with the owner's consent, request the production URL from Russian nodes of a public checker (e.g. check-host.net HTTP check). The owner opens the site from at least one home ISP and one mobile network in Russia.
+  - **Expected:**
+    - The page loads fully, not cut off after the first bytes.
+    - Thumbnails from `cf.geekdo-images.com` load.
+  - **If either fails or is intermittent:** stop and propose Plan B from the README ("Access from Russia"). Do not set it up without the owner's go-ahead: it needs a paid Russian VPS and a domain.
