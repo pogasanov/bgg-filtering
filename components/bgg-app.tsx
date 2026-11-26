@@ -1,410 +1,260 @@
 "use client";
 
-import { RefreshCw, Search, X } from "lucide-react";
-import { useEffect, useMemo, useState, useTransition } from "react";
-import type { CacheStatus } from "@/lib/cache/store";
-import { filterGames, gameTags } from "@/lib/filtering";
-import {
-  playerCounts,
-  type MatrixSelection,
-  type NormalizedGame,
-  type MatrixVerdict,
-  type SortKey,
-  matrixVerdicts,
-} from "@/lib/bgg/types";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ArrowDown, ArrowUp, Search, SlidersHorizontal } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { FilterRail } from "@/components/filters/filter-rail";
+import { BggAttribution } from "@/components/filters/rail-footer";
 import { PoweredByBgg } from "@/components/powered-by-bgg";
-import { cn } from "@/lib/utils";
-import { buildYearScale, closestYear, positionForYear, yearAtPosition } from "@/lib/year-scale";
+import { PollLegend } from "@/components/results/poll-legend";
+import { ResultsBar } from "@/components/results/results-bar";
+import { ResultsList } from "@/components/results/results-list";
+import { ResultsTable } from "@/components/results/results-table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useIsDesktop } from "@/components/use-is-desktop";
+import { activeFilterChips } from "@/lib/active-filters";
+import { sortKeys, type NormalizedGame, type SortKey } from "@/lib/bgg/types";
+import { fetchCacheState } from "@/lib/cache-client";
+import type { CacheStatus } from "@/lib/cache/store";
+import { defaultSortDir, filterGames, gameTags, tagCounts, type GameFilters } from "@/lib/filtering";
+import { formatNumber, sortLabels } from "@/lib/labels";
+import { isSearchShortcut } from "@/lib/shortcuts";
+import { defaultFilters, serializeFilters } from "@/lib/url-state";
+import { buildYearScale } from "@/lib/year-scale";
 
 type BggAppProps = {
   initialGames: NormalizedGame[];
   initialStatus: CacheStatus;
+  initialFilters: GameFilters;
 };
 
-const verdictLabels: Record<MatrixVerdict, string> = {
-  best: "BEST",
-  recommended: "RECOMMENDED",
-  "not-recommended": "NOT RECOMMENDED",
-  "not-playable": "NOT PLAYABLE",
-};
+const SEARCH_URL_DELAY_MS = 300;
 
-function matrixKey(selection: MatrixSelection) {
-  return `${selection.playerCount}:${selection.verdict}`;
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
 }
 
-function formatNumber(value: number | null | undefined, digits = 2) {
-  if (value === null || value === undefined) return "—";
-  return value.toLocaleString(undefined, { maximumFractionDigits: digits });
-}
-
-export function BggApp({ initialGames, initialStatus }: BggAppProps) {
+export function BggApp({ initialGames, initialStatus, initialFilters }: BggAppProps) {
   const [games, setGames] = useState(initialGames);
   const [status, setStatus] = useState(initialStatus);
-  const [search, setSearch] = useState("");
-  const [language, setLanguage] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [matrix, setMatrix] = useState<MatrixSelection[]>([]);
-  const [sort, setSort] = useState<SortKey>("rank");
-  const [minYear, setMinYear] = useState<number | null>(null);
-  const [maxYear, setMaxYear] = useState<number | null>(null);
+  const [filters, setFilters] = useState(initialFilters);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const writtenSearch = useRef(initialFilters.search);
+  const isDesktop = useIsDesktop();
 
-  const allTags = useMemo(
-    () => [...new Set(games.flatMap((game) => gameTags(game)))].sort(),
-    [games],
-  );
-  const allLanguages = useMemo(
-    () => [...new Set(games.flatMap((game) => game.languages))].sort(),
-    [games],
-  );
-  const yearScale = useMemo(
-    () => buildYearScale(games.map((game) => game.year)),
-    [games],
-  );
+  const sortDir = filters.sortDir ?? defaultSortDir(filters.sort);
+  const allTags = useMemo(() => [...new Set(games.flatMap((game) => gameTags(game)))].sort(), [games]);
+  const allLanguages = useMemo(() => [...new Set(games.flatMap((game) => game.languages))].sort(), [games]);
+  const yearScale = useMemo(() => buildYearScale(games.map((game) => game.year)), [games]);
+  const filteredGames = useMemo(() => filterGames(games, filters), [games, filters]);
+  const counts = useMemo(() => tagCounts(games, filters), [games, filters]);
+  const chips = useMemo(() => activeFilterChips(filters), [filters]);
+
+  // Keep the address bar in step with the filters so a reload or a copied link restores the view.
+  // Typing in the search box is written after a pause; everything else at once.
+  useEffect(() => {
+    const delay = filters.search === writtenSearch.current ? 0 : SEARCH_URL_DELAY_MS;
+    const timer = window.setTimeout(() => {
+      writtenSearch.current = filters.search;
+      const query = serializeFilters(filters);
+      const url = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+      if (url !== window.location.pathname + window.location.search) window.history.replaceState(null, "", url);
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [filters]);
 
   useEffect(() => {
-    setMinYear((current) => (current === null ? null : closestYear(yearScale, current)));
-    setMaxYear((current) => (current === null ? null : closestYear(yearScale, current)));
-  }, [yearScale]);
+    function onKeyDown(event: KeyboardEvent) {
+      if (!isSearchShortcut(event, isTypingTarget(event.target))) return;
+      event.preventDefault();
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
-  const sliderMin = 0;
-  const sliderMax = yearScale.length + 1;
-  const minSliderValue =
-    minYear === null ? sliderMin : (positionForYear(yearScale, minYear) ?? sliderMin);
-  const maxSliderValue =
-    maxYear === null ? sliderMax : (positionForYear(yearScale, maxYear) ?? sliderMax);
-  const yearRangeLabel = (minYear ?? "No min") + " \u2013 " + (maxYear ?? "No max");
-  const filteredGames = useMemo(
-    () => filterGames(games, { search, language, tags: selectedTags, matrix, sort, minYear, maxYear }),
-    [games, search, language, selectedTags, matrix, sort, minYear, maxYear],
-  );
-  const selectedMatrixKeys = new Set(matrix.map(matrixKey));
-
-  function toggleMatrixCell(selection: MatrixSelection) {
-    const key = matrixKey(selection);
-    setMatrix((current) =>
-      current.some((item) => matrixKey(item) === key)
-        ? current.filter((item) => matrixKey(item) !== key)
-        : [...current, selection],
-    );
+  function resetFilters() {
+    // Sorting is a view setting, not a filter: a reset keeps it.
+    setFilters((current) => ({ ...defaultFilters, sort: current.sort, sortDir: current.sortDir }));
   }
 
-  function toggleTag(tag: string) {
-    setSelectedTags((current) => (current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag]));
-  }
-
-  function updateYearRange([minimum, maximum]: number[]) {
-    setMinYear(minimum === sliderMin ? null : yearAtPosition(yearScale, minimum));
-    setMaxYear(maximum === sliderMax ? null : yearAtPosition(yearScale, maximum));
+  function sortBy(key: SortKey) {
+    setFilters((current) => {
+      const currentDir = current.sortDir ?? defaultSortDir(current.sort);
+      const nextDir = current.sort === key ? (currentDir === "asc" ? "desc" : "asc") : defaultSortDir(key);
+      return { ...current, sort: key, sortDir: nextDir };
+    });
   }
 
   async function refreshLocalState() {
-    const [gamesResponse, statusResponse] = await Promise.all([fetch("/api/games"), fetch("/api/status")]);
-    const gamesPayload = (await gamesResponse.json()) as { games: NormalizedGame[] };
-    const statusPayload = (await statusResponse.json()) as CacheStatus;
-    setGames(gamesPayload.games);
-    setStatus(statusPayload);
+    const next = await fetchCacheState();
+    setGames(next.games);
+    setStatus(next.status);
   }
 
   function sync() {
     setSyncError(null);
     startTransition(async () => {
-      const response = await fetch("/api/sync", { method: "POST" });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        setSyncError(payload.error ?? "Sync failed.");
+      try {
+        const response = await fetch("/api/sync", { method: "POST" });
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string };
+          setSyncError(payload.error ?? "Синхронизация не удалась.");
+        }
         await refreshLocalState();
-        return;
+      } catch {
+        // Keep showing the data already on screen; a more specific sync error, if any, stays.
+        setSyncError((current) => current ?? "Не удалось обновить данные: сервер не ответил.");
       }
-      await refreshLocalState();
     });
   }
 
+  const rail = (
+    <FilterRail
+      filters={filters}
+      onChange={setFilters}
+      allTags={allTags}
+      tagCounts={counts}
+      allLanguages={allLanguages}
+      yearScale={yearScale}
+      status={status}
+      syncing={isPending}
+      syncError={syncError}
+      onSync={sync}
+    />
+  );
+
+  const SortArrow = sortDir === "asc" ? ArrowUp : ArrowDown;
+
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-primary">BoardGameGeek local cache</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-normal sm:text-4xl">Player-count game finder</h1>
-          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-            Top BGG games cached in SQLite, with selectable recommendation cells by player count.
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Data source:{" "}
-            <a href="https://boardgamegeek.com" target="_blank" rel="noreferrer" className="font-medium underline">
-              BoardGameGeek
-            </a>
-            .
-          </p>
+    <div className="min-h-screen lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
+      <aside className="sticky top-0 hidden h-screen flex-col overflow-hidden border-r lg:flex">
+        <div className="flex items-baseline justify-between border-b px-4 py-3.5">
+          <span className="text-sm font-semibold">Player-count finder</span>
+          <span className="font-mono text-[11px] text-muted-foreground">{formatNumber(games.length, 0)} игр</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge>{status.gameCount} cached games</Badge>
-          <Button onClick={sync} disabled={isPending || status.syncLocked}>
-            <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
-            Sync BGG
-          </Button>
+        <div className="min-h-0 flex-1">{rail}</div>
+      </aside>
+
+      <main className="min-w-0">
+        <div className="flex gap-2 border-b px-4 py-2.5">
+          <div className="relative flex-1">
+            <Search
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              ref={searchRef}
+              type="search"
+              value={filters.search}
+              onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+              placeholder="Поиск по названию…"
+              aria-label="Поиск по названию"
+              aria-keyshortcuts="/ Control+K Meta+K"
+              className="h-9 pr-10 pl-9 text-[13px] shadow-none md:text-[13px]"
+            />
+            <kbd
+              className="pointer-events-none absolute top-1/2 right-2.5 hidden -translate-y-1/2 rounded border px-1.5 font-mono text-[11px] text-muted-foreground lg:block"
+              aria-hidden="true"
+            >
+              /
+            </kbd>
+          </div>
+
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                className="h-9 gap-1.5 shadow-none lg:hidden"
+                aria-label={chips.length > 0 ? `Фильтры, активных: ${chips.length}` : "Фильтры"}
+              >
+                <SlidersHorizontal className="size-4" aria-hidden="true" />
+                Фильтры
+                {chips.length > 0 ? <span className="font-mono text-xs">{chips.length}</span> : null}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[320px] gap-0 overflow-hidden p-0 sm:max-w-[320px]">
+              <SheetHeader className="border-b px-4 py-3.5">
+                <SheetTitle className="text-sm">Фильтры</SheetTitle>
+                <SheetDescription className="sr-only">Фильтры списка игр и синхронизация данных</SheetDescription>
+              </SheetHeader>
+              <div className="min-h-0 flex-1">{rail}</div>
+            </SheetContent>
+          </Sheet>
         </div>
-      </header>
 
-      <Separator />
-
-      {games.length === 0 ? (
-        <Alert>
-          <AlertTitle>SQLite cache is empty</AlertTitle>
-          <AlertDescription>
-            Add BGG_TOKEN to .env.local and place boardgames_ranks.csv in the project root, then use Sync BGG.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <section className="grid gap-4 lg:grid-cols-[20rem_1fr]">
-        <aside className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Filters</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="game-search">Search</Label>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="game-search"
-                    className="pl-9"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Game title"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="sort">Sort</Label>
-                <Select value={sort} onValueChange={(value) => setSort(value as SortKey)}>
-                  <SelectTrigger id="sort" className="w-full">
+        {games.length === 0 ? (
+          <div className="p-4">
+            <Alert>
+              <AlertTitle>Кэш пуст</AlertTitle>
+              <AlertDescription>
+                Добавьте BGG_TOKEN в .env.local, положите boardgames_ranks.csv в корень проекта и нажмите
+                «Синхронизировать».
+              </AlertDescription>
+            </Alert>
+          </div>
+        ) : (
+          <>
+            <ResultsBar
+              shown={filteredGames.length}
+              total={games.length}
+              chips={chips}
+              onChange={setFilters}
+              onReset={resetFilters}
+            >
+              <div className="flex items-center gap-1 lg:hidden">
+                <Select value={filters.sort} onValueChange={(value) => sortBy(value as SortKey)}>
+                  <SelectTrigger aria-label="Сортировка" size="sm" className="h-7 gap-1 text-xs shadow-none">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="rank">BGG rank</SelectItem>
-                    <SelectItem value="geekRating">Geek Rating</SelectItem>
-                    <SelectItem value="averageRating">Average rating</SelectItem>
-                    <SelectItem value="year">Year</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="language">Translation language</Label>
-                <Select
-                  value={language || "all"}
-                  onValueChange={(value) => setLanguage(value === "all" ? "" : value)}
-                >
-                  <SelectTrigger id="language" className="w-full">
-                    <SelectValue>{language || "Any language"}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any language</SelectItem>
-                    {allLanguages.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
+                    {sortKeys.map((key) => (
+                      <SelectItem key={key} value={key}>
+                        {sortLabels[key]}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-7 shadow-none"
+                  onClick={() => sortBy(filters.sort)}
+                  aria-label={sortDir === "asc" ? "По возрастанию, изменить порядок" : "По убыванию, изменить порядок"}
+                >
+                  <SortArrow className="size-3.5" aria-hidden="true" />
+                </Button>
               </div>
+            </ResultsBar>
 
-              <fieldset disabled={yearScale.length === 0} className="grid gap-3">
-                <legend className="sr-only">Year</legend>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium">Year</span>
-                  <output className="text-xs text-muted-foreground">{yearRangeLabel}</output>
-                </div>
-                <Slider
-                  aria-label="Publication year range"
-                  min={sliderMin}
-                  max={sliderMax}
-                  step={1}
-                  minStepsBetweenThumbs={1}
-                  value={[minSliderValue, maxSliderValue]}
-                  onValueChange={updateYearRange}
-                  disabled={yearScale.length === 0}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground" aria-hidden="true">
-                  <span>No min</span>
-                  <span>No max</span>
-                </div>
-              </fieldset>
+            {isDesktop ? (
+              <ResultsTable
+                games={filteredGames}
+                sort={filters.sort}
+                sortDir={sortDir}
+                onSort={sortBy}
+                onReset={resetFilters}
+              />
+            ) : (
+              <ResultsList games={filteredGames} onReset={resetFilters} />
+            )}
+            <PollLegend />
+          </>
+        )}
 
-              <div>
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">Categories + mechanics</p>
-                  {selectedTags.length > 0 ? (
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedTags([])}>
-                      <X className="size-3" />
-                      Clear
-                    </Button>
-                  ) : null}
-                </div>
-                <ScrollArea className="h-64 rounded-md border">
-                  <div className="space-y-1 p-2">
-                    {allTags.map((tag) => (
-                      <Label
-                        key={tag}
-                        className="flex items-center gap-2 rounded-md px-2 py-1.5 font-normal hover:bg-muted"
-                      >
-                        <Checkbox
-                          checked={selectedTags.includes(tag)}
-                          onCheckedChange={() => toggleTag(tag)}
-                        />
-                        <span>{tag}</span>
-                      </Label>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </CardContent>
-          </Card>
-        </aside>
-
-        <section className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Player recommendation matrix</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table className="min-w-[36rem]">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Players</TableHead>
-                      {matrixVerdicts.map((verdict) => (
-                        <TableHead key={verdict} className="text-center">
-                          {verdictLabels[verdict]}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {playerCounts.map((playerCount) => (
-                      <TableRow key={playerCount}>
-                        <TableHead className="bg-muted/50">{playerCount}</TableHead>
-                        {matrixVerdicts.map((verdict) => {
-                          const selected = selectedMatrixKeys.has(`${playerCount}:${verdict}`);
-                          return (
-                            <TableCell key={verdict} className="p-1">
-                              <Button
-                                type="button"
-                                variant={selected ? "default" : "ghost"}
-                                size="sm"
-                                className="w-full"
-                                onClick={() => toggleMatrixCell({ playerCount, verdict })}
-                              >
-                                {selected ? "Selected" : "Any"}
-                              </Button>
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              {matrix.length > 0 ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {matrix.map((selection) => (
-                    <Badge key={matrixKey(selection)}>
-                      {selection.playerCount} players: {verdictLabels[selection.verdict]}
-                    </Badge>
-                  ))}
-                  <Button variant="ghost" size="sm" onClick={() => setMatrix([])}>
-                    Clear matrix
-                  </Button>
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
-
-          {syncError ? (
-            <Alert variant="destructive">
-              <AlertTitle>Sync failed</AlertTitle>
-              <AlertDescription>{syncError}</AlertDescription>
-            </Alert>
-          ) : null}
-
-
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              Showing {filteredGames.length} of {games.length}
-            </span>
-            <span>{status.cacheUpdatedAt ? `Cache updated ${new Date(status.cacheUpdatedAt).toLocaleString()}` : "No cache timestamp"}</span>
-          </div>
-
-          <div className="grid gap-3">
-            {filteredGames.map((game) => (
-              <Card key={game.id}>
-                <CardContent className="grid gap-4 p-4 md:grid-cols-[1fr_auto]">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge>#{game.rank ?? "—"}</Badge>
-                      <a href={game.bggUrl} target="_blank" rel="noreferrer" className="text-lg font-semibold hover:underline">
-                        {game.title}
-                      </a>
-                      {game.year ? <span className="text-sm text-muted-foreground">({game.year})</span> : null}
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-1">
-                      {gameTags(game).slice(0, 8).map((tag) => (
-                        <Badge key={tag} variant="outline">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid min-w-40 grid-cols-2 gap-2 text-sm md:text-right">
-                    <span className="text-muted-foreground">Geek</span>
-                    <strong>{formatNumber(game.geekRating)}</strong>
-                    <span className="text-muted-foreground">Avg</span>
-                    <strong>{formatNumber(game.averageRating)}</strong>
-                    <span className="text-muted-foreground">Voters</span>
-                    <strong>{formatNumber(game.numVoters, 0)}</strong>
-                    <span className="text-muted-foreground">Players</span>
-                    <strong>
-                      {game.minPlayers ?? "—"}-{game.maxPlayers ?? "—"}
-                    </strong>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-      </section>
-      <Separator />
-
-      <footer className="mt-4 flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p>
-            Board game data is sourced from{" "}
-            <a href="https://boardgamegeek.com" target="_blank" rel="noreferrer" className="font-medium underline">
-              BoardGameGeek
-            </a>
-            . This app is not affiliated with or endorsed by BoardGameGeek.
-          </p>
-          <p className="mt-1">Non-commercial local browsing only. API data is not used for AI or LLM training.</p>
-        </div>
-        <PoweredByBgg />
-      </footer>
-    </main>
+        {/* The rail is hidden on phones, so the required BGG mark gets a place that is always visible. */}
+        <footer className="grid gap-2 border-t px-4 py-4 lg:hidden">
+          <PoweredByBgg />
+          <BggAttribution />
+        </footer>
+      </main>
+    </div>
   );
 }

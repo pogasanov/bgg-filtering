@@ -12,6 +12,7 @@ const game: NormalizedGame = {
   title: "Test Game",
   year: 2020,
   description: "A test game.",
+  thumbnailUrl: null,
   geekRating: 7.8,
   averageRating: 8.1,
   numVoters: 1000,
@@ -119,4 +120,26 @@ describe("SQLite cache store", () => {
     expect(second.started).toBe(false);
     expect(third.started).toBe(true);
   });
+});
+
+test("round-trips the thumbnail URL", () => {
+  const store = createCacheStore(join(mkdtempSync(join(tmpdir(), "bgg-")), "c.sqlite"));
+  store.upsertGames([{ ...game, thumbnailUrl: "https://cf.geekdo-images.com/a/t.jpg" }], "<xml/>");
+  expect(store.getGames()[0].thumbnailUrl).toBe("https://cf.geekdo-images.com/a/t.jpg");
+  store.close();
+});
+
+test("opens a cache file created before thumbnails existed", () => {
+  const path = join(mkdtempSync(join(tmpdir(), "bgg-")), "old.sqlite");
+  const old = new Database(path);
+  old.exec(`CREATE TABLE games (bgg_id INTEGER PRIMARY KEY, rank INTEGER, title TEXT NOT NULL, year INTEGER,
+    description TEXT NOT NULL, geek_rating REAL, average_rating REAL, num_voters INTEGER, min_players INTEGER,
+    max_players INTEGER, playing_time INTEGER, weight REAL, bgg_url TEXT NOT NULL, raw_xml TEXT NOT NULL, updated_at TEXT NOT NULL);
+    INSERT INTO games VALUES (7, 1, 'Old', 2000, '', 7, 7, 10, 2, 4, 60, 2, 'https://boardgamegeek.com/boardgame/7', '', '2026-01-01');`);
+  old.close();
+  const store = createCacheStore(path);
+  expect(store.getGames()[0]).toMatchObject({ id: 7, thumbnailUrl: null });
+  store.upsertGames([{ ...game, thumbnailUrl: "https://cf.geekdo-images.com/a/t.jpg" }], "<xml/>");
+  expect(store.getGames().find((g) => g.id === 1)?.thumbnailUrl).toBe("https://cf.geekdo-images.com/a/t.jpg");
+  store.close();
 });

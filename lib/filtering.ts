@@ -1,4 +1,4 @@
-import type { MatrixSelection, NormalizedGame, PlayerCount, SortKey } from "./bgg/types";
+import type { MatrixSelection, NormalizedGame, PlayerCount, SortDir, SortKey } from "./bgg/types";
 
 export type GameFilters = {
   search: string;
@@ -6,6 +6,7 @@ export type GameFilters = {
   tags: string[];
   matrix: MatrixSelection[];
   sort: SortKey;
+  sortDir?: SortDir;
   minYear: number | null;
   maxYear: number | null;
 };
@@ -14,17 +15,28 @@ export function gameTags(game: NormalizedGame): string[] {
   return [...new Set([...game.categories, ...game.mechanics])];
 }
 
-function isNotPlayable(game: NormalizedGame, playerCount: PlayerCount): boolean {
+export function isNotPlayable(game: NormalizedGame, playerCount: PlayerCount): boolean {
   const count = playerCount === "6+" ? 7 : Number(playerCount);
   if (game.minPlayers !== null && count < game.minPlayers) return true;
   if (game.maxPlayers !== null && count > game.maxPlayers) return true;
   return false;
 }
 
-function numericSortValue(game: NormalizedGame, sort: SortKey): number {
-  if (sort === "rank") return game.rank ?? Number.MAX_SAFE_INTEGER;
-  if (sort === "year") return -(game.year ?? 0);
-  return -(game[sort] ?? 0);
+export function defaultSortDir(sort: SortKey): SortDir {
+  return sort === "rank" ? "asc" : "desc";
+}
+
+function compareGames(sort: SortKey, dir: SortDir) {
+  const sign = dir === "asc" ? 1 : -1;
+  return (a: NormalizedGame, b: NormalizedGame) => {
+    const left = a[sort];
+    const right = b[sort];
+    // Missing values go last whichever way the column is sorted.
+    if (left === null && right === null) return 0;
+    if (left === null) return 1;
+    if (right === null) return -1;
+    return (left - right) * sign;
+  };
 }
 
 export function filterGames(games: NormalizedGame[], filters: GameFilters): NormalizedGame[] {
@@ -65,5 +77,14 @@ export function filterGames(games: NormalizedGame[], filters: GameFilters): Norm
 
       return true;
     })
-    .sort((a, b) => numericSortValue(a, filters.sort) - numericSortValue(b, filters.sort));
+    .sort(compareGames(filters.sort, filters.sortDir ?? defaultSortDir(filters.sort)));
+}
+
+/** Games per tag among those passing every filter except the tag selection itself. */
+export function tagCounts(games: NormalizedGame[], filters: GameFilters): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const game of filterGames(games, { ...filters, tags: [] })) {
+    for (const tag of gameTags(game)) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  }
+  return counts;
 }

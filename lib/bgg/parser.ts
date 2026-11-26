@@ -40,6 +40,12 @@ function stringOrEmpty(value: unknown): string {
 }
 
 
+function stringOrNull(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  return text === "" ? null : text;
+}
+
 function normalizePlayerCount(value: unknown): PlayerCount | null {
   const text = String(value ?? "").trim();
   if (text === "1" || text === "2" || text === "3" || text === "4" || text === "5" || text === "6") return text;
@@ -104,6 +110,7 @@ export function parseThingXml(xml: string): NormalizedGame[] {
       title: String(primaryName?.value ?? "Untitled"),
       year: numberOrNull(item.yearpublished?.value),
       description: stringOrEmpty(item.description),
+      thumbnailUrl: stringOrNull(item.thumbnail),
       geekRating: numberOrNull(ratings.bayesaverage?.value),
       averageRating: numberOrNull(ratings.average?.value),
       numVoters: numberOrNull(ratings.usersrated?.value),

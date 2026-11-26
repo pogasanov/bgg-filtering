@@ -31,6 +31,7 @@ export type NormalizedGame = {
   title: string;
   year: number | null;
   description: string;
+  thumbnailUrl: string | null;
   geekRating: number | null;
   averageRating: number | null;
   numVoters: number | null;
@@ -50,4 +51,6 @@ export type MatrixSelection = {
   verdict: MatrixVerdict;
 };
 
-export type SortKey = "rank" | "geekRating" | "averageRating" | "year";
+export const sortKeys = ["rank", "year", "playingTime", "weight", "geekRating", "averageRating", "numVoters"] as const;
+export type SortKey = (typeof sortKeys)[number];
+export type SortDir = "asc" | "desc";
