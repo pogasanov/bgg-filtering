@@ -1,3 +1,4 @@
+import { asc, eq, inArray, lt, max, notInArray, sql } from "drizzle-orm";
 import { emptyPlayerRecommendations } from "@/lib/bgg/parser";
 import {
   playerCounts,
@@ -7,14 +8,23 @@ import {
   type RecommendationVerdict,
   type TopRankItem,
 } from "@/lib/bgg/types";
-import type { Db } from "@/lib/db/client";
+import { resultRows, type Db } from "@/lib/db/client";
+import {
+  gameLanguages,
+  games,
+  gameTags,
+  playerRecommendations,
+  rankedGames,
+  syncLock,
+  syncRuns,
+} from "@/lib/db/schema";
 import type { Catalog, SyncRunResult } from "./types";
 
 export const STALE_LOCK_MS = 6 * 60 * 60 * 1000;
 
-/** Turns rows into one array per column, for `unnest` bulk inserts. */
-function columns<Row extends unknown[]>(rows: Row[], width: number): unknown[][] {
-  return Array.from({ length: width }, (_, index) => rows.map((row) => row[index]));
+/** `excluded.<column>` for every listed column, for an upsert that overwrites the stored row. */
+function excludedColumns(...columns: string[]) {
+  return Object.fromEntries(columns.map((column) => [column, sql.raw(`excluded.${column}`)]));
 }
 
 export async function replaceRankedGames(
@@ -23,133 +33,114 @@ export async function replaceRankedGames(
   importedAt: Date,
 ): Promise<{ ranked: number; removedGames: number }> {
   return db.transaction(async (tx) => {
-    await tx.query("DELETE FROM ranked_games");
+    await tx.delete(rankedGames);
     if (items.length > 0) {
-      const rows = items.map((item) => [
-        item.id,
-        item.rank,
-        item.title,
-        item.year,
-        item.geekRating,
-        item.averageRating,
-        item.numVoters,
-      ]);
-      await tx.query(
-        `INSERT INTO ranked_games (bgg_id, rank, title, year, geek_rating, average_rating, num_voters, imported_at)
-         SELECT t.*, $8::timestamptz
-         FROM unnest($1::int[], $2::int[], $3::text[], $4::int[], $5::float8[], $6::float8[], $7::int[]) AS t`,
-        [...columns(rows, 7), importedAt],
+      await tx.insert(rankedGames).values(
+        items.map((item) => ({
+          bggId: item.id,
+          rank: item.rank,
+          title: item.title,
+          year: item.year,
+          geekRating: item.geekRating,
+          averageRating: item.averageRating,
+          numVoters: item.numVoters,
+          importedAt,
+        })),
       );
     }
-    const removed = await tx.query(
-      "DELETE FROM games WHERE bgg_id NOT IN (SELECT bgg_id FROM ranked_games) RETURNING bgg_id",
-    );
+    const removed = await tx
+      .delete(games)
+      .where(notInArray(games.bggId, tx.select({ id: rankedGames.bggId }).from(rankedGames)))
+      .returning({ id: games.bggId });
     return { ranked: items.length, removedGames: removed.length };
   });
 }
 
 export async function getRankedGames(db: Db): Promise<TopRankItem[]> {
-  return db.query<TopRankItem>(
-    `SELECT bgg_id AS id, rank, title, year, geek_rating AS "geekRating",
-            average_rating AS "averageRating", num_voters AS "numVoters"
-     FROM ranked_games
-     ORDER BY rank`,
-  );
+  return db
+    .select({
+      id: rankedGames.bggId,
+      rank: rankedGames.rank,
+      title: rankedGames.title,
+      year: rankedGames.year,
+      geekRating: rankedGames.geekRating,
+      averageRating: rankedGames.averageRating,
+      numVoters: rankedGames.numVoters,
+    })
+    .from(rankedGames)
+    .orderBy(asc(rankedGames.rank));
 }
 
-export async function upsertGames(db: Db, games: NormalizedGame[], updatedAt: Date): Promise<void> {
-  if (games.length === 0) return;
-  const ids = games.map((game) => game.id);
-  const gameRows = games.map((game) => [
-    game.id,
-    game.rank,
-    game.title,
-    game.year,
-    game.geekRating,
-    game.averageRating,
-    game.numVoters,
-    game.minPlayers,
-    game.maxPlayers,
-    game.playingTime,
-    game.weight,
-    game.bggUrl,
-    game.thumbnailUrl,
+export async function upsertGames(db: Db, rows: NormalizedGame[], updatedAt: Date): Promise<void> {
+  if (rows.length === 0) return;
+  const ids = rows.map((game) => game.id);
+  const tagRows = rows.flatMap((game) => [
+    ...game.categories.map((name) => ({ gameId: game.id, kind: "category" as const, name })),
+    ...game.mechanics.map((name) => ({ gameId: game.id, kind: "mechanic" as const, name })),
   ]);
-  const tagRows = games.flatMap((game) => [
-    ...game.categories.map((name) => [game.id, "category", name]),
-    ...game.mechanics.map((name) => [game.id, "mechanic", name]),
-  ]);
-  const languageRows = games.flatMap((game) => game.languages.map((name) => [game.id, name]));
-  const recommendationRows = games.flatMap((game) =>
+  const languageRows = rows.flatMap((game) => game.languages.map((name) => ({ gameId: game.id, name })));
+  const recommendationRows = rows.flatMap((game) =>
     playerCounts.map((count) => {
       const recommendation = game.playerRecommendations[count];
-      return [
-        game.id,
-        count,
-        recommendation.best,
-        recommendation.recommended,
-        recommendation.notRecommended,
-        recommendation.verdict,
-      ];
+      return {
+        gameId: game.id,
+        playerCount: count,
+        bestVotes: recommendation.best,
+        recommendedVotes: recommendation.recommended,
+        notRecommendedVotes: recommendation.notRecommended,
+        verdict: recommendation.verdict,
+      };
     }),
   );
 
   await db.transaction(async (tx) => {
-    await tx.query(
-      `INSERT INTO games (
-         bgg_id, rank, title, year, geek_rating, average_rating, num_voters,
-         min_players, max_players, playing_time, weight, bgg_url, thumbnail_url, updated_at
-       )
-       SELECT t.*, $14::timestamptz
-       FROM unnest(
-         $1::int[], $2::int[], $3::text[], $4::int[], $5::float8[], $6::float8[], $7::int[],
-         $8::int[], $9::int[], $10::int[], $11::float8[], $12::text[], $13::text[]
-       ) AS t
-       ON CONFLICT (bgg_id) DO UPDATE SET
-         rank = excluded.rank,
-         title = excluded.title,
-         year = excluded.year,
-         geek_rating = excluded.geek_rating,
-         average_rating = excluded.average_rating,
-         num_voters = excluded.num_voters,
-         min_players = excluded.min_players,
-         max_players = excluded.max_players,
-         playing_time = excluded.playing_time,
-         weight = excluded.weight,
-         bgg_url = excluded.bgg_url,
-         thumbnail_url = excluded.thumbnail_url,
-         updated_at = excluded.updated_at`,
-      [...columns(gameRows, 13), updatedAt],
-    );
+    await tx
+      .insert(games)
+      .values(
+        rows.map((game) => ({
+          bggId: game.id,
+          rank: game.rank,
+          title: game.title,
+          year: game.year,
+          geekRating: game.geekRating,
+          averageRating: game.averageRating,
+          numVoters: game.numVoters,
+          minPlayers: game.minPlayers,
+          maxPlayers: game.maxPlayers,
+          playingTime: game.playingTime,
+          weight: game.weight,
+          bggUrl: game.bggUrl,
+          thumbnailUrl: game.thumbnailUrl,
+          updatedAt,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: games.bggId,
+        set: excludedColumns(
+          "rank",
+          "title",
+          "year",
+          "geek_rating",
+          "average_rating",
+          "num_voters",
+          "min_players",
+          "max_players",
+          "playing_time",
+          "weight",
+          "bgg_url",
+          "thumbnail_url",
+          "updated_at",
+        ),
+      });
 
-    await tx.query("DELETE FROM game_tags WHERE game_id = ANY($1::int[])", [ids]);
-    if (tagRows.length > 0) {
-      await tx.query(
-        `INSERT INTO game_tags (game_id, kind, name)
-         SELECT * FROM unnest($1::int[], $2::text[], $3::text[])
-         ON CONFLICT DO NOTHING`,
-        columns(tagRows, 3),
-      );
-    }
+    await tx.delete(gameTags).where(inArray(gameTags.gameId, ids));
+    if (tagRows.length > 0) await tx.insert(gameTags).values(tagRows).onConflictDoNothing();
 
-    await tx.query("DELETE FROM game_languages WHERE game_id = ANY($1::int[])", [ids]);
-    if (languageRows.length > 0) {
-      await tx.query(
-        `INSERT INTO game_languages (game_id, name)
-         SELECT * FROM unnest($1::int[], $2::text[])
-         ON CONFLICT DO NOTHING`,
-        columns(languageRows, 2),
-      );
-    }
+    await tx.delete(gameLanguages).where(inArray(gameLanguages.gameId, ids));
+    if (languageRows.length > 0) await tx.insert(gameLanguages).values(languageRows).onConflictDoNothing();
 
-    await tx.query("DELETE FROM player_recommendations WHERE game_id = ANY($1::int[])", [ids]);
-    await tx.query(
-      `INSERT INTO player_recommendations (
-         game_id, player_count, best_votes, recommended_votes, not_recommended_votes, verdict
-       )
-       SELECT * FROM unnest($1::int[], $2::text[], $3::int[], $4::int[], $5::int[], $6::text[])`,
-      columns(recommendationRows, 6),
-    );
+    await tx.delete(playerRecommendations).where(inArray(playerRecommendations.gameId, ids));
+    await tx.insert(playerRecommendations).values(recommendationRows);
   });
 }
 
@@ -159,28 +150,30 @@ export async function tryStartSync(
   staleAfterMs = STALE_LOCK_MS,
 ): Promise<{ started: true; syncRunId: number } | { started: false; syncRunId: null }> {
   return db.transaction(async (tx) => {
-    const stale = await tx.query<{ sync_run_id: number }>(
-      "DELETE FROM sync_lock WHERE locked_at < $1 RETURNING sync_run_id",
-      [new Date(now.getTime() - staleAfterMs)],
-    );
-    for (const { sync_run_id: staleRunId } of stale) {
-      await tx.query(
-        "UPDATE sync_runs SET status = 'error', error_message = 'stale lock released', finished_at = $2 WHERE id = $1",
-        [staleRunId, now],
-      );
+    const stale = await tx
+      .delete(syncLock)
+      .where(lt(syncLock.lockedAt, new Date(now.getTime() - staleAfterMs)))
+      .returning({ syncRunId: syncLock.syncRunId });
+    if (stale.length > 0) {
+      await tx
+        .update(syncRuns)
+        .set({ status: "error", errorMessage: "stale lock released", finishedAt: now })
+        .where(
+          inArray(
+            syncRuns.id,
+            stale.map((row) => row.syncRunId),
+          ),
+        );
     }
 
-    const [run] = await tx.query<{ id: number }>(
-      "INSERT INTO sync_runs (started_at, status) VALUES ($1, 'running') RETURNING id",
-      [now],
-    );
-    const locked = await tx.query(
-      `INSERT INTO sync_lock (id, sync_run_id, locked_at) VALUES (1, $1, $2)
-       ON CONFLICT (id) DO NOTHING RETURNING id`,
-      [run.id, now],
-    );
+    const [run] = await tx.insert(syncRuns).values({ startedAt: now, status: "running" }).returning({ id: syncRuns.id });
+    const locked = await tx
+      .insert(syncLock)
+      .values({ id: 1, syncRunId: run.id, lockedAt: now })
+      .onConflictDoNothing()
+      .returning({ id: syncLock.id });
     if (locked.length === 0) {
-      await tx.query("DELETE FROM sync_runs WHERE id = $1", [run.id]);
+      await tx.delete(syncRuns).where(eq(syncRuns.id, run.id));
       return { started: false as const, syncRunId: null };
     }
     return { started: true as const, syncRunId: run.id };
@@ -189,55 +182,72 @@ export async function tryStartSync(
 
 export async function finishSync(db: Db, syncRunId: number, result: SyncRunResult, now: Date): Promise<void> {
   await db.transaction(async (tx) => {
-    await tx.query(
-      `UPDATE sync_runs
-       SET finished_at = $2, status = $3, fetched_count = $4, failed_ids = $5::int[], error_message = $6
-       WHERE id = $1`,
-      [syncRunId, now, result.status, result.fetchedCount, result.failedIds, result.errorMessage],
-    );
-    await tx.query("DELETE FROM sync_lock WHERE sync_run_id = $1", [syncRunId]);
+    await tx
+      .update(syncRuns)
+      .set({
+        finishedAt: now,
+        status: result.status,
+        fetchedCount: result.fetchedCount,
+        failedIds: result.failedIds,
+        errorMessage: result.errorMessage,
+      })
+      .where(eq(syncRuns.id, syncRunId));
+    await tx.delete(syncLock).where(eq(syncLock.syncRunId, syncRunId));
   });
 }
 
-type GameRow = Omit<NormalizedGame, "categories" | "mechanics" | "languages" | "playerRecommendations">;
-
 export async function getCatalog(db: Db): Promise<Catalog> {
-  const gameRows = await db.query<GameRow>(
-    `SELECT g.bgg_id AS id, g.rank, g.title, g.year, g.geek_rating AS "geekRating",
-            g.average_rating AS "averageRating", g.num_voters AS "numVoters",
-            g.min_players AS "minPlayers", g.max_players AS "maxPlayers",
-            g.playing_time AS "playingTime", g.weight, g.bgg_url AS "bggUrl",
-            g.thumbnail_url AS "thumbnailUrl"
-     FROM games g
-     JOIN ranked_games r ON r.bgg_id = g.bgg_id
-     ORDER BY COALESCE(g.rank, r.rank), g.title`,
-  );
+  const gameRows = await db
+    .select({
+      id: games.bggId,
+      rank: games.rank,
+      title: games.title,
+      year: games.year,
+      thumbnailUrl: games.thumbnailUrl,
+      geekRating: games.geekRating,
+      averageRating: games.averageRating,
+      numVoters: games.numVoters,
+      minPlayers: games.minPlayers,
+      maxPlayers: games.maxPlayers,
+      playingTime: games.playingTime,
+      weight: games.weight,
+      bggUrl: games.bggUrl,
+    })
+    .from(games)
+    .innerJoin(rankedGames, eq(rankedGames.bggId, games.bggId))
+    .orderBy(sql`coalesce(${games.rank}, ${rankedGames.rank})`, asc(games.title));
   const ids = gameRows.map((game) => game.id);
 
-  const tagRows = await db.query<{ gameId: number; kind: "category" | "mechanic"; name: string }>(
-    `SELECT game_id AS "gameId", kind, name FROM game_tags WHERE game_id = ANY($1::int[]) ORDER BY name`,
-    [ids],
-  );
-  const languageRows = await db.query<{ gameId: number; name: string }>(
-    `SELECT game_id AS "gameId", name FROM game_languages WHERE game_id = ANY($1::int[]) ORDER BY name`,
-    [ids],
-  );
-  const recommendationRows = await db.query<{
-    gameId: number;
-    playerCount: PlayerCount;
-    best: number;
-    recommended: number;
-    notRecommended: number;
-    verdict: RecommendationVerdict;
-  }>(
-    `SELECT game_id AS "gameId", player_count AS "playerCount", best_votes AS best,
-            recommended_votes AS recommended, not_recommended_votes AS "notRecommended", verdict
-     FROM player_recommendations WHERE game_id = ANY($1::int[])`,
-    [ids],
-  );
-  const [status] = await db.query<{ updatedAt: Date | null }>(
-    `SELECT max(finished_at) AS "updatedAt" FROM sync_runs WHERE status IN ('success', 'partial')`,
-  );
+  const [tagRows, languageRows, recommendationRows] =
+    ids.length === 0
+      ? [[], [], []]
+      : await Promise.all([
+          db
+            .select({ gameId: gameTags.gameId, kind: gameTags.kind, name: gameTags.name })
+            .from(gameTags)
+            .where(inArray(gameTags.gameId, ids))
+            .orderBy(asc(gameTags.name)),
+          db
+            .select({ gameId: gameLanguages.gameId, name: gameLanguages.name })
+            .from(gameLanguages)
+            .where(inArray(gameLanguages.gameId, ids))
+            .orderBy(asc(gameLanguages.name)),
+          db
+            .select({
+              gameId: playerRecommendations.gameId,
+              playerCount: playerRecommendations.playerCount,
+              best: playerRecommendations.bestVotes,
+              recommended: playerRecommendations.recommendedVotes,
+              notRecommended: playerRecommendations.notRecommendedVotes,
+              verdict: playerRecommendations.verdict,
+            })
+            .from(playerRecommendations)
+            .where(inArray(playerRecommendations.gameId, ids)),
+        ]);
+  const [status] = await db
+    .select({ updatedAt: max(syncRuns.finishedAt) })
+    .from(syncRuns)
+    .where(inArray(syncRuns.status, ["success", "partial"]));
 
   const tagsByGame = new Map<number, { categories: string[]; mechanics: string[] }>();
   for (const row of tagRows) {
@@ -252,16 +262,16 @@ export async function getCatalog(db: Db): Promise<Catalog> {
   const recommendationsByGame = new Map<number, PlayerRecommendations>();
   for (const row of recommendationRows) {
     const recommendations = recommendationsByGame.get(row.gameId) ?? emptyPlayerRecommendations();
-    recommendations[row.playerCount] = {
+    recommendations[row.playerCount as PlayerCount] = {
       best: row.best,
       recommended: row.recommended,
       notRecommended: row.notRecommended,
-      verdict: row.verdict,
+      verdict: row.verdict as RecommendationVerdict,
     };
     recommendationsByGame.set(row.gameId, recommendations);
   }
 
-  const games = gameRows.map((game) => ({
+  const catalogGames = gameRows.map((game) => ({
     ...game,
     categories: tagsByGame.get(game.id)?.categories ?? [],
     mechanics: tagsByGame.get(game.id)?.mechanics ?? [],
@@ -270,17 +280,18 @@ export async function getCatalog(db: Db): Promise<Catalog> {
   }));
 
   return {
-    games,
+    games: catalogGames,
     status: {
-      gameCount: games.length,
+      gameCount: catalogGames.length,
       updatedAt: status?.updatedAt ? new Date(status.updatedAt).toISOString() : null,
     },
   };
 }
 
 export async function getDatabaseSizeBytes(db: Db): Promise<number> {
-  const [row] = await db.query<{ bytes: number }>(
-    "SELECT pg_database_size(current_database())::float8 AS bytes",
+  const [row] = resultRows<{ bytes: number }>(
+    await db.execute(sql`select pg_database_size(current_database())::float8 as bytes`),
   );
   return Number(row.bytes);
 }
+

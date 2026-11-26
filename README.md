@@ -12,13 +12,24 @@ Filters live in a rail on the left with the player-count × verdict matrix on to
 ## Local setup
 
 1. Install dependencies: `pnpm install`
-2. Copy `.env.example` to `.env.local` and fill in at least `DATABASE_URL` (a Neon branch or any Postgres) and `BGG_TOKEN`.
+2. Copy `.env.example` to `.env.local` and fill in at least `DATABASE_URL` (a Neon branch or any Postgres) and `BGG_TOKEN`. With the Neon CLI linked (`.neon`), `neon env pull` writes `DATABASE_URL` and `DATABASE_URL_UNPOOLED` for you.
 3. Create the schema: `pnpm db:migrate`
 4. Import the ranked list from a downloaded BGG ranks dump: `pnpm bgg:import-ranks ./boardgames_ranks.csv`
 5. Fetch game details once: `pnpm worker:local`. This needs `REVALIDATE_URL` and `REVALIDATE_SECRET` too. Point them at `http://localhost:3000/api/revalidate` while `pnpm dev` runs.
 6. Start the site: `pnpm dev`
 
 Without `DATABASE_URL`, `pnpm dev` and `pnpm build` render an empty catalog.
+
+### Database schema
+
+The schema is Drizzle ORM code in `lib/db/schema.ts`, and the SQL migrations generated from it live in `drizzle/`. To change the schema:
+
+1. Edit `lib/db/schema.ts`.
+2. Generate a migration: `pnpm db:generate`.
+3. Review and commit the new file in `drizzle/`.
+4. Apply it: `pnpm db:migrate`.
+
+Migrations run over the direct connection `DATABASE_URL_UNPOOLED` when it is set, as Neon recommends for schema changes. The site and the worker use the pooled `DATABASE_URL` through node-postgres. On Vercel the pool is attached with `attachDatabasePool` from `@vercel/functions`.
 
 ## Deployment
 
@@ -32,7 +43,7 @@ Use **dedicated personal accounts created for this project** on Neon, Vercel, Mo
 ### 1. Neon
 
 1. In the project's Neon account, create a project in **Frankfurt (AWS eu-central-1)**.
-2. Copy the **pooled** connection string. Put it in `.env.local` as `DATABASE_URL`.
+2. Link it and pull its connection strings into `.env.local`: `neon init` (see `neon.ts`), then `neon deploy`. This writes the pooled `DATABASE_URL` and the direct `DATABASE_URL_UNPOOLED`. The link lives in the git-ignored `.neon` file.
 3. Do **not** install the Neon integration in Vercel. It creates a database branch per preview deployment, and every branch counts against the 1 GB Free limit.
 4. Run migrations and import the ranked list:
 
@@ -169,7 +180,8 @@ Neon Free allows 1 GB. The worker logs the database size after every run and war
 |---|---|
 | `pnpm dev` / `pnpm build` | Run or build the site |
 | `pnpm test` / `pnpm typecheck` | Tests (Postgres-backed tests use in-process PGlite) and TypeScript checks |
-| `pnpm db:migrate` | Apply `db/migrations/*.sql` to `DATABASE_URL` |
+| `pnpm db:generate` | Generate a Drizzle migration in `drizzle/` from `lib/db/schema.ts` |
+| `pnpm db:migrate` | Apply pending Drizzle migrations (direct connection `DATABASE_URL_UNPOOLED`, else `DATABASE_URL`) |
 | `pnpm bgg:import-ranks <csv> [--limit N]` | Replace the stored ranked list (default top 500) |
 | `pnpm worker:local` | Run the weekly sync locally with `.env.local` |
 | `pnpm worker:build` | Bundle the worker to `worker/dist/sync.cjs` |

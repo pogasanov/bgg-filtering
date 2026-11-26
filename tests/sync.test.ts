@@ -1,9 +1,10 @@
+import { sql } from "drizzle-orm";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { getCatalog, replaceRankedGames, tryStartSync } from "@/lib/catalog/store";
 import type { Db } from "@/lib/db/client";
 import { runSync, withRankFallback } from "@/lib/sync";
 import { makeGame, makeRanked, spyLog } from "./helpers/fixtures";
-import { createTestDb } from "./helpers/test-db";
+import { createTestDb, rows } from "./helpers/test-db";
 
 const NOW = new Date("2026-11-30T03:00:00.000Z");
 const noSleep = async () => {};
@@ -23,7 +24,7 @@ afterEach(async () => {
 });
 
 async function lockRows(db: Db) {
-  return db.query("select * from sync_lock");
+  return rows(db, sql`select * from sync_lock`);
 }
 
 describe("runSync", () => {
@@ -75,7 +76,7 @@ describe("runSync", () => {
     const outcome = await runSync({ db, fetchBatch, log: spyLog(), sleep: noSleep, now: () => NOW });
 
     expect(outcome.status).toBe("error");
-    const [run] = await db.query<{ status: string }>("select status from sync_runs where id = $1", [outcome.syncRunId]);
+    const [run] = await rows<{ status: string }>(db, sql`select status from sync_runs where id = ${outcome.syncRunId}`);
     expect(run.status).toBe("error");
     expect(await lockRows(db)).toEqual([]);
   });
@@ -87,9 +88,10 @@ describe("runSync", () => {
     const outcome = await runSync({ db, fetchBatch, log: spyLog(), sleep: noSleep, now: () => NOW });
 
     expect(outcome.status).toBe("error");
-    const [run] = await db.query<{ error_message: string }>("select error_message from sync_runs where id = $1", [
-      outcome.syncRunId,
-    ]);
+    const [run] = await rows<{ error_message: string }>(
+      db,
+      sql`select error_message from sync_runs where id = ${outcome.syncRunId}`,
+    );
     expect(run.error_message).toBe("No ranked games imported");
     expect(fetchBatch).not.toHaveBeenCalled();
   });
