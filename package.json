@@ -15,6 +15,7 @@
     "better-sqlite3": "latest",
     "class-variance-authority": "latest",
     "clsx": "latest",
+    "cn": "^0.5.2",
     "fast-xml-parser": "latest",
     "lucide-react": "latest",
     "next": "latest",
