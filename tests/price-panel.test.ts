@@ -3,12 +3,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
 import { PriceChanges } from "@/components/prices/price-changes";
 import { PricePanelView } from "@/components/prices/price-panel";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { ChangeRow } from "@/lib/prices/changes";
 import type { GameHistory } from "@/lib/prices/history";
 import { offer, sampleHistory } from "./price-fixtures";
 
 function render<P extends object>(component: ComponentType<P>, props: P) {
-  return renderToStaticMarkup(createElement(component, props));
+  return renderToStaticMarkup(createElement(TooltipProvider, null, createElement(component, props)));
 }
 
 const BGG = "https://boardgamegeek.com/boardgame/1";

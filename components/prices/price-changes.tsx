@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PersonalPrice } from "@/components/results/personal-price";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ChangeRow } from "@/lib/prices/changes";
@@ -80,7 +81,10 @@ export function PriceChanges({ rows }: { rows: ChangeRow[] }) {
                   </span>
                 </TableCell>
                 <TableCell className={cn(cellClass, "text-right font-mono tabular-nums")}>
-                  {row.price === null ? <span className="font-sans text-xs">нет цены</span> : formatPrice(row.price)}
+                  <span className="inline-flex flex-col items-end leading-tight">
+                    {row.price === null ? <span className="font-sans text-xs">нет цены</span> : formatPrice(row.price)}
+                    {row.current && row.available && !row.stale ? <PersonalPrice shop={row.shop} price={row.price} /> : null}
+                  </span>
                 </TableCell>
                 <TableCell className={cn(cellClass, "text-right font-mono tabular-nums")}>
                   <Change row={row} />

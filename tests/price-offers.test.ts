@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { bestOffer, formatPrice, isStale, lowestKnownOffer, salePercent, shopNames } from "@/lib/prices/offers";
+import { bestOffer, discountedPrice, formatPrice, isStale, lowestKnownOffer, salePercent, shopNames } from "@/lib/prices/offers";
 import { NOW, offer } from "./price-fixtures";
 
 test("staleness is three days from the last successful check", () => {
@@ -38,4 +38,11 @@ test("price formatting and shop names", () => {
   expect(formatPrice(690)).toBe("690 ₽");
   expect(formatPrice(null)).toBe("—");
   expect(shopNames).toEqual({ crowdgames: "CrowdGames", lavkaigr: "Лавка игр", gaga: "GaGa" });
+});
+
+test("personal discount: 15% at CrowdGames, 10% at Lavka, none elsewhere", () => {
+  expect(discountedPrice("crowdgames", 2000)).toBe(1700);
+  expect(discountedPrice("lavkaigr", 1390)).toBe(1251);
+  expect(discountedPrice("gaga", 2000)).toBeNull();
+  expect(discountedPrice("lavkaigr", null)).toBeNull();
 });

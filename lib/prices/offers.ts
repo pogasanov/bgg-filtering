@@ -29,6 +29,22 @@ export const shopNames: Record<ShopCode, string> = {
   gaga: "GaGa",
 };
 
+/**
+ * Personal discounts the owner has in some shops, in percent. Display only: stored prices,
+ * sorting and the best-offer choice all use the shop's own price.
+ */
+export const personalDiscounts: Partial<Record<ShopCode, number>> = {
+  crowdgames: 15,
+  lavkaigr: 10,
+};
+
+/** The price after the personal discount in that shop, in whole rubles; null when there is none. */
+export function discountedPrice(shop: ShopCode, price: number | null): number | null {
+  const percent = personalDiscounts[shop];
+  if (price === null || percent === undefined) return null;
+  return Math.round(price * (1 - percent / 100));
+}
+
 export function isStale(checkedAt: string | null, now: Date): boolean {
   if (checkedAt === null) return true;
   return now.getTime() - new Date(checkedAt).getTime() > STALE_AFTER_DAYS * DAY_MS;

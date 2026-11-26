@@ -140,6 +140,9 @@ test("price cell: best in stock, sale, out-of-stock fallback, nothing", () => {
   expect(out).toContain("2\u00a0100\u00a0₽");
   expect(out).toContain("нет в наличии");
   expect(out).toContain("text-muted-foreground");
+  expect(render(PriceCell, { offers: [offer({ shop: "crowdgames", price: 2000 })] })).toContain("1\u00a0700\u00a0₽");
+  expect(render(PriceCell, { offers: [offer({ shop: "gaga", price: 2000 })] })).not.toContain("с мпс");
+  expect(render(PriceCell, { offers: [offer({ shop: "crowdgames", price: 2000, available: false })] })).not.toContain("с мпс");
   expect(render(PriceCell, { offers: [] })).toContain("—");
   expect(render(PriceCell, { offers: [offer({ stale: true })] })).toContain("—");
 });
