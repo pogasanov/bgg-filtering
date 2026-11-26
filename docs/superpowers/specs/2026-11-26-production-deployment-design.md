@@ -23,6 +23,9 @@ Hosting research (2026-11-26) picked the stack: the project is non-commercial, l
   - The weekly job refreshes details for the stored list through the XML API. Ratings, ranks and vote counts come back fresh with `stats=1`.
   - BGG credentials never go to the server. A game that newly enters the top N appears only after the next manual import.
 - **Prices:** out of scope for now.
+- **Dedicated accounts:** every service (Vercel, Neon, Modal, Sentry) uses a separate personal account created for this project. Nothing may be deployed to, or authenticated with, any other account that happens to be logged in on the owner's machine.
+  - The tooling must name the project's account explicitly instead of relying on whatever CLI login is active.
+  - The Modal CLI on the owner's machine is currently logged in to a different profile.
 
 ## Decisions made by the designer (owner may override)
 
@@ -141,12 +144,17 @@ These were not discussed with the owner.
 
 ## Owner's manual steps (not code)
 
-1. Create the Neon project in Frankfurt and copy the pooled connection string.
-2. Log in to the Vercel CLI (the stored token is expired), create the project from the repository, set the function region to `fra1`, and add the environment variables.
-3. In Modal, add a payment method, set the workspace spend limit, and create the secret.
-4. Create the Sentry project(s) and copy the DSN.
-5. Check that the BGG XML API application registration covers a public non-commercial website. The README currently describes local browsing only. Re-register if needed.
-6. Download `boardgames_ranks.csv`, run migrations and the import, then trigger the first sync with `modal run`.
+1. Create new personal accounts for this project on Neon, Vercel, Modal and Sentry.
+2. Create the Neon project in Frankfurt and copy the pooled connection string.
+3. Create a Vercel access token in the project's Vercel account. Link and deploy with that token, so the CLI's global login is never used. Set the function region to `fra1` and add the environment variables.
+4. In the project's Modal account:
+   - add a payment method;
+   - set the workspace spend limit;
+   - create a dedicated CLI profile (`modal token new --profile bgg`);
+   - create the secret under that profile.
+5. Create the Sentry organization and project in the project's Sentry account, and copy the DSN.
+6. Check that the BGG XML API application registration covers a public non-commercial website. The README currently describes local browsing only. Re-register if needed.
+7. Download `boardgames_ranks.csv`, run migrations and the import, then trigger the first sync with `modal run`.
 
 The builder should provide exact commands for each step in the README.
 

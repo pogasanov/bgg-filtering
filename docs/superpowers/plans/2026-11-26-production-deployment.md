@@ -28,6 +28,10 @@
 - **Which games the site shows:** games that are in `ranked_games` **and** have a row in `games`.
 - **Sync run statuses:** `running`, `success`, `partial`, `error`. "Updated" on the site means `finished_at` of the latest `success` or `partial` run.
 - **Weekly schedule:** cron `0 3 * * 1`, UTC. The Sentry monitor slug is `bgg-weekly-sync`.
+- **Dedicated accounts:** every service uses this project's own personal account. Tooling never relies on the active global CLI login.
+  - Modal commands run with `MODAL_PROFILE=bgg`.
+  - Vercel commands go through `pnpm vc …`, which requires `VERCEL_TOKEN` and passes `--token`.
+  - Sentry and Neon credentials come only from env.
 - **Sentry quotas:** `tracesSampleRate: 0`, no session replay, `sendDefaultPii: false`. The free plan allows 5k errors, 5 GB logs and 1 cron monitor.
 - **Dependency versions:** pinned exactly (no `latest`, `^` or `~`). pnpm is the only package manager.
 - **Language:** UI copy stays in English.
@@ -696,8 +700,9 @@ Deleted:
   - Scripts:
     - `"worker:local": "tsx --env-file-if-exists=.env.local worker/sync-entry.ts"`
     - `"worker:build": "esbuild worker/sync-entry.ts --bundle --platform=node --target=node22 --format=cjs --outfile=worker/dist/sync.cjs"`
-    - `"worker:deploy": "pnpm worker:build && modal deploy worker/modal_app.py"`
-    - `"worker:run": "pnpm worker:build && modal run worker/modal_app.py"`
+    - `"worker:deploy": "pnpm worker:build && MODAL_PROFILE=bgg modal deploy worker/modal_app.py"`
+    - `"worker:run": "pnpm worker:build && MODAL_PROFILE=bgg modal run worker/modal_app.py"`
+    - `"worker:sentry-check": "pnpm worker:build && MODAL_PROFILE=bgg modal run worker/modal_app.py --sentry-check"`
   - Add `worker/dist/` to `.gitignore`.
 
 - [ ] **Step 8: Verify the bundle**
@@ -715,17 +720,37 @@ Deleted:
   git commit -m "feat: run weekly bgg sync on modal"
   ```
 
-### Task 10: Configuration and README runbook
+### Task 10: Account-safe Vercel wrapper, configuration and README runbook
 
 **Files:**
+- Create: `lib/deploy/vercel-args.ts`
+- Create: `scripts/vercel.ts`
+- Test: `tests/vercel-args.test.ts`
 - Modify: `.env.example`
 - Modify: `README.md`
+- Modify: `package.json` (`vc` script)
 
-**Interfaces:** none.
+**Interfaces:**
+- Produces: `export function buildVercelArgs(args: string[], token: string | undefined): string[];`
+  - Throws `VERCEL_TOKEN is not set` when the token is empty.
+  - Throws `Pass the token through VERCEL_TOKEN, not --token` when `args` already contains `--token`.
+  - Otherwise returns `[...args, "--token", token]`.
+
+- [ ] **Step 0: Test and implement the wrapper**
+
+  - **Tests in `tests/vercel-args.test.ts`:**
+    - `"requires VERCEL_TOKEN"`
+    - `"appends the token"`: `buildVercelArgs(["deploy","--prod"], "t")` equals `["deploy","--prod","--token","t"]`.
+    - `"rejects an explicit --token"`
+  - Run them and watch them fail. Then implement:
+    - `scripts/vercel.ts` spawns `vercel` with `buildVercelArgs(process.argv.slice(2), process.env.VERCEL_TOKEN)` (`stdio: "inherit"`) and exits with its code.
+    - Package entry: `"vc": "tsx --env-file-if-exists=.env.local scripts/vercel.ts"`.
+  - Run: `pnpm vitest run tests/vercel-args.test.ts`
+    Expected: PASS.
 
 - [ ] **Step 1: Rewrite `.env.example`**
 
-  It lists `DATABASE_URL`, `BGG_TOKEN`, `REVALIDATE_SECRET`, `REVALIDATE_URL`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT` and `SENTRY_AUTH_TOKEN`, each with a one-line comment saying where it is used (site, worker or local).
+  It lists `DATABASE_URL`, `BGG_TOKEN`, `REVALIDATE_SECRET`, `REVALIDATE_URL`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` and `VERCEL_TOKEN`. Each has a one-line comment saying where it is used (site, worker or local), and `VERCEL_TOKEN` is marked "local only, from this project's Vercel account".
 
 - [ ] **Step 2: Rewrite `README.md`**
 
@@ -733,14 +758,15 @@ Deleted:
   - **Local setup:** `pnpm install`, `.env.local`, `pnpm db:migrate`, `pnpm bgg:import-ranks ./boardgames_ranks.csv`, `pnpm worker:local`, `pnpm dev`.
   - **Deployment, in the order of the spec's "Owner's manual steps"** with exact commands:
     - Neon: Frankfurt, pooled URL. Do not install the Vercel integration.
-    - `vercel login`, `vercel link`, `vercel env add …` for each site variable, `vercel --prod`.
-    - `modal secret create bgg-sync DATABASE_URL=… BGG_TOKEN=… REVALIDATE_URL=https://<project>.vercel.app/api/revalidate REVALIDATE_SECRET=… SENTRY_DSN=…`, `pnpm worker:deploy`, `pnpm worker:run`.
+    - Starts with **Accounts**: create dedicated personal accounts for this project on Neon, Vercel, Modal and Sentry, and never use other logged-in accounts.
+    - Vercel: create a token in the project's Vercel account, put it in `.env.local` as `VERCEL_TOKEN`, then `pnpm vc link`, `pnpm vc env add …` for each site variable, `pnpm vc deploy --prod`. No `vercel login`.
+    - Modal: `modal token new --profile bgg` (opens the browser for the project's Modal account), then `MODAL_PROFILE=bgg modal secret create bgg-sync DATABASE_URL=… BGG_TOKEN=… REVALIDATE_URL=https://<project>.vercel.app/api/revalidate REVALIDATE_SECRET=… SENTRY_DSN=…`, `pnpm worker:deploy`, `pnpm worker:run`.
     - Modal workspace spend limit.
     - Sentry project and DSN.
   - **Updating the ranked list:** monthly import, then `pnpm worker:run` to publish immediately.
   - **Verifying Sentry:**
     - `curl -H "Authorization: Bearer $REVALIDATE_SECRET" https://<project>.vercel.app/api/sentry-check`
-    - `modal run worker/modal_app.py --sentry-check`
+    - `pnpm worker:sentry-check`
   - **BGG API compliance:** update the existing list.
     - The site is public and non-commercial.
     - Refresh runs weekly from a scheduled job, with no public trigger.
@@ -758,7 +784,7 @@ Deleted:
 - [ ] **Step 4: Commit**
 
   ```bash
-  git add .env.example README.md
+  git add .env.example README.md lib/deploy scripts/vercel.ts tests/vercel-args.test.ts package.json
   git commit -m "docs: document deployment and operations"
   ```
 
@@ -777,7 +803,7 @@ These steps need the owner's accounts. The executor pauses and asks the owner fo
 
 - [ ] **Step 3: Deploy the site**
 
-  Run: `vercel --prod`
+  Run: `pnpm vc deploy --prod`
   Expected: it deploys. The production URL shows `No games yet`.
 
 - [ ] **Step 4: Deploy the worker and run it once**
