@@ -46,6 +46,8 @@ describe("shadcn foundation", () => {
     expect(css).toContain("@media (prefers-color-scheme: dark)");
     expect(css).toContain("--color-poll-best: var(--poll-best)");
     expect(css).toContain("--color-poll-rec: var(--poll-rec)");
+    expect(css).toContain("--color-poll-no: var(--poll-no)");
+    expect(css).toContain("--color-meter: var(--meter)");
     expect(css).toContain("--font-sans: var(--font-geist-sans)");
     expect(layout).toContain('lang="ru"');
     expect(layout).toContain("geist/font");

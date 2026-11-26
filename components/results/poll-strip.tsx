@@ -7,13 +7,13 @@ import { cn } from "@/lib/utils";
 
 const cellBase = "flex size-4 items-center justify-center rounded-[3px] font-mono text-[9px] leading-none";
 
-// Fill, outline and dot differ in shape as well as colour, so the strip reads without colour vision.
+// Solid fill, outlined fill and dot differ in shape as well as colour, so the strip reads without colour vision.
 function cellClass(cell: PollCell) {
   return cn(
     cellBase,
     cell.verdict === "best" && "bg-poll-best text-poll-best-foreground",
     cell.verdict === "recommended" && "bg-poll-rec text-poll-rec-foreground",
-    cell.verdict === "not-recommended" && "border text-muted-foreground",
+    cell.verdict === "not-recommended" && "bg-poll-no text-poll-no-foreground ring-1 ring-poll-no-border ring-inset",
     cell.verdict === "unknown" && "text-muted-foreground/60",
     !cell.inRange && cell.verdict !== "unknown" && "opacity-40",
   );

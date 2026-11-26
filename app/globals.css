@@ -30,6 +30,10 @@
   --color-poll-best-foreground: var(--poll-best-foreground);
   --color-poll-rec: var(--poll-rec);
   --color-poll-rec-foreground: var(--poll-rec-foreground);
+  --color-poll-no: var(--poll-no);
+  --color-poll-no-foreground: var(--poll-no-foreground);
+  --color-poll-no-border: var(--poll-no-border);
+  --color-meter: var(--meter);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -57,11 +61,15 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  /* The only hues in the interface besides destructive: the two poll verdicts. */
+  /* Colour belongs to the data, not the chrome: the three poll verdicts and the complexity meter. */
   --poll-best: #15803d;
   --poll-best-foreground: #ffffff;
   --poll-rec: #86efac;
   --poll-rec-foreground: #14532d;
+  --poll-no: #fee2e2;
+  --poll-no-foreground: #991b1b;
+  --poll-no-border: #fca5a5;
+  --meter: #f59e0b;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -88,6 +96,10 @@
     --poll-best-foreground: #052e16;
     --poll-rec: #166534;
     --poll-rec-foreground: #bbf7d0;
+    --poll-no: #3b1212;
+    --poll-no-foreground: #fecaca;
+    --poll-no-border: #7f1d1d;
+    --meter: #fbbf24;
   }
 }
 

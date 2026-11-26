@@ -79,3 +79,27 @@ test("on phones the strip lets taps through to the row link; on desktop it stays
   const table = render(ResultsTable, { games: [pollGame], sort: "rank", sortDir: "asc", onSort() {}, onReset() {} });
   expect(table).not.toMatch(/<span(?=[^>]*role="img")(?=[^>]*pointer-events-none)/);
 });
+
+test("complexity is drawn as a five-step meter next to the number", () => {
+  const html = render(ResultsTable, { games: [{ ...pollGame, weight: 3.2 }], sort: "rank", sortDir: "asc", onSort() {}, onReset() {} });
+  expect(html.match(/data-meter-bar="/g)).toHaveLength(5);
+  expect(html.match(/data-meter-bar="on"/g)).toHaveLength(3);
+  expect(html).toContain("3,2");
+});
+
+test("a game without a complexity value gets a dash and no meter", () => {
+  const html = render(ResultsTable, { games: [{ ...pollGame, weight: null }], sort: "rank", sortDir: "asc", onSort() {}, onReset() {} });
+  expect(html).not.toContain("data-meter-bar");
+});
+
+test("'not recommended' squares use their own colour and keep an outline", () => {
+  const game = {
+    ...pollGame,
+    playerRecommendations: {
+      ...pollGame.playerRecommendations,
+      "3": { best: 1, recommended: 2, notRecommended: 9, verdict: "not-recommended" as const },
+    },
+  };
+  const html = render(PollStrip, { game });
+  expect(html).toMatch(/<span(?=[^>]*data-verdict="not-recommended")(?=[^>]*class="[^"]*bg-poll-no[^"]*ring-poll-no-border)/);
+});

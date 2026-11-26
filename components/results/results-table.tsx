@@ -30,6 +30,24 @@ export function playersRange(game: NormalizedGame): string {
   return `${minPlayers}–${maxPlayers}`;
 }
 
+const METER_STEPS = [1, 2, 3, 4, 5];
+
+/** BGG complexity runs from 1 to 5; the bars make a column of them scannable at a glance. */
+function WeightMeter({ weight }: { weight: number }) {
+  const filled = Math.round(weight);
+  return (
+    <span className="mr-1.5 inline-flex gap-0.5 align-[-1px]" aria-hidden="true">
+      {METER_STEPS.map((step) => (
+        <span
+          key={step}
+          data-meter-bar={step <= filled ? "on" : "off"}
+          className={cn("h-[11px] w-[5px] rounded-[1px]", step <= filled ? "bg-meter" : "bg-border")}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function EmptyResults({ onReset }: { onReset: () => void }) {
   return (
     <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
@@ -116,7 +134,10 @@ export const ResultsTable = memo(function ResultsTable({ games, sort, sortDir, o
               </TableCell>
               <TableCell className={numClass}>{playersRange(game)}</TableCell>
               <TableCell className={numClass}>{game.playingTime === null ? "—" : `${game.playingTime}′`}</TableCell>
-              <TableCell className={numClass}>{formatNumber(game.weight, 1)}</TableCell>
+              <TableCell className={numClass}>
+                {game.weight !== null ? <WeightMeter weight={game.weight} /> : null}
+                {formatNumber(game.weight, 1)}
+              </TableCell>
               <TableCell className={cn(numClass, "font-semibold")}>{formatNumber(game.geekRating, 2)}</TableCell>
               <TableCell className={numClass}>{formatNumber(game.averageRating, 2)}</TableCell>
               <TableCell className={cn(numClass, "text-muted-foreground")}>{formatNumber(game.numVoters, 0)}</TableCell>
