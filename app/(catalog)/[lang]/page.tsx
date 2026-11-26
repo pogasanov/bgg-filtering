@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
 import { CachedCatalogResults } from "@/components/results/catalog-results";
 import { loadCatalogFrame } from "@/lib/catalog/cached";
-import { languageFromSlug, languageSlug } from "@/lib/language-path";
+import { ANY_LANGUAGE_SLUG, languageFromSlug, languageSlug } from "@/lib/language-path";
 import { defaultFilters, RUSSIAN, serializeView } from "@/lib/url-state";
 
 // The first page of another language ("/en"), static like "/" is for Russian. Requests with filters
 // are rewritten to /view/<language> in next.config.ts, further pages to /<language>/page/N.
 export const ensureStatic = "navigation";
 
-/** English is built ahead; any other language is built on its first request and kept. */
+/** English and "any language" are built ahead; any other language is built on its first request and kept. */
 export function generateStaticParams() {
-  return [{ lang: languageSlug("English") }];
+  return [{ lang: languageSlug("English") }, { lang: ANY_LANGUAGE_SLUG }];
 }
 
 export default async function LanguagePage({ params }: { params: Promise<{ lang: string }> }) {

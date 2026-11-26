@@ -2,17 +2,21 @@ import { notFound } from "next/navigation";
 import { CachedCatalogResults } from "@/components/results/catalog-results";
 import { loadCatalogFrame } from "@/lib/catalog/cached";
 import { loadGameCount } from "@/lib/catalog/load";
-import { languageFromSlug, languageSlug } from "@/lib/language-path";
+import { ANY_LANGUAGE_SLUG, languageFromSlug, languageSlug } from "@/lib/language-path";
 import { pageCount } from "@/lib/pagination";
 import { defaultFilters, RUSSIAN, serializeView } from "@/lib/url-state";
 
 // The further pages of another language's unfiltered list. Visitors see "/en?page=N".
 export const ensureStatic = "navigation";
 
-/** Every English page the catalog has now; other languages and later pages are built on first request. */
+/**
+ * Every page the catalog has now, in English and in "any language" (the whole catalog, so its page
+ * count is exact); other languages and later pages are built on first request.
+ */
 export async function generateStaticParams() {
   const last = Math.max(2, pageCount(await loadGameCount()));
-  return Array.from({ length: last - 1 }, (_, index) => ({ lang: languageSlug("English"), page: String(index + 2) }));
+  const pages = Array.from({ length: last - 1 }, (_, index) => String(index + 2));
+  return [languageSlug("English"), ANY_LANGUAGE_SLUG].flatMap((lang) => pages.map((page) => ({ lang, page })));
 }
 
 export default async function LanguageUnfilteredPage({ params }: { params: Promise<{ lang: string; page: string }> }) {
