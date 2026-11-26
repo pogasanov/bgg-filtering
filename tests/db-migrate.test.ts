@@ -15,7 +15,12 @@ describe("database migrations", () => {
         "game_tags",
         "games",
         "player_recommendations",
+        "price_checks",
+        "price_history",
+        "price_runs",
+        "product_links",
         "ranked_games",
+        "shop_products",
         "sync_lock",
         "sync_runs",
       ]);
@@ -25,7 +30,7 @@ describe("database migrations", () => {
         db,
         sql`select count(*)::int as count from drizzle.__drizzle_migrations`,
       );
-      expect(count).toBe(1);
+      expect(count).toBe(2);
     } finally {
       await close();
     }
