@@ -13,6 +13,7 @@
     "bgg:import-ranks": "tsx --env-file-if-exists=.env.local scripts/import-ranks.ts"
   },
   "dependencies": {
+    "@sentry/nextjs": "11.17.0",
     "@tailwindcss/postcss": "4.3.3",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
