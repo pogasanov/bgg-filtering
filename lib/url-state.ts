@@ -73,6 +73,12 @@ export function serializeFilters(filters: GameFilters): string {
   return params.toString();
 }
 
+/**
+ * Every query parameter that filters or sorts the list. A request carrying any of them is answered
+ * by the filtered view; a request with none gets a static page of the full list.
+ */
+export const filterParamKeys = ["q", "lang", "tag", "m", "ymin", "ymax", "sort", "dir"] as const;
+
 /** The page number from a query string; anything that is not a positive whole number means the first page. */
 export function parsePage(params: URLSearchParams): number {
   const value = params.get("page") ?? "";
