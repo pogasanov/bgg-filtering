@@ -37,7 +37,6 @@ export type LinkReason =
   | "several-products"
   | "claimed-by-several-games"
   | "name-within-another-game"
-  | "original-language-title"
   | "title-contains-name"
   | "barcode";
 
@@ -59,8 +58,7 @@ const reasonRank: Record<LinkReason, number> = {
   "several-products": 2,
   "claimed-by-several-games": 3,
   "name-within-another-game": 4,
-  "original-language-title": 5,
-  "title-contains-name": 6,
+  "title-contains-name": 5,
 };
 
 function isStopToken(token: string): boolean {
@@ -135,7 +133,16 @@ export function matchProducts(games: GameNames[], products: ShopProduct[]): Link
     });
 
   const links = new Map<string, Link>();
+  // Only Russian editions are tracked. A title with no Russian in it is the Russian edition
+  // only in its publisher's own shop ("Res Arcana" at GaGa); elsewhere it is an import,
+  // a different product at a different price, and gets no link at all.
+  function isImport(bggId: number, product: ShopProduct): boolean {
+    const publisherShops = publisherShopsByGame.get(bggId);
+    return publisherShops !== undefined && !hasCyrillic(product.title.toLowerCase()) && !publisherShops.includes(product.shop);
+  }
+
   function propose(bggId: number, product: ShopProduct, status: Link["status"], reason: LinkReason) {
+    if (isImport(bggId, product)) return;
     const key = `${bggId}\u0000${productKey(product)}`;
     const existing = links.get(key);
     if (existing && reasonRank[existing.reason] <= reasonRank[reason]) return;
@@ -180,13 +187,7 @@ export function matchProducts(games: GameNames[], products: ShopProduct[]): Link
       propose(bggId, product, "candidate", "name-within-another-game");
       continue;
     }
-    // A title with no Russian in it is the Russian edition only in its publisher's own shop
-    // ("Res Arcana" at GaGa). Elsewhere it is an import, a different product at a different price.
-    const publisherShops = publisherShopsByGame.get(bggId);
-    if (publisherShops && !hasCyrillic(chosen[0].title) && !publisherShops.includes(product.shop)) {
-      propose(bggId, product, "candidate", "original-language-title");
-      continue;
-    }
+    if (isImport(bggId, product)) continue;
     propose(bggId, product, "confirmed", "exact-title");
     confirmedProducts.add(productKey(product));
     if (product.barcode) {

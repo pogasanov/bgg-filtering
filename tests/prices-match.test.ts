@@ -227,15 +227,14 @@ describe("matchProducts — imports", () => {
   const lords: GameNames = { bggId: 1, primaryName: "Lords of Waterdeep", names: ["Lords of Waterdeep"], publisherShops: [] };
   const resArcana: GameNames = { bggId: 2, primaryName: "Res Arcana", names: ["Res Arcana"], publisherShops: ["gaga"] };
 
-  it("does not confirm an original-language title in a shop that is not the game's Russian publisher", () => {
-    expect(summary([lords], [product("Lords of Waterdeep")])).toEqual(["1:lavkaigr:candidate:original-language-title"]);
+  it("ignores an original-language title in a shop that is not the game's Russian publisher", () => {
+    expect(summary([lords], [product("Lords of Waterdeep")])).toEqual([]);
+    expect(summary([lords], [product("Lords of Waterdeep: Deluxe")])).toEqual([]);
   });
 
   it("confirms an original-language title in the Russian publisher's own shop", () => {
     expect(summary([resArcana], [product("Res Arcana", { shop: "gaga" })])).toEqual(["2:gaga:confirmed:exact-title"]);
-    expect(summary([resArcana], [product("Res Arcana", { shop: "lavkaigr" })])).toEqual([
-      "2:lavkaigr:candidate:original-language-title",
-    ]);
+    expect(summary([resArcana], [product("Res Arcana", { shop: "lavkaigr" })])).toEqual([]);
   });
 
   it("confirms a Russian title anywhere", () => {

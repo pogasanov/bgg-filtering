@@ -31,6 +31,8 @@ The reachability spike below needs only a Modal account and can run at any time.
 - **A wrong price is worse than no price.** A price is shown only when the link between a game and a shop product is certain.
 - **Uncertain matches:** the owner will confirm them by hand from time to time.
 - **Sale notifications:** wanted, but later.
+- **Only Russian editions.** A shop's English-language import of a game is not that game's price and is not tracked, shown or offered for review. A product whose title has no Russian in it counts as the Russian edition only in the shop of the game's Russian publisher.
+- **Where to look.** BoardGameGeek lists each game's publishers, including the Russian ones, so a game is expected first of all in its Russian publisher's own shop.
 - **Game titles stay as they are today**, from BoardGameGeek. Russian names are used only for matching and are not shown on the site. The mockup shows a Russian title; ignore that detail.
 
 ## Decisions made by the designer (owner may override)
