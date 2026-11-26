@@ -13,6 +13,9 @@ const REQUIRED_COLUMNS = [
   "is_expansion",
 ] as const;
 
+/** How many ranked base games the site lists unless the import asks for another number. */
+export const DEFAULT_RANKED_LIMIT = 2500;
+
 function parseCsvRow(line: string): string[] {
   const fields: string[] = [];
   let field = "";
@@ -45,7 +48,7 @@ function numberOrNull(value: string | undefined): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export function parseRanksCsv(csv: string, limit = 500): TopRankItem[] {
+export function parseRanksCsv(csv: string, limit = DEFAULT_RANKED_LIMIT): TopRankItem[] {
   const lines = csv.split(/\r?\n/).filter((line) => line.length > 0);
   const headers = parseCsvRow(lines[0] ?? "").map((header) => header.replace(/^\uFEFF/, ""));
   const indexes = new Map(headers.map((header, index) => [header, index]));
@@ -83,7 +86,7 @@ export function parseRanksCsv(csv: string, limit = 500): TopRankItem[] {
 }
 
 export async function loadTopRankItems(
-  limit = 500,
+  limit = DEFAULT_RANKED_LIMIT,
   csvPath = process.env.BGG_RANKS_CSV_PATH ?? "boardgames_ranks.csv",
 ): Promise<{ items: TopRankItem[]; rawPayload: string }> {
   const absolutePath = resolve(csvPath);

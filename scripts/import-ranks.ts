@@ -1,12 +1,13 @@
 import { importRanks } from "@/lib/bgg/import-ranks";
+import { DEFAULT_RANKED_LIMIT } from "@/lib/bgg/ranks";
 import { closeDb, getDb } from "@/lib/db/client";
 
-const USAGE = "Usage: pnpm bgg:import-ranks <boardgames_ranks.csv> [--limit N]";
+const USAGE = `Usage: pnpm bgg:import-ranks <boardgames_ranks.csv> [--limit N] (default ${DEFAULT_RANKED_LIMIT})`;
 
 function parseArgs(argv: string[]): { csvPath: string; limit: number } | null {
   const [csvPath, ...rest] = argv;
   if (!csvPath || csvPath.startsWith("--")) return null;
-  let limit = 500;
+  let limit = DEFAULT_RANKED_LIMIT;
   if (rest.length > 0) {
     if (rest.length !== 2 || rest[0] !== "--limit") return null;
     limit = Number(rest[1]);

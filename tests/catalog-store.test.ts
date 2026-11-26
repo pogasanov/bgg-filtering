@@ -1,14 +1,15 @@
 import { sql } from "drizzle-orm";
 import { afterEach, describe, expect, test } from "vitest";
+import { queryCatalogFrame, queryGamesView } from "@/lib/catalog/query";
 import {
   finishSync,
-  getCatalog,
   replaceRankedGames,
   tryStartSync,
   upsertGames,
 } from "@/lib/catalog/store";
 import type { Db } from "@/lib/db/client";
 import type { NormalizedGame, TopRankItem } from "@/lib/bgg/types";
+import { defaultFilters } from "@/lib/url-state";
 import { createTestDb, rows } from "./helpers/test-db";
 
 const NOW = new Date("2026-11-30T03:00:00.000Z");
@@ -68,10 +69,11 @@ describe("catalog store", () => {
     await replaceRankedGames(db, [ranked(1), ranked(2)], NOW);
     await upsertGames(db, [game(1), game(3)], NOW);
 
-    const catalog = await getCatalog(db);
+    const view = await queryGamesView(db, defaultFilters);
 
-    expect(catalog.games.map((item) => item.id)).toEqual([1]);
-    expect(catalog.status.gameCount).toBe(1);
+    expect(view.games.map((item) => item.id)).toEqual([1]);
+    expect(view.total).toBe(1);
+    expect((await queryCatalogFrame(db)).status.gameCount).toBe(1);
   });
 
   test("round-trips tags, languages and recommendations", async () => {
@@ -79,7 +81,7 @@ describe("catalog store", () => {
     await replaceRankedGames(db, [ranked(1)], NOW);
     await upsertGames(db, [game(1)], NOW);
 
-    const [stored] = (await getCatalog(db)).games;
+    const [stored] = (await queryGamesView(db, defaultFilters)).games;
 
     expect(stored.categories).toEqual(["Adventure"]);
     expect(stored.mechanics).toEqual(["Worker Placement"]);
@@ -93,7 +95,7 @@ describe("catalog store", () => {
     await replaceRankedGames(db, [ranked(1), ranked(2)], NOW);
     await upsertGames(db, [game(1, { thumbnailUrl: "https://cf.geekdo-images.com/a/t.jpg" }), game(2)], NOW);
 
-    const games = (await getCatalog(db)).games;
+    const games = (await queryGamesView(db, defaultFilters)).games;
 
     expect(games.map((item) => item.thumbnailUrl)).toEqual(["https://cf.geekdo-images.com/a/t.jpg", null]);
   });
@@ -104,7 +106,7 @@ describe("catalog store", () => {
     await upsertGames(db, [game(1, { languages: ["English", "French"] })], NOW);
     await upsertGames(db, [game(1, { languages: ["German"] })], NOW);
 
-    expect((await getCatalog(db)).games[0].languages).toEqual(["German"]);
+    expect((await queryGamesView(db, defaultFilters)).games[0].languages).toEqual(["German"]);
   });
 
   test("replaceRankedGames removes games that left the list", async () => {
@@ -183,6 +185,6 @@ describe("catalog store", () => {
       new Date("2026-12-07T03:01:00.000Z"),
     );
 
-    expect((await getCatalog(db)).status.updatedAt).toBe("2026-11-30T03:05:00.000Z");
+    expect((await queryCatalogFrame(db)).status.updatedAt).toBe("2026-11-30T03:05:00.000Z");
   });
 });

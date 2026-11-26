@@ -1,6 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
-import { catalogFrame, type CatalogFrame } from "@/lib/games-view";
-import { CATALOG_TAG, loadCatalog } from "./load";
+import type { CatalogFrame } from "@/lib/games-view";
+import { CATALOG_TAG, loadFrame } from "./load";
 
 const HOUR = 60 * 60;
 
@@ -15,9 +15,12 @@ export function cacheCatalogOutput() {
   cacheTag(CATALOG_TAG);
 }
 
-/** The filter options, the game count and the update date: the part of the page no filter changes. */
+/**
+ * The filter options, the game count and the update date: the part of the page no filter changes.
+ * Aggregated in Postgres and kept for the same 12 hours as the pages.
+ */
 export async function loadCatalogFrame(): Promise<CatalogFrame> {
   "use cache";
   cacheCatalogOutput();
-  return catalogFrame(await loadCatalog());
+  return loadFrame();
 }

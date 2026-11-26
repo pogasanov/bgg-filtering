@@ -1,24 +1,25 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-
-vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
-
-import { loadCatalog } from "@/lib/catalog/load";
-import { EMPTY_CATALOG } from "@/lib/catalog/types";
+import { loadFrame, loadGameCount, loadGamesView } from "@/lib/catalog/load";
+import { emptyCatalogFrame, emptyGamesView } from "@/lib/games-view";
+import { defaultFilters } from "@/lib/url-state";
 
 afterEach(() => vi.unstubAllEnvs());
 
-describe("loadCatalog", () => {
-  test("returns an empty catalog locally without DATABASE_URL", async () => {
+describe("catalog loaders", () => {
+  test("return an empty catalog locally without DATABASE_URL", async () => {
     vi.stubEnv("DATABASE_URL", "");
     vi.stubEnv("VERCEL", "");
 
-    expect(await loadCatalog()).toEqual(EMPTY_CATALOG);
+    expect(await loadGamesView(defaultFilters, 1)).toEqual(emptyGamesView());
+    expect(await loadFrame()).toEqual(emptyCatalogFrame());
+    expect(await loadGameCount()).toBe(0);
   });
 
-  test("throws on Vercel without DATABASE_URL", async () => {
+  test("throw on Vercel without DATABASE_URL", async () => {
     vi.stubEnv("DATABASE_URL", "");
     vi.stubEnv("VERCEL", "1");
 
-    await expect(loadCatalog()).rejects.toThrow("DATABASE_URL is not set");
+    await expect(loadGamesView(defaultFilters, 1)).rejects.toThrow("DATABASE_URL is not set");
+    await expect(loadFrame()).rejects.toThrow("DATABASE_URL is not set");
   });
 });

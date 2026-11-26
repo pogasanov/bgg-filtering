@@ -2,13 +2,13 @@
 
 Live at **https://bg.gsnv.dev**.
 
-A public, non-commercial Next.js site for filtering top BoardGameGeek games by categories, mechanics, and player-count recommendation polls.
+A public, non-commercial Next.js site for filtering the top 2500 BoardGameGeek games by categories, mechanics, and player-count recommendation polls.
 
-Filters live in a rail on the left with the player-count × verdict matrix on top; results are a sortable table with the poll verdict for every player count shown in each row. The current filters, sort and page are kept in the URL, so a reload or a copied link restores the view. Filtering and sorting run on the server, which renders 100 games per page. The theme follows the operating system.
+Filters live in a rail on the left with the player-count × verdict matrix on top; results are a sortable table with the poll verdict for every player count shown in each row. The current filters, sort and page are kept in the URL, so a reload or a copied link restores the view. Filtering and sorting run in Postgres, and the server renders 100 games per page. The theme follows the operating system.
 
-- **Site:** Next.js on Vercel (Hobby), with Cache Components. The list with no filters is static, every page of it: the pages are rebuilt every 12 hours and after each sync, and the build fails if anything on them would need a per-request render. `/?page=N` is rewritten to the static `/page/N`; a URL with a filter or a sort is rewritten to the `/view` route, which renders per request; its output is cached per view for 12 hours, except free-text searches. Both read the catalog from the Next.js data cache, so ordinary page views never query the database. The build prerenders the static pages, so `DATABASE_URL` must be set and reachable at build time.
+- **Site:** Next.js on Vercel (Hobby), with Cache Components. The list with no filters is static, every page of it: the pages are rebuilt every 12 hours and after each sync, and the build fails if anything on them would need a per-request render. `/?page=N` is rewritten to the static `/page/N`; a URL with a filter or a sort is rewritten to the `/view` route, which renders per request; its output is cached per view for 12 hours, except free-text searches. Filtering, sorting and paging run in Postgres: a page reads only its own 100 games, and the filter rail's options and counts come from SQL aggregates. Both are kept in the Next.js cache with the pages, so a repeated view never queries the database; a free-text search always does. The build prerenders the static pages, so `DATABASE_URL` must be set and reachable at build time.
 - **Database:** Postgres on Neon (Free).
-- **Weekly sync:** a Node script run by a Modal cron job (Starter) every Monday at 03:00 UTC. It refreshes game details from the BGG XML API, then asks the site to revalidate.
+- **Weekly sync:** a Node script run by a Modal cron job (Starter) every Monday at 03:00 UTC. It refreshes game details from the BGG XML API, then asks the site to revalidate. 2500 games take about 20 minutes (125 batches of 20, 5.2 seconds apart).
 - **Errors and logs:** Sentry (Developer plan), for both the site and the worker.
 
 ## Local setup
@@ -138,7 +138,7 @@ The weekly job refreshes ratings, ranks and votes for the stored list. To change
 pnpm bgg:import-ranks ./boardgames_ranks.csv
 ```
 
-Games that left the top 500 disappear at the next revalidation. New games appear after the next sync. To publish immediately:
+Games that left the top 2500 disappear at the next revalidation. New games appear after the next sync. To publish immediately:
 
 ```bash
 pnpm worker:run
@@ -216,7 +216,7 @@ Neon Free allows 1 GB. The worker logs the database size after every run and war
 | `pnpm test` / `pnpm typecheck` | Tests (Postgres-backed tests use in-process PGlite) and TypeScript checks |
 | `pnpm db:generate` | Generate a Drizzle migration in `drizzle/` from `lib/db/schema.ts` |
 | `pnpm db:migrate` | Apply pending Drizzle migrations (direct connection `DATABASE_URL_UNPOOLED`, else `DATABASE_URL`) |
-| `pnpm bgg:import-ranks <csv> [--limit N]` | Replace the stored ranked list (default top 500) |
+| `pnpm bgg:import-ranks <csv> [--limit N]` | Replace the stored ranked list (default top 2500) |
 | `pnpm worker:local` | Run the weekly sync locally with `.env.local` |
 | `pnpm worker:build` | Bundle the worker to `worker/dist/sync.cjs` |
 | `pnpm worker:deploy` / `pnpm worker:run` / `pnpm worker:sentry-check` | Deploy, run once, or send a Sentry check through Modal (profile `bgg`) |

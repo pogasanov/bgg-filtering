@@ -1,14 +1,7 @@
-import type { NormalizedGame } from "@/lib/bgg/types";
-
 export type CatalogStatus = {
   gameCount: number;
   /** ISO timestamp of the latest successful or partial sync run. */
   updatedAt: string | null;
-};
-
-export type Catalog = {
-  games: NormalizedGame[];
-  status: CatalogStatus;
 };
 
 export type SyncRunResult = {
@@ -16,9 +9,4 @@ export type SyncRunResult = {
   fetchedCount: number;
   failedIds: number[];
   errorMessage: string | null;
-};
-
-export const EMPTY_CATALOG: Catalog = {
-  games: [],
-  status: { gameCount: 0, updatedAt: null },
 };

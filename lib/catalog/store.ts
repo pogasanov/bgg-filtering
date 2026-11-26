@@ -1,13 +1,5 @@
-import { asc, eq, inArray, lt, max, notInArray, sql } from "drizzle-orm";
-import { emptyPlayerRecommendations } from "@/lib/bgg/parser";
-import {
-  playerCounts,
-  type NormalizedGame,
-  type PlayerCount,
-  type PlayerRecommendations,
-  type RecommendationVerdict,
-  type TopRankItem,
-} from "@/lib/bgg/types";
+import { asc, eq, inArray, lt, notInArray, sql } from "drizzle-orm";
+import { playerCounts, type NormalizedGame, type TopRankItem } from "@/lib/bgg/types";
 import { resultRows, type Db } from "@/lib/db/client";
 import {
   gameLanguages,
@@ -18,7 +10,7 @@ import {
   syncLock,
   syncRuns,
 } from "@/lib/db/schema";
-import type { Catalog, SyncRunResult } from "./types";
+import type { SyncRunResult } from "./types";
 
 export const STALE_LOCK_MS = 6 * 60 * 60 * 1000;
 
@@ -194,98 +186,6 @@ export async function finishSync(db: Db, syncRunId: number, result: SyncRunResul
       .where(eq(syncRuns.id, syncRunId));
     await tx.delete(syncLock).where(eq(syncLock.syncRunId, syncRunId));
   });
-}
-
-export async function getCatalog(db: Db): Promise<Catalog> {
-  const gameRows = await db
-    .select({
-      id: games.bggId,
-      rank: games.rank,
-      title: games.title,
-      year: games.year,
-      thumbnailUrl: games.thumbnailUrl,
-      geekRating: games.geekRating,
-      averageRating: games.averageRating,
-      numVoters: games.numVoters,
-      minPlayers: games.minPlayers,
-      maxPlayers: games.maxPlayers,
-      playingTime: games.playingTime,
-      weight: games.weight,
-      bggUrl: games.bggUrl,
-    })
-    .from(games)
-    .innerJoin(rankedGames, eq(rankedGames.bggId, games.bggId))
-    .orderBy(sql`coalesce(${games.rank}, ${rankedGames.rank})`, asc(games.title));
-  const ids = gameRows.map((game) => game.id);
-
-  const [tagRows, languageRows, recommendationRows] =
-    ids.length === 0
-      ? [[], [], []]
-      : await Promise.all([
-          db
-            .select({ gameId: gameTags.gameId, kind: gameTags.kind, name: gameTags.name })
-            .from(gameTags)
-            .where(inArray(gameTags.gameId, ids))
-            .orderBy(asc(gameTags.name)),
-          db
-            .select({ gameId: gameLanguages.gameId, name: gameLanguages.name })
-            .from(gameLanguages)
-            .where(inArray(gameLanguages.gameId, ids))
-            .orderBy(asc(gameLanguages.name)),
-          db
-            .select({
-              gameId: playerRecommendations.gameId,
-              playerCount: playerRecommendations.playerCount,
-              best: playerRecommendations.bestVotes,
-              recommended: playerRecommendations.recommendedVotes,
-              notRecommended: playerRecommendations.notRecommendedVotes,
-              verdict: playerRecommendations.verdict,
-            })
-            .from(playerRecommendations)
-            .where(inArray(playerRecommendations.gameId, ids)),
-        ]);
-  const [status] = await db
-    .select({ updatedAt: max(syncRuns.finishedAt) })
-    .from(syncRuns)
-    .where(inArray(syncRuns.status, ["success", "partial"]));
-
-  const tagsByGame = new Map<number, { categories: string[]; mechanics: string[] }>();
-  for (const row of tagRows) {
-    const tags = tagsByGame.get(row.gameId) ?? { categories: [], mechanics: [] };
-    (row.kind === "category" ? tags.categories : tags.mechanics).push(row.name);
-    tagsByGame.set(row.gameId, tags);
-  }
-  const languagesByGame = new Map<number, string[]>();
-  for (const row of languageRows) {
-    languagesByGame.set(row.gameId, [...(languagesByGame.get(row.gameId) ?? []), row.name]);
-  }
-  const recommendationsByGame = new Map<number, PlayerRecommendations>();
-  for (const row of recommendationRows) {
-    const recommendations = recommendationsByGame.get(row.gameId) ?? emptyPlayerRecommendations();
-    recommendations[row.playerCount as PlayerCount] = {
-      best: row.best,
-      recommended: row.recommended,
-      notRecommended: row.notRecommended,
-      verdict: row.verdict as RecommendationVerdict,
-    };
-    recommendationsByGame.set(row.gameId, recommendations);
-  }
-
-  const catalogGames = gameRows.map((game) => ({
-    ...game,
-    categories: tagsByGame.get(game.id)?.categories ?? [],
-    mechanics: tagsByGame.get(game.id)?.mechanics ?? [],
-    languages: languagesByGame.get(game.id) ?? [],
-    playerRecommendations: recommendationsByGame.get(game.id) ?? emptyPlayerRecommendations(),
-  }));
-
-  return {
-    games: catalogGames,
-    status: {
-      gameCount: catalogGames.length,
-      updatedAt: status?.updatedAt ? new Date(status.updatedAt).toISOString() : null,
-    },
-  };
 }
 
 export async function getDatabaseSizeBytes(db: Db): Promise<number> {

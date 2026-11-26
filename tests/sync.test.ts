@@ -1,9 +1,11 @@
 import { sql } from "drizzle-orm";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { getCatalog, replaceRankedGames, tryStartSync } from "@/lib/catalog/store";
+import { queryGamesView } from "@/lib/catalog/query";
+import { replaceRankedGames, tryStartSync } from "@/lib/catalog/store";
 import type { Db } from "@/lib/db/client";
 import { runSync, withRankFallback } from "@/lib/sync";
 import { makeGame, makeRanked, spyLog } from "./helpers/fixtures";
+import { defaultFilters } from "@/lib/url-state";
 import { createTestDb, rows } from "./helpers/test-db";
 
 const NOW = new Date("2026-11-30T03:00:00.000Z");
@@ -35,7 +37,7 @@ describe("runSync", () => {
     const outcome = await runSync({ db, fetchBatch, log: spyLog(), sleep: noSleep, batchSize: 2, now: () => NOW });
 
     expect(outcome).toMatchObject({ status: "success", fetchedCount: 3, failedIds: [] });
-    expect((await getCatalog(db)).games).toHaveLength(3);
+    expect((await queryGamesView(db, defaultFilters)).games).toHaveLength(3);
     expect(await lockRows(db)).toEqual([]);
   });
 
