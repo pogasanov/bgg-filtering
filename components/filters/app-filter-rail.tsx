@@ -11,10 +11,10 @@ export function AppFilterRail() {
     <FilterRail
       filters={state.filters}
       onChange={state.setFilters}
-      allTags={state.allTags}
+      allTags={state.facets.allTags}
       tagCounts={state.tagCounts}
-      allLanguages={state.allLanguages}
-      yearScale={state.yearScale}
+      allLanguages={state.facets.allLanguages}
+      yearScale={state.facets.yearScale}
       status={state.status}
     />
   );

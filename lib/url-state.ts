@@ -72,3 +72,16 @@ export function serializeFilters(filters: GameFilters): string {
   if (sortDir !== defaultSortDir(filters.sort)) params.set("dir", sortDir);
   return params.toString();
 }
+
+/** The page number from a query string; anything that is not a positive whole number means the first page. */
+export function parsePage(params: URLSearchParams): number {
+  const value = params.get("page") ?? "";
+  return /^[1-9]\d*$/.test(value) ? Number(value) : 1;
+}
+
+/** Query string for the filters and a page; the first page is left out, like every other default. */
+export function serializeView(filters: GameFilters, page: number): string {
+  const query = serializeFilters(filters);
+  if (page <= 1) return query;
+  return query ? `${query}&page=${page}` : `page=${page}`;
+}

@@ -1,88 +1,35 @@
-"use client";
-
-import { ArrowDown, ArrowUp } from "lucide-react";
-import type { ReactNode } from "react";
-import { useGames } from "@/components/games-state";
-import { ResultsBar } from "@/components/results/results-bar";
+import { Pagination } from "@/components/results/pagination";
+import { AppResultsBar, PendingResults } from "@/components/results/results-controls";
 import { ResultsList } from "@/components/results/results-list";
 import { ResultsTable } from "@/components/results/results-table";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useIsDesktop } from "@/components/use-is-desktop";
-import { sortKeys, type SortKey } from "@/lib/bgg/types";
-import { defaultSortDir } from "@/lib/filtering";
-import { sortLabels } from "@/lib/labels";
-import { cn } from "@/lib/utils";
+import { defaultSortDir, type GameFilters } from "@/lib/filtering";
+import type { GamesView } from "@/lib/games-view";
 
 type ResultsProps = {
-  /** Shown instead of the results while the cache holds no games. Rendered by the server. */
-  emptyCache: ReactNode;
+  view: GamesView;
+  filters: GameFilters;
 };
 
-/** The count bar and the filtered games: a table on desktop, a list on phones. */
-export function Results({ emptyCache }: ResultsProps) {
-  const { games, filters, setFilters, deferredFilters, isStale, filteredGames, chips, resetFilters, sortBy } =
-    useGames();
-  const isDesktop = useIsDesktop();
-
-  if (games.length === 0) return emptyCache;
-
-  const sortDir = filters.sortDir ?? defaultSortDir(filters.sort);
-  const shownSortDir = deferredFilters.sortDir ?? defaultSortDir(deferredFilters.sort);
-  const SortArrow = sortDir === "asc" ? ArrowUp : ArrowDown;
-
+/**
+ * The count bar, one page of games and the page links. The rows are rendered on the server.
+ * Both layouts are in the markup and CSS shows one: the server cannot know the screen width,
+ * and a page holds few enough rows for the hidden copy to be cheap.
+ */
+export function Results({ view, filters }: ResultsProps) {
   return (
     <>
-      <ResultsBar
-        shown={filteredGames.length}
-        total={games.length}
-        chips={chips}
-        onChange={setFilters}
-        onReset={resetFilters}
-      >
-        <div className="flex items-center gap-1 lg:hidden">
-          <Select value={filters.sort} onValueChange={(value) => sortBy(value as SortKey)}>
-            <SelectTrigger aria-label="Сортировка" size="sm" className="h-7 gap-1 text-xs shadow-none">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {sortKeys.map((key) => (
-                <SelectItem key={key} value={key}>
-                  {sortLabels[key]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-7 shadow-none"
-            onClick={() => sortBy(filters.sort)}
-            aria-label={sortDir === "asc" ? "По возрастанию, изменить порядок" : "По убыванию, изменить порядок"}
-          >
-            <SortArrow className="size-3.5" aria-hidden="true" />
-          </Button>
-        </div>
-      </ResultsBar>
+      <AppResultsBar shown={view.shown} total={view.total} />
 
-      {/* Dimmed only if the list is still catching up after a noticeable wait, so quick updates do not flicker. */}
-      <div
-        data-results
-        aria-busy={isStale}
-        className={cn("transition-opacity duration-200", isStale && "opacity-60 delay-200")}
-      >
-        {isDesktop ? (
-          <ResultsTable
-            games={filteredGames}
-            sort={deferredFilters.sort}
-            sortDir={shownSortDir}
-            onSort={sortBy}
-            onReset={resetFilters}
-          />
-        ) : (
-          <ResultsList games={filteredGames} onReset={resetFilters} />
-        )}
-      </div>
+      <PendingResults>
+        <div className="hidden lg:block">
+          <ResultsTable games={view.games} sort={filters.sort} sortDir={filters.sortDir ?? defaultSortDir(filters.sort)} />
+        </div>
+        <div className="lg:hidden">
+          <ResultsList games={view.games} />
+        </div>
+      </PendingResults>
+
+      <Pagination page={view.page} pageCount={view.pageCount} shown={view.shown} filters={filters} />
     </>
   );
 }

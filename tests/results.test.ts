@@ -1,6 +1,7 @@
 import { createElement, type ComponentType } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
+import { GamesProvider } from "@/components/games-state";
 import { GameThumb } from "@/components/results/game-thumb";
 import { PollStrip } from "@/components/results/poll-strip";
 import { ResultsList } from "@/components/results/results-list";
@@ -11,8 +12,29 @@ import { activeFilterChips } from "@/lib/active-filters";
 import { defaultFilters } from "@/lib/url-state";
 import { pollGame } from "./fixtures";
 
+// The components read the router; outside Next there is none.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace() {}, refresh() {} }) }));
+
+const status = {
+  gameCount: 1,
+  updatedAt: null,
+};
+
 function render<P extends object>(component: ComponentType<P>, props: P) {
-  return renderToStaticMarkup(createElement(TooltipProvider, null, createElement(component, props)));
+  // The sort and reset buttons inside the results read the page state; mirror the page here.
+  const provider = {
+    initialFilters: defaultFilters,
+    facets: { allTags: [], allLanguages: [], yearScale: [] },
+    tagCounts: new Map<string, number>(),
+    status,
+  };
+  return renderToStaticMarkup(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(GamesProvider, { ...provider, children: createElement(component, props) }),
+    ),
+  );
 }
 
 test("poll strip marks verdicts and range without relying on colour", () => {
@@ -33,7 +55,7 @@ test("thumbnail falls back to a placeholder tile", () => {
 
 test("table renders one linked row per game with dashes for missing numbers", () => {
   const sparse = { ...pollGame, description: "SECRET", playingTime: null, weight: null, rank: null, minPlayers: null, maxPlayers: null };
-  const html = render(ResultsTable, { games: [sparse], sort: "rank", sortDir: "asc", onSort() {}, onReset() {} });
+  const html = render(ResultsTable, { games: [sparse], sort: "rank", sortDir: "asc" });
   expect(html).toContain(`href="${pollGame.bggUrl}"`);
   expect(html).toContain('target="_blank"');
   expect(html).toContain('aria-sort="ascending"');
@@ -43,13 +65,13 @@ test("table renders one linked row per game with dashes for missing numbers", ()
 });
 
 test("only the active sort column announces a direction", () => {
-  const html = render(ResultsTable, { games: [pollGame], sort: "weight", sortDir: "desc", onSort() {}, onReset() {} });
+  const html = render(ResultsTable, { games: [pollGame], sort: "weight", sortDir: "desc" });
   expect(html.match(/aria-sort="/g)).toHaveLength(1);
   expect(html).toContain('aria-sort="descending"');
 });
 
 test("empty result shows a reset action", () => {
-  const html = render(ResultsTable, { games: [], sort: "rank", sortDir: "asc", onSort() {}, onReset() {} });
+  const html = render(ResultsTable, { games: [], sort: "rank", sortDir: "asc" });
   expect(html).toContain("Ничего не найдено");
   expect(html).toContain("Сбросить фильтры");
 });
@@ -65,30 +87,30 @@ test("bar shows the count, chips and reset only when filtered", () => {
 });
 
 test("phone list shows thumbnail, title, strip and rating per game", () => {
-  const html = render(ResultsList, { games: [pollGame], onReset() {} });
+  const html = render(ResultsList, { games: [pollGame] });
   expect(html.match(/<li/g)).toHaveLength(1);
   expect(html).toContain(`href="${pollGame.bggUrl}"`);
   expect(html.match(/data-verdict="/g)).toHaveLength(7);
   expect(html).toContain('data-thumb="placeholder"');
-  expect(render(ResultsList, { games: [], onReset() {} })).toContain("Ничего не найдено");
+  expect(render(ResultsList, { games: [] })).toContain("Ничего не найдено");
 });
 
 test("on phones the strip lets taps through to the row link; on desktop it stays hoverable", () => {
-  const list = render(ResultsList, { games: [pollGame], onReset() {} });
+  const list = render(ResultsList, { games: [pollGame] });
   expect(list).toMatch(/<span(?=[^>]*role="img")(?=[^>]*pointer-events-none)/);
-  const table = render(ResultsTable, { games: [pollGame], sort: "rank", sortDir: "asc", onSort() {}, onReset() {} });
+  const table = render(ResultsTable, { games: [pollGame], sort: "rank", sortDir: "asc" });
   expect(table).not.toMatch(/<span(?=[^>]*role="img")(?=[^>]*pointer-events-none)/);
 });
 
 test("complexity is drawn as a five-step meter next to the number", () => {
-  const html = render(ResultsTable, { games: [{ ...pollGame, weight: 3.2 }], sort: "rank", sortDir: "asc", onSort() {}, onReset() {} });
+  const html = render(ResultsTable, { games: [{ ...pollGame, weight: 3.2 }], sort: "rank", sortDir: "asc" });
   expect(html.match(/data-meter-bar="/g)).toHaveLength(5);
   expect(html.match(/data-meter-bar="on"/g)).toHaveLength(3);
   expect(html).toContain("3,2");
 });
 
 test("a game without a complexity value gets a dash and no meter", () => {
-  const html = render(ResultsTable, { games: [{ ...pollGame, weight: null }], sort: "rank", sortDir: "asc", onSort() {}, onReset() {} });
+  const html = render(ResultsTable, { games: [{ ...pollGame, weight: null }], sort: "rank", sortDir: "asc" });
   expect(html).not.toContain("data-meter-bar");
 });
 

@@ -1,6 +1,7 @@
 import { BggApp } from "@/components/bgg-app";
 import { loadCatalog } from "@/lib/catalog/load";
-import { parseFilters } from "@/lib/url-state";
+import { queryGames } from "@/lib/games-query";
+import { parseFilters, parsePage } from "@/lib/url-state";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +20,10 @@ function toSearchParams(record: Record<string, string | string[] | undefined>) {
 }
 
 export default async function Page({ searchParams }: PageProps) {
-  // Filters come from the URL so a reloaded or shared link opens the same view.
-  const initialFilters = parseFilters(toSearchParams(await searchParams));
+  // The view lives in the URL: the server filters, sorts and cuts one page, so a reloaded or shared link opens the same view.
+  const params = toSearchParams(await searchParams);
+  const filters = parseFilters(params);
   // Served from the Next.js data cache: a page view never queries the database.
   const catalog = await loadCatalog();
-  return <BggApp initialGames={catalog.games} initialStatus={catalog.status} initialFilters={initialFilters} />;
+  return <BggApp view={queryGames(catalog, filters, parsePage(params))} filters={filters} />;
 }

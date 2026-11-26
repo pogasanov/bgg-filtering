@@ -1,10 +1,6 @@
-"use client";
-
-import { ArrowDown, ArrowUp } from "lucide-react";
-import { memo } from "react";
 import { GameThumb } from "@/components/results/game-thumb";
 import { PollStrip } from "@/components/results/poll-strip";
-import { Button } from "@/components/ui/button";
+import { ResetFiltersButton, SortButton } from "@/components/results/results-controls";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ListedGame, SortDir, SortKey } from "@/lib/bgg/types";
 import { gameTags } from "@/lib/filtering";
@@ -15,8 +11,6 @@ type ResultsTableProps = {
   games: ListedGame[];
   sort: SortKey;
   sortDir: SortDir;
-  onSort: (key: SortKey) => void;
-  onReset: () => void;
 };
 
 const COLUMN_COUNT = 10;
@@ -48,36 +42,25 @@ function WeightMeter({ weight }: { weight: number }) {
   );
 }
 
-export function EmptyResults({ onReset }: { onReset: () => void }) {
+export function EmptyResults() {
   return (
     <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
       <p className="text-sm text-muted-foreground">Ничего не найдено</p>
-      <Button variant="outline" size="sm" onClick={onReset}>
-        Сбросить фильтры
-      </Button>
+      <ResetFiltersButton />
     </div>
   );
 }
 
-/** Memoised: with thousands of rows it must re-render only when its own props change, not on every keystroke. */
-export const ResultsTable = memo(function ResultsTable({ games, sort, sortDir, onSort, onReset }: ResultsTableProps) {
+/** One page of games. Rendered on the server; only the sort buttons, the reset button and the poll tooltips are interactive. */
+export function ResultsTable({ games, sort, sortDir }: ResultsTableProps) {
   function sortHead(key: SortKey, label = sortLabels[key], align: "left" | "right" = "right") {
     const active = sort === key;
-    const Arrow = sortDir === "asc" ? ArrowUp : ArrowDown;
     return (
       <TableHead
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : undefined}
         className={cn(headClass, align === "right" && "text-right")}
       >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onSort(key)}
-          className={cn("-mx-2 h-7 gap-1 px-2 text-xs font-medium", active ? "text-foreground" : "text-muted-foreground")}
-        >
-          {label}
-          {active ? <Arrow className="size-3" aria-hidden="true" /> : null}
-        </Button>
+        <SortButton sortKey={key} label={label} activeDir={active ? sortDir : null} />
       </TableHead>
     );
   }
@@ -102,7 +85,7 @@ export const ResultsTable = memo(function ResultsTable({ games, sort, sortDir, o
         {games.length === 0 ? (
           <TableRow className="hover:bg-transparent">
             <TableCell colSpan={COLUMN_COUNT}>
-              <EmptyResults onReset={onReset} />
+              <EmptyResults />
             </TableCell>
           </TableRow>
         ) : null}
@@ -147,4 +130,4 @@ export const ResultsTable = memo(function ResultsTable({ games, sort, sortDir, o
       </TableBody>
     </Table>
   );
-});
+}
