@@ -156,7 +156,19 @@ Most visitors are expected to come from Russia, where reachability is the main r
 - run an HTTP check from Russian nodes of a public checker such as check-host.net;
 - the page must load fully, with thumbnails.
 
-**Plan B, if the site is unreliable from Russia:**
+**Check of 2026-11-26** (check-host.net, nodes in Moscow and Saint Petersburg):
+
+| Target | Moscow | Saint Petersburg |
+|---|---|---|
+| `bgfilter.vercel.app` | 1 of 6 OK | 6 of 6 OK |
+| `nextjs.org`, `vercel.com` (custom domains on Vercel) | 3 of 3 OK each | 3 of 3 OK each |
+| thumbnails from `cf.geekdo-images.com` | OK | OK |
+
+When the Moscow requests to `bgfilter.vercel.app` failed, the TCP connection to Vercel's IPs succeeded and the request then timed out. That points at filtering of the `*.vercel.app` name, not at blocked IPs.
+
+**First fix:** attach the project's own domain to the Vercel project (free on Hobby) and repeat the check.
+
+**Plan B, if a custom domain is unreliable from Russia too:**
 
 1. Rent a small Russian VPS (roughly 200–500 ₽ a month).
 2. Point the project's own domain at it.
