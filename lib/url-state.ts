@@ -30,6 +30,19 @@ function parseYear(value: string | null): number | null {
   return Number(value);
 }
 
+/**
+ * A list travels in a single query parameter, its items joined by a separator. A key repeated in the
+ * query does not survive the "/" → "/view" rewrite in production: only its last value reaches the page.
+ */
+const MATRIX_SEPARATOR = ",";
+/** Tag names contain commas ("I Cut, You Choose") but no pipes. */
+const TAG_SEPARATOR = "|";
+
+/** Every item of a list parameter. Repeated keys, as older links wrote them, are read as well. */
+function listParam(params: URLSearchParams, key: string, separator: string): string[] {
+  return params.getAll(key).flatMap((value) => value.split(separator));
+}
+
 function parseMatrix(values: string[]): MatrixSelection[] {
   const seen = new Set<string>();
   const selections: MatrixSelection[] = [];
@@ -59,8 +72,8 @@ export function parseFilters(params: URLSearchParams): GameFilters {
   return {
     search: params.get("q") ?? "",
     language: parseLanguage(params.get("lang")),
-    tags: [...new Set(params.getAll("tag").filter((tag) => tag !== ""))],
-    matrix: parseMatrix(params.getAll("m")),
+    tags: [...new Set(listParam(params, "tag", TAG_SEPARATOR).filter((tag) => tag !== ""))],
+    matrix: parseMatrix(listParam(params, "m", MATRIX_SEPARATOR)),
     sort,
     sortDir: dirParam === "asc" || dirParam === "desc" ? dirParam : defaultSortDir(sort),
     minYear: parseYear(params.get("ymin")),
@@ -73,8 +86,10 @@ export function serializeFilters(filters: GameFilters): string {
   const params = new URLSearchParams();
   if (filters.search.trim() !== "") params.set("q", filters.search);
   if (filters.language !== RUSSIAN) params.set("lang", filters.language === "" ? ANY_LANGUAGE_PARAM : filters.language);
-  for (const tag of filters.tags) params.append("tag", tag);
-  for (const selection of filters.matrix) params.append("m", `${selection.playerCount}:${selection.verdict}`);
+  if (filters.tags.length > 0) params.set("tag", filters.tags.join(TAG_SEPARATOR));
+  if (filters.matrix.length > 0) {
+    params.set("m", filters.matrix.map((selection) => `${selection.playerCount}:${selection.verdict}`).join(MATRIX_SEPARATOR));
+  }
   if (filters.minYear !== null) params.set("ymin", String(filters.minYear));
   if (filters.maxYear !== null) params.set("ymax", String(filters.maxYear));
   if (filters.sort !== "rank") params.set("sort", filters.sort);
