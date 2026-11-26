@@ -237,3 +237,12 @@ By default it reads only enough to prove the parsers work: the whole CrowdGames 
 - `--refresh` ignores cached complete catalogues.
 
 Results and caches are written to `data/price-cache/`. Requests obey each shop's `robots.txt`, run one at a time at least two seconds apart, and identify themselves as `BggPlayerFinderBot`; set `PRICE_BOT_INFO_URL` to add a link to the site. The exit code is 1 if any shop failed.
+
+## Collecting prices into the database
+
+`pnpm prices:collect` reads the three shops and stores the result in Postgres: every product a shop lists (`shop_products`), the links between games and products (`product_links`), and the price of each confirmed product (`price_history`, written only when price, old price or stock changed; `price_checks` records the last successful read). Each shop's outcome goes to `price_runs`.
+
+- `--shops crowdgames,lavkaigr,gaga` limits the run to some shops.
+- `--from-cache` stores the catalogues a `prices:dry-run` already saved under `data/price-cache/` instead of asking the shops again.
+
+It needs `DATABASE_URL` and, for now, the legacy `data/bgg-cache.sqlite`: game names and Russian publishers come from the raw BGG XML, which the Postgres database does not keep yet. Apply migrations first with `pnpm db:migrate`.

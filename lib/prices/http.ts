@@ -3,6 +3,8 @@ import type { Get } from "@/lib/prices/types";
 
 const DEFAULT_MIN_INTERVAL_MS = 2000;
 const MAX_REDIRECTS = 5;
+const MAX_ATTEMPTS = 3;
+const REQUEST_TIMEOUT_MS = 30_000;
 
 /** An honest identity: who is asking and why. Never a personal name or email. */
 export function buildUserAgent(infoUrl?: string): string {
@@ -47,16 +49,34 @@ export function createShopGet(options: ShopGetOptions): Get {
   let lastRequestAt: number | null = null;
   let robots: Promise<string> | null = null;
 
-  async function request(url: string): Promise<Response> {
+  async function attempt(url: string): Promise<Response> {
     if (lastRequestAt !== null) {
       const wait = lastRequestAt + minIntervalMs - now();
       if (wait > 0) await sleep(wait);
     }
     try {
-      return await fetchImpl(url, { headers: { "user-agent": options.userAgent }, redirect: "manual" });
+      return await fetchImpl(url, {
+        headers: { "user-agent": options.userAgent },
+        redirect: "manual",
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
     } finally {
       lastRequestAt = now();
     }
+  }
+
+  /** One request, tried again when the connection drops. An HTTP answer, even an error, is never retried. */
+  async function request(url: string): Promise<Response> {
+    let lastError: unknown;
+    for (let tries = 0; tries < MAX_ATTEMPTS; tries += 1) {
+      try {
+        return await attempt(url);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    const reason = lastError instanceof Error ? lastError.message : String(lastError);
+    throw new Error(`No answer from ${url} after ${MAX_ATTEMPTS} attempts: ${reason}`);
   }
 
   async function loadRobots(): Promise<string> {

@@ -47,6 +47,61 @@ export function parseGagaProduct(html: string, url: string): ShopProduct | null 
   };
 }
 
+const translitBase: Record<string, string> = {
+  а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i", к: "k", л: "l", м: "m",
+  н: "n", о: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ф: "f", х: "h", ц: "c", ч: "ch", ш: "sh", ъ: "",
+  ы: "y", ь: "", э: "e",
+};
+/** GaGa spells its addresses in more than one transliteration ("krasnyj-sobor", "medvezhiy-park"). */
+const translitSchemes: Record<string, string>[] = [
+  { ...translitBase, й: "y", щ: "sch", ю: "yu", я: "ya" },
+  { ...translitBase, й: "j", щ: "shch", ю: "ju", я: "ja" },
+];
+const MAX_LONGER_ADDRESSES = 2;
+
+function addressKeys(name: string): string[] {
+  const lowered = name.toLowerCase().replace(/['’`]/g, "");
+  // The name as a whole, and without its subtitle ("Tzolk'in: The Mayan Calendar" → "tzolkin").
+  const variants = [lowered, lowered.split(/[:.–—]| - /)[0]];
+  const keys = variants.flatMap((variant) =>
+    translitSchemes.map((scheme) =>
+      [...variant]
+        .map((char) => scheme[char] ?? char)
+        .join("")
+        .normalize("NFD")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, ""),
+    ),
+  );
+  return [...new Set(keys.filter((key) => key.length >= 2))];
+}
+
+/**
+ * Product pages worth reading for one game, chosen by address alone. The sitemap
+ * has thousands of pages and the catalogue listing is closed to robots, so this
+ * narrows a game down to a handful of requests. It only chooses what to read:
+ * whether a page really is the game is decided later from the page's own title.
+ */
+export function selectGagaUrls(urls: string[], names: string[]): string[] {
+  const keys = [...new Set(names.flatMap(addressKeys))];
+  const slugOf = (url: string) => url.split("/").at(-2) ?? "";
+
+  const exact = urls.filter((url) => keys.includes(slugOf(url)));
+  // The address is the name cut short: "unmatched-bitva-legend" for "Unmatched. Битва легенд. Том 1".
+  const shortened = urls.filter((url) => {
+    const slug = slugOf(url);
+    return slug.includes("-") && keys.some((key) => key.startsWith(`${slug}-`));
+  });
+  if (exact.length > 0 || shortened.length > 0) return [...new Set([...exact, ...shortened])];
+
+  // Nothing matches outright. Addresses that continue the name are mostly expansions,
+  // so only the two shortest are tried, in case the game itself is filed under one.
+  return urls
+    .filter((url) => keys.some((key) => key.length >= 4 && slugOf(url).startsWith(`${key}-`)))
+    .sort((a, b) => a.length - b.length || a.localeCompare(b))
+    .slice(0, MAX_LONGER_ADDRESSES);
+}
+
 export const gagaAdapter: ShopAdapter = {
   code: "gaga",
   origin: ORIGIN,
@@ -56,8 +111,9 @@ export const gagaAdapter: ShopAdapter = {
    * caps how many new pages are read in this call.
    */
   async listCatalog(get, opts) {
-    const urls = parseGagaSitemap(await get(`${ORIGIN}/sitemap.xml`));
-    if (urls.length === 0) throw new Error("GaGa sitemap empty or unrecognised: no product pages");
+    const listed = parseGagaSitemap(await get(`${ORIGIN}/sitemap.xml`));
+    if (listed.length === 0) throw new Error("GaGa sitemap empty or unrecognised: no product pages");
+    const urls = opts?.select ? opts.select(listed) : listed;
 
     const knownByUrl = new Map((opts?.known ?? []).map((product) => [product.url, product]));
     const total = urls.filter((url) => !knownByUrl.has(url)).length;

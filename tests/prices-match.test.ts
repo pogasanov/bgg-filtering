@@ -174,3 +174,72 @@ describe("matchProducts — review fixes", () => {
     expect(summary([game(3, "Apiary", "Апиарий")], [product("Apiary (Апиарий)")])).toEqual(["3:lavkaigr:confirmed:exact-title"]);
   });
 });
+
+describe("matchProducts — what a full catalogue showed", () => {
+  it("confirms the Russian edition when a shop also lists the import under its original name", () => {
+    const spaceBase = game(1, "Space Base", "Космобаза");
+    const russian = product("Космобаза");
+    const links = matchProducts([spaceBase], [product("Space Base"), russian]);
+    expect(links).toEqual([
+      { bggId: 1, shop: "lavkaigr", externalId: russian.externalId, status: "confirmed", reason: "exact-title" },
+    ]);
+  });
+
+  it("still asks when two products carry the Russian name", () => {
+    expect(summary([game(1, "Space Base", "Космобаза")], [product("Космобаза"), product("Космобаза")])).toEqual([
+      "1:lavkaigr:candidate:several-products",
+      "1:lavkaigr:candidate:several-products",
+    ]);
+  });
+
+  it("confirms a base game whose name starts another game's name with a real subtitle", () => {
+    const base = game(266192, "Wingspan", "Крылья");
+    const asia = game(366161, "Wingspan Asia", "Крылья: Азия");
+    expect(summary([base, asia], [product("Крылья")])).toEqual(["266192:lavkaigr:confirmed:exact-title"]);
+  });
+
+  it("still asks when the other game is the same name plus edition words", () => {
+    const first = game(1, "Pax Pamir", "Пакс Памир");
+    const second = game(2, "Pax Pamir: Second Edition", "Пакс Памир. Второе издание");
+    expect(summary([first, second], [product("Пакс Памир")])).toEqual(["1:lavkaigr:candidate:name-within-another-game"]);
+  });
+
+  it("reads through the shop's generic prefix", () => {
+    expect(summary([game(1, "Bomb Busters", "Это бомба!")], [product("Настольная игра Это Бомба!")])).toEqual([
+      "1:lavkaigr:confirmed:exact-title",
+    ]);
+    expect(summary([game(2, "Fromage", "Фромаж")], [product("Настольная игра «Фромаж»")])).toEqual([
+      "2:lavkaigr:confirmed:exact-title",
+    ]);
+  });
+
+  it("ignores marked-down, damaged and second-hand listings", () => {
+    const brass = game(1, "Brass: Birmingham", "Brass. Бирмингем");
+    expect(summary([brass], [product("Brass. Бирмингем (уценённый товар)")])).toEqual([]);
+    expect(summary([brass], [product("Brass. Бирмингем (Уценка)")])).toEqual([]);
+    expect(summary([brass], [product("Brass. Бирмингем (мятая коробка)")])).toEqual([]);
+    expect(summary([brass], [product("Brass. Бирмингем (Комиссионная)")])).toEqual([]);
+    expect(summary([brass], [product("Brass. Бирмингем (Игра без коробки)")])).toEqual([]);
+  });
+});
+
+describe("matchProducts — imports", () => {
+  const lords: GameNames = { bggId: 1, primaryName: "Lords of Waterdeep", names: ["Lords of Waterdeep"], publisherShops: [] };
+  const resArcana: GameNames = { bggId: 2, primaryName: "Res Arcana", names: ["Res Arcana"], publisherShops: ["gaga"] };
+
+  it("ignores an original-language title in a shop that is not the game's Russian publisher", () => {
+    expect(summary([lords], [product("Lords of Waterdeep")])).toEqual([]);
+    expect(summary([lords], [product("Lords of Waterdeep: Deluxe")])).toEqual([]);
+  });
+
+  it("confirms an original-language title in the Russian publisher's own shop", () => {
+    expect(summary([resArcana], [product("Res Arcana", { shop: "gaga" })])).toEqual(["2:gaga:confirmed:exact-title"]);
+    expect(summary([resArcana], [product("Res Arcana", { shop: "lavkaigr" })])).toEqual([]);
+  });
+
+  it("confirms a Russian title anywhere", () => {
+    const game1: GameNames = { bggId: 3, primaryName: "Calico", names: ["Calico", "Котики"], publisherShops: ["crowdgames"] };
+    expect(summary([game1], [product("Котики", { shop: "lavkaigr" })])).toEqual(["3:lavkaigr:confirmed:exact-title"]);
+  });
+});
+

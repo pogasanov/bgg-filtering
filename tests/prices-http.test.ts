@@ -171,3 +171,39 @@ describe("createShopGet — redirects", () => {
     await expect(get("https://shop.example/a")).rejects.toThrow(/redirect/i);
   });
 });
+
+describe("createShopGet — network errors", () => {
+  function flaky(failures: number) {
+    let pageAttempts = 0;
+    const sleeps: number[] = [];
+    const get = createShopGet({
+      origin: "https://shop.example",
+      userAgent: buildUserAgent(),
+      fetchImpl: (async (input: RequestInfo | URL) => {
+        if (String(input).endsWith("/robots.txt")) return new Response("");
+        pageAttempts += 1;
+        if (pageAttempts <= failures) throw new TypeError("fetch failed");
+        return new Response("page");
+      }) as typeof fetch,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+      now: () => 0,
+    });
+    return { get, attempts: () => pageAttempts, sleeps };
+  }
+
+  it("tries again after a dropped connection, still spaced apart", async () => {
+    const h = flaky(2);
+    expect(await h.get("https://shop.example/a")).toBe("page");
+    expect(h.attempts()).toBe(3);
+    expect(h.sleeps.filter((ms) => ms >= 2000).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("gives up after three attempts and says which URL failed", async () => {
+    const h = flaky(5);
+    await expect(h.get("https://shop.example/a")).rejects.toThrow("https://shop.example/a");
+    expect(h.attempts()).toBe(3);
+  });
+});
+
