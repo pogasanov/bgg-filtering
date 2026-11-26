@@ -23,18 +23,27 @@ export type ChartSeries = {
   shops: ShopCode[];
   /** Real observations in the range, not counting the rows added at its edges. */
   pointCount: number;
+  /** Per shop, the times at which a price was actually observed: where a point marker belongs. */
+  observed: Partial<Record<ShopCode, number[]>>;
 };
 
-type Step = { t: number; value: number | null };
+/** `seen` is when the shop was read; `t` is where the step takes effect on the chart. */
+type Step = { t: number; seen: number; value: number | null };
 
 /** A shop's line: each step holds until the next, and the last one until the last successful check. */
 function steps(shop: ShopHistory): { steps: Step[]; end: number } | null {
   if (shop.points.length === 0) return null;
-  const list = shop.points.map((point) => ({
-    t: Date.parse(point.at),
+  const list: Step[] = [];
+  for (const point of shop.points) {
+    const seen = Date.parse(point.at);
     // Out of stock or unpriced breaks the line instead of drawing a price nobody could pay.
-    value: point.available === false ? null : point.price,
-  }));
+    const value = point.available === false ? null : point.price;
+    const previous = list[list.length - 1];
+    // A stepped line only runs as far as its next drawn point. So the price before a gap is drawn
+    // up to the moment the gap was seen, and the gap itself begins an instant later.
+    const startsGap = value === null && previous !== undefined && previous.value !== null;
+    list.push({ t: startsGap ? seen + 1 : seen, seen, value });
+  }
   const last = list[list.length - 1].t;
   const checked = shop.checkedAt === null ? last : Date.parse(shop.checkedAt);
   return { steps: list, end: Math.max(last, checked) };
@@ -64,7 +73,8 @@ export function chartSeries(history: GameHistory, range: ChartRange, now: Date):
   let pointCount = 0;
   for (const line of lines) {
     for (const step of line.steps) {
-      if (step.t < start) continue;
+      if (step.seen < start) continue;
+      times.add(step.seen);
       times.add(step.t);
       pointCount += 1;
     }
@@ -84,8 +94,15 @@ export function chartSeries(history: GameHistory, range: ChartRange, now: Date):
       return row;
     });
 
+  const observed: ChartSeries["observed"] = {};
+  for (const line of lines) {
+    const seen = line.steps.filter((step) => step.value !== null && step.seen >= start).map((step) => step.seen);
+    if (seen.length > 0) observed[line.shop] = seen;
+  }
+
   return {
     rows,
+    observed,
     shops: lines.filter((line) => rows.some((row) => row[line.shop] !== undefined)).map((line) => line.shop),
     pointCount,
   };

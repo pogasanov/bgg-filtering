@@ -77,7 +77,13 @@ export function ExpandableListItem({ gameId, offers, bggUrl, children }: PanelDa
 
   return (
     <RowContext.Provider value={{ open, toggle: () => setOpen((current) => !current), panelId }}>
-      <li className={cn("border-b", open && "bg-muted/30")}>
+      {/* Closed items off screen are skipped by the browser; an open one holds a chart and must lay out normally. */}
+      <li
+        className={cn(
+          "border-b",
+          open ? "bg-muted/30" : "[contain-intrinsic-size:auto_69px] [content-visibility:auto]",
+        )}
+      >
         <div className="relative flex items-center gap-3 px-4 py-2.5">{children}</div>
         {open ? (
           <div id={panelId}>

@@ -164,3 +164,7 @@ test("phone list item toggles the same panel and shows the price", () => {
   expect(html).not.toContain(`href="${pollGame.bggUrl}"`);
   expect(html).toContain("1\u00a0390\u00a0₽");
 });
+
+test("closed phone items stay cheap to render off screen", () => {
+  expect(render(ResultsList, { games: [pricedGame] })).toMatch(/<li[^>]*content-visibility:auto/);
+});

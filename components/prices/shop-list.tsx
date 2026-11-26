@@ -12,7 +12,7 @@ type ShopListProps = {
 const linkClass = "underline underline-offset-2 outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
 function date(isoTime: string) {
-  return new Date(isoTime).toLocaleDateString("ru-RU", { timeZone: "UTC" });
+  return new Date(isoTime).toLocaleDateString("ru-RU");
 }
 
 export function BggLink({ bggUrl }: { bggUrl: string }) {
@@ -41,6 +41,9 @@ function OfferStatus({ offer }: { offer: GameOffer }) {
 
 /** What each tracked shop asks for the game right now. Comes with the page, so it shows before the chart loads. */
 export function ShopList({ offers, lowest, bggUrl }: ShopListProps) {
+  const checkTimes = offers.flatMap((offer) => (offer.checkedAt === null ? [] : [offer.checkedAt])).sort();
+  const updatedAt = checkTimes[checkTimes.length - 1];
+
   return (
     <div className="grid content-start gap-3 text-[13px]">
       <ul className="grid gap-2">
@@ -74,6 +77,7 @@ export function ShopList({ offers, lowest, bggUrl }: ShopListProps) {
             {shopNames[lowest.shop]}, {date(lowest.at)}
           </p>
         ) : null}
+        {updatedAt ? <p>Цены обновлены {date(updatedAt)}</p> : null}
         <p>
           <BggLink bggUrl={bggUrl} />
         </p>

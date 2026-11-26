@@ -1,3 +1,4 @@
+import { lowestKnownOffer } from "./prices/offers";
 import type { MatrixSelection, ListedGame, PlayerCount, SortDir, SortKey } from "./bgg/types";
 
 export type GameFilters = {
@@ -33,7 +34,11 @@ function compareGames(sort: SortKey, dir: SortDir) {
     const left = sort === "price" ? a.bestPrice : a[sort];
     const right = sort === "price" ? b.bestPrice : b[sort];
     // Missing values go last whichever way the column is sorted.
-    if (left === null && right === null) return 0;
+    if (left === null && right === null) {
+      if (sort !== "price") return 0;
+      // Among games nobody can buy today, those with a known price come before those with none.
+      return Number(lowestKnownOffer(b.offers) !== null) - Number(lowestKnownOffer(a.offers) !== null);
+    }
     if (left === null) return 1;
     if (right === null) return -1;
     return (left - right) * sign;

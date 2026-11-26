@@ -34,6 +34,7 @@ test("shop list links to the product, shows sale, stock and stale state", () => 
   expect(html).toContain("нет в наличии");
   expect(html).toContain("проверено 01.12.2026");
   expect(html).toContain("Минимум за всё время");
+  expect(html).toContain("Цены обновлены 09.12.2026");
   expect(html).toContain("1 500 ₽");
   expect(html).toContain(`href="${BGG}"`);
   expect(html).not.toContain("utm_");

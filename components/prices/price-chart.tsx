@@ -20,8 +20,9 @@ const config = Object.fromEntries(
   shopCodes.map((shop) => [shop, { label: shopNames[shop], color: `var(--shop-${shop})` }]),
 ) satisfies ChartConfig;
 
-const shortDate = (t: number) => new Date(t).toLocaleDateString("ru-RU", { day: "numeric", month: "short", timeZone: "UTC" });
-const fullDate = (t: number) => new Date(t).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+// Rendered only in the browser, so the viewer's own time zone is used: the axis ticks fall on local midnights.
+const shortDate = (t: number) => new Date(t).toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+const fullDate = (t: number) => new Date(t).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
 
 /** Price over time, one stepped line per shop. Shown as is however little history there is. */
 export function PriceChart({ history, now }: PriceChartProps) {
@@ -96,7 +97,14 @@ export function PriceChart({ history, now }: PriceChartProps) {
               type="stepAfter"
               stroke={`var(--color-${shop})`}
               strokeWidth={2}
-              dot={{ r: 3, fill: `var(--color-${shop})` }}
+              // Mark only real observations: the rows also hold other shops' times and the range edges.
+              dot={({ cx, cy, payload, index }: { cx?: number; cy?: number; payload?: { t: number }; index?: number }) =>
+                cx !== undefined && cy !== undefined && payload && series.observed[shop]?.includes(payload.t) ? (
+                  <circle key={index} cx={cx} cy={cy} r={3} fill={`var(--color-${shop})`} />
+                ) : (
+                  <g key={index} />
+                )
+              }
               activeDot={{ r: 5 }}
               connectNulls={false}
               isAnimationActive={false}

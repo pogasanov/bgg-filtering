@@ -292,4 +292,15 @@ describe("price sorting", () => {
     expect(filterGames(games, { ...base, sort: "price" }).map((item) => item.id)).toEqual([3, 1, 2]);
     expect(filterGames(games, { ...base, sort: "price", sortDir: "desc" }).map((item) => item.id)).toEqual([1, 3, 2]);
   });
+
+  test("games known only at an out-of-stock price come after in-stock ones and before games with no price", () => {
+    const outOfStock = { shop: "gaga" as const, url: "https://x", price: 500, oldPrice: null, available: false, checkedAt: null, stale: false, salePercent: null };
+    const games = [
+      makeGame({ id: 1, bestPrice: null }),
+      makeGame({ id: 2, bestPrice: null, offers: [outOfStock] }),
+      makeGame({ id: 3, bestPrice: 900 }),
+    ];
+    expect(filterGames(games, { ...base, sort: "price" }).map((item) => item.id)).toEqual([3, 2, 1]);
+    expect(filterGames(games, { ...base, sort: "price", sortDir: "desc" }).map((item) => item.id)).toEqual([3, 2, 1]);
+  });
 });
