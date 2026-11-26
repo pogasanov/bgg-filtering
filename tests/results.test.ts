@@ -13,7 +13,10 @@ import { defaultFilters } from "@/lib/url-state";
 import { pollGame } from "./fixtures";
 
 // The components read the router; outside Next there is none.
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace() {}, refresh() {} }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace() {}, refresh() {} }),
+  useSelectedLayoutSegment: () => null,
+}));
 
 const status = {
   gameCount: 1,
@@ -23,9 +26,8 @@ const status = {
 function render<P extends object>(component: ComponentType<P>, props: P) {
   // The sort and reset buttons inside the results read the page state; mirror the page here.
   const provider = {
-    initialFilters: defaultFilters,
     facets: { allTags: [], allLanguages: [], yearScale: [] },
-    tagCounts: new Map<string, number>(),
+    baseTagCounts: new Map<string, number>(),
     status,
   };
   return renderToStaticMarkup(

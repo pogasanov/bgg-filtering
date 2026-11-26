@@ -1,35 +1,38 @@
 import type { ListedGame } from "./bgg/types";
-import type { CatalogStatus } from "./catalog/types";
+import type { Catalog, CatalogStatus } from "./catalog/types";
 import { filterGames, gameTags, tagCounts, type GameFilters } from "./filtering";
 import { clampPage, pageCount, pageSlice } from "./pagination";
+import { defaultFilters } from "./url-state";
 import { buildYearScale } from "./year-scale";
 
-/** What the filter controls offer. Depends on the cached games only, not on the filters. */
+/** What the filter controls offer. Depends on the catalog only, not on the filters. */
 export type GameFacets = {
   allTags: string[];
   allLanguages: string[];
   yearScale: number[];
 };
 
-/** Every game passing the filters, sorted, and the tag counts for the same filters. */
-export type GameMatches = {
-  games: ListedGame[];
+/** What the page frame shows around the results: the same for every set of filters. */
+export type CatalogFrame = {
+  facets: GameFacets;
+  status: CatalogStatus;
+  /** How many games the catalog holds. */
+  total: number;
+  /** The tag counts with no filters set, shown until a page brings the counts for its own filters. */
   tagCounts: Map<string, number>;
 };
 
-/** Everything the page shows for one set of filters and one page number. */
+/** The results for one set of filters and one page number. */
 export type GamesView = {
   /** The games on this page. */
   games: ListedGame[];
   /** How many games pass the filters, over all pages. */
   shown: number;
-  /** How many games the cache holds. */
+  /** How many games the catalog holds. */
   total: number;
   page: number;
   pageCount: number;
   tagCounts: Map<string, number>;
-  facets: GameFacets;
-  status: CatalogStatus;
 };
 
 export function gameFacets(games: ListedGame[]): GameFacets {
@@ -40,31 +43,25 @@ export function gameFacets(games: ListedGame[]): GameFacets {
   };
 }
 
-export function matchGames(games: ListedGame[], filters: GameFilters): GameMatches {
-  return { games: filterGames(games, filters), tagCounts: tagCounts(games, filters) };
-}
-
-export function buildGamesView(
-  total: number,
-  facets: GameFacets,
-  matches: GameMatches,
-  status: CatalogStatus,
-  requestedPage: number,
-): GamesView {
-  const page = clampPage(requestedPage, matches.games.length);
+export function catalogFrame(catalog: Catalog): CatalogFrame {
   return {
-    games: pageSlice(matches.games, page),
-    shown: matches.games.length,
-    total,
-    page,
-    pageCount: pageCount(matches.games.length),
-    tagCounts: matches.tagCounts,
-    facets,
-    status,
+    facets: gameFacets(catalog.games),
+    status: catalog.status,
+    total: catalog.games.length,
+    tagCounts: tagCounts(catalog.games, defaultFilters),
   };
 }
 
-/** The view straight from a list of games, with nothing cached. */
-export function gamesView(games: ListedGame[], status: CatalogStatus, filters: GameFilters, page = 1): GamesView {
-  return buildGamesView(games.length, gameFacets(games), matchGames(games, filters), status, page);
+/** Filters and sorts the games, then cuts one page. A page number past the end lands on the last page. */
+export function gamesView(games: ListedGame[], filters: GameFilters, requestedPage = 1): GamesView {
+  const matches = filterGames(games, filters);
+  const page = clampPage(requestedPage, matches.length);
+  return {
+    games: pageSlice(matches, page),
+    shown: matches.length,
+    total: games.length,
+    page,
+    pageCount: pageCount(matches.length),
+    tagCounts: tagCounts(games, filters),
+  };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, useSelectedLayoutSegment } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -19,7 +19,7 @@ import type { SortKey } from "@/lib/bgg/types";
 import type { CatalogStatus } from "@/lib/catalog/types";
 import { defaultSortDir, type GameFilters } from "@/lib/filtering";
 import type { GameFacets } from "@/lib/games-view";
-import { defaultFilters, serializeFilters } from "@/lib/url-state";
+import { defaultFilters, parseFilters, serializeFilters } from "@/lib/url-state";
 
 type GamesState = {
   /** What the controls show. Changes at once; the server-rendered results follow through the URL. */
@@ -30,16 +30,17 @@ type GamesState = {
   chips: FilterChip[];
   facets: GameFacets;
   tagCounts: Map<string, number>;
+  /** Called by the results with the tag counts for their own filters. */
+  setTagCounts: (counts: Map<string, number>) => void;
   status: CatalogStatus;
   resetFilters: () => void;
   sortBy: (key: SortKey) => void;
 };
 
 type GamesProviderProps = {
-  /** The filters the server read from the URL for the first render. */
-  initialFilters: GameFilters;
   facets: GameFacets;
-  tagCounts: Map<string, number>;
+  /** The tag counts with no filters set. */
+  baseTagCounts: Map<string, number>;
   status: CatalogStatus;
   children: ReactNode;
 };
@@ -57,11 +58,35 @@ export function useGames(): GamesState {
 /**
  * Holds the filter controls' state and sends it to the server through the URL: the server filters
  * the games and renders the result rows, so neither the games nor the filtering reach the browser.
- * It renders nothing itself; the page layout stays in server components and is passed through as children.
+ * It renders nothing itself; the page frame stays in server components and is passed through as children.
+ *
+ * It sits in the layout above the static pages of the full list and the filtered view. A static
+ * page must not read the URL while it is prerendered, and there the filters are the defaults by
+ * definition. Only a document that was opened on the filtered view reads its first filters from the
+ * URL. The choice is made once, when the provider mounts, so moving between the routes later never
+ * swaps the tree underneath the controls.
  */
-export function GamesProvider({ initialFilters, facets, tagCounts, status, children }: GamesProviderProps) {
+export function GamesProvider(props: GamesProviderProps) {
+  const [openedOnView] = useState(useSelectedLayoutSegment() === "view");
+  return openedOnView ? <UrlSeededState {...props} /> : <GamesState {...props} initialFilters={defaultFilters} />;
+}
+
+function UrlSeededState(props: GamesProviderProps) {
+  const params = useSearchParams();
+  const [initialFilters] = useState(() => parseFilters(new URLSearchParams(params.toString())));
+  return <GamesState {...props} initialFilters={initialFilters} />;
+}
+
+function GamesState({
+  initialFilters,
+  facets,
+  baseTagCounts,
+  status,
+  children,
+}: GamesProviderProps & { initialFilters: GameFilters }) {
   const router = useRouter();
   const [filters, setFilters] = useState(initialFilters);
+  const [tagCounts, setTagCounts] = useState(baseTagCounts);
   const [isPending, startNavigation] = useTransition();
   // The last query asked of the router. Compared instead of the address bar, which lags behind a navigation in flight.
   const requestedQuery = useRef(serializeFilters(initialFilters));
@@ -106,6 +131,7 @@ export function GamesProvider({ initialFilters, facets, tagCounts, status, child
     chips,
     facets,
     tagCounts,
+    setTagCounts,
     status,
     resetFilters,
     sortBy,

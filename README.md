@@ -2,9 +2,9 @@
 
 A public, non-commercial Next.js site for filtering top BoardGameGeek games by categories, mechanics, and player-count recommendation polls.
 
-Filters live in a rail on the left with the player-count × verdict matrix on top; results are a sortable table with the poll verdict for every player count shown in each row. The current filters, sort and page are kept in the URL, so a reload or a copied link restores the view. Filtering and sorting run on the server, which renders 100 games per page and keeps the result of each filter combination in memory until the next sync. The theme follows the operating system.
+Filters live in a rail on the left with the player-count × verdict matrix on top; results are a sortable table with the poll verdict for every player count shown in each row. The current filters, sort and page are kept in the URL, so a reload or a copied link restores the view. Filtering and sorting run on the server, which renders 100 games per page. The theme follows the operating system.
 
-- **Site:** Next.js on Vercel (Hobby). The page renders per request so filters can come from the URL, but its data comes from the Next.js data cache: ordinary page views never query the database.
+- **Site:** Next.js on Vercel (Hobby), with Cache Components. The list with no filters is static, every page of it: the pages are rebuilt every 12 hours and after each sync, and the build fails if anything on them would need a per-request render. `/?page=N` is rewritten to the static `/page/N`; a URL with a filter or a sort is rewritten to the `/view` route, which renders per request; its output is cached per view for 12 hours, except free-text searches. Both read the catalog from the Next.js data cache, so ordinary page views never query the database. The build prerenders the static pages, so `DATABASE_URL` must be set and reachable at build time.
 - **Database:** Postgres on Neon (Free).
 - **Weekly sync:** a Node script run by a Modal cron job (Starter) every Monday at 03:00 UTC. It refreshes game details from the BGG XML API, then asks the site to revalidate.
 - **Errors and logs:** Sentry (Developer plan), for both the site and the worker.

@@ -1,7 +1,8 @@
 import { Pagination } from "@/components/results/pagination";
-import { AppResultsBar, PendingResults } from "@/components/results/results-controls";
+import { AppResultsBar, PendingResults, TagCountsSync } from "@/components/results/results-controls";
 import { ResultsList } from "@/components/results/results-list";
 import { ResultsTable } from "@/components/results/results-table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { defaultSortDir, type GameFilters } from "@/lib/filtering";
 import type { GamesView } from "@/lib/games-view";
 
@@ -16,8 +17,20 @@ type ResultsProps = {
  * and a page holds few enough rows for the hidden copy to be cheap.
  */
 export function Results({ view, filters }: ResultsProps) {
+  if (view.total === 0) {
+    return (
+      <div className="p-4">
+        <Alert>
+          <AlertTitle>Игр пока нет</AlertTitle>
+          <AlertDescription>Данные об играх ещё не загружены. Загляните чуть позже.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <>
+      <TagCountsSync counts={view.tagCounts} />
       <AppResultsBar shown={view.shown} total={view.total} />
 
       <PendingResults>

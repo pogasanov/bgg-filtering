@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp } from "lucide-react";
-import type { ReactNode } from "react";
+import { useLayoutEffect, type ReactNode } from "react";
 import { useGames } from "@/components/games-state";
 import { ResultsBar } from "@/components/results/results-bar";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,16 @@ import { sortLabels } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 // The interactive pieces inside the server-rendered results. Each one only reads or changes the filters.
+
+/**
+ * Hands the tag counts of the rendered results to the rail, which lives in the layout above the
+ * page and so cannot receive them as props. Set before paint, so the rail and the rows change together.
+ */
+export function TagCountsSync({ counts }: { counts: Map<string, number> }) {
+  const { setTagCounts } = useGames();
+  useLayoutEffect(() => setTagCounts(counts), [counts, setTagCounts]);
+  return null;
+}
 
 type AppResultsBarProps = {
   shown: number;

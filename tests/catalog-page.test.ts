@@ -1,17 +1,24 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
-import { BggApp } from "@/components/bgg-app";
+import { CatalogShell } from "@/components/catalog-shell";
+import { Results } from "@/components/results/results";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { emptyPlayerRecommendations } from "@/lib/bgg/parser";
 import type { CatalogStatus } from "@/lib/catalog/types";
 import type { NormalizedGame } from "@/lib/bgg/types";
 import type { GameFilters } from "@/lib/filtering";
-import { gamesView } from "@/lib/games-view";
-import { defaultFilters } from "@/lib/url-state";
+import { catalogFrame, gamesView } from "@/lib/games-view";
+import { defaultFilters, serializeFilters } from "@/lib/url-state";
 
-// The components read the router; outside Next there is none.
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace() {}, refresh() {} }) }));
+// The controls read the router; outside Next there is none. A non-empty query stands for a document
+// opened on the filtered view, an empty one for the static first page.
+let query = "";
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace() {}, refresh() {} }),
+  useSelectedLayoutSegment: () => (query ? "view" : null),
+  useSearchParams: () => new URLSearchParams(query),
+}));
 
 const status: CatalogStatus = {
   gameCount: 3,
@@ -45,17 +52,22 @@ function slotCount(html: string, slot: string) {
 }
 
 function render(games: NormalizedGame[], filters: GameFilters = defaultFilters, page = 1) {
-  // The root layout provides the tooltip context; mirror it here.
+  query = serializeFilters(filters);
+  const frame = catalogFrame({ games, status: { ...status, gameCount: games.length } });
+  // The root layout provides the tooltip context and the route's page provides the results; mirror both here.
   return renderToStaticMarkup(
     createElement(
       TooltipProvider,
       null,
-      createElement(BggApp, { view: gamesView(games, { ...status, gameCount: games.length }, filters, page), filters }),
+      createElement(CatalogShell, {
+        frame,
+        children: createElement(Results, { view: gamesView(games, filters, page), filters }),
+      }),
     ),
   );
 }
 
-describe("BggApp", () => {
+describe("catalog page", () => {
   test("renders the rail, search, count and one table without cards or a hero", () => {
     const html = render([makeGame(1, 2000), makeGame(2, 2020)]);
     expect(html.match(/data-matrix-cell="/g)).toHaveLength(28);
