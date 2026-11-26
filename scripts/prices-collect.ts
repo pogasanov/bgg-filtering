@@ -12,6 +12,7 @@ import { closeDb, getDb } from "@/lib/db/client";
 import { fetchCatalogue, storeCollection } from "@/lib/prices/collect";
 import { buildUserAgent } from "@/lib/prices/http";
 import { loadLegacyGames } from "@/lib/prices/legacy-games";
+import { refreshSite } from "@/lib/prices/refresh-site";
 import type { ShopOutcome } from "@/lib/prices/report";
 import { countCandidates, getCurrentOffers } from "@/lib/prices/store";
 import { shopCodes, type ShopCode, type ShopProduct } from "@/lib/prices/types";
@@ -70,6 +71,10 @@ async function main() {
         `${await countCandidates(db)} candidates wait for review.`,
     );
     if (summary.shops.some((shop) => shop.error !== null)) process.exitCode = 1;
+    await refreshSite(
+      { REVALIDATE_URL: process.env.REVALIDATE_URL, REVALIDATE_SECRET: process.env.REVALIDATE_SECRET },
+      console.log,
+    );
   } finally {
     await closeDb();
   }
