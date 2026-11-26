@@ -93,6 +93,9 @@ importers:
       esbuild:
         specifier: 0.28.2
         version: 0.28.2
+      sentry:
+        specifier: 0.51.0
+        version: 0.51.0
       tsx:
         specifier: 4.23.15
         version: 4.23.15
@@ -3729,6 +3732,11 @@ packages:
 
   sentry@0.50.0:
     resolution: {integrity: sha512-2BCdoK4xO3mN4c0QTXaMtJBJ9rjL5v1VawaV7Wd605hVWVrpZTipLbjGHEFavS8IliI0W68TGi8CuScbHALPjA==}
+    engines: {node: '>=20.0'}
+    hasBin: true
+
+  sentry@0.51.0:
+    resolution: {integrity: sha512-yN0YWR+16DgMpBcJgTQmdEXl+/fn++m19TV7ONBUwWIHsy5BsMLH7bjwa3N5dBSPOqfsjV8lq67cPMjxISNPYg==}
     engines: {node: '>=20.0'}
     hasBin: true
 
@@ -7390,6 +7398,8 @@ snapshots:
       - supports-color
 
   sentry@0.50.0: {}
+
+  sentry@0.51.0: {}
 
   serve-static@2.2.1:
     dependencies:

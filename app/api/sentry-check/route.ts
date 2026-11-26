@@ -8,5 +8,5 @@ export async function GET(request: Request) {
   if (!hasValidBearer(request, process.env.REVALIDATE_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  throw new Error("Sentry check: deliberate site error");
+  throw new Error(`Sentry check: deliberate site error ${new Date().toISOString()}`);
 }

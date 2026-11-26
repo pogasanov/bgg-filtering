@@ -18,6 +18,8 @@ describe("GET /api/sentry-check", () => {
   });
 
   test("throws a deliberate error with the secret", async () => {
-    await expect(GET(request("Bearer s3cret"))).rejects.toThrow("Sentry check: deliberate site error");
+    await expect(GET(request("Bearer s3cret"))).rejects.toThrow(
+      /^Sentry check: deliberate site error \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+    );
   });
 });

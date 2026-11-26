@@ -23,7 +23,7 @@ const log = createSentryLog(Sentry);
 
 async function sentryCheck(): Promise<number> {
   initSentry();
-  Sentry.captureException(new Error("Sentry check: deliberate worker error"));
+  Sentry.captureException(new Error(`Sentry check: deliberate worker error ${new Date().toISOString()}`));
   log.info("Sentry check sent");
   await Sentry.flush(5000);
   return 0;

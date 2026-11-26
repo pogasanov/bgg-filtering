@@ -18,7 +18,8 @@
     "worker:sentry-check": "pnpm worker:build && MODAL_PROFILE=bgg modal run worker/modal_app.py --sentry-check",
     "vc": "tsx --env-file-if-exists=.env.local scripts/vercel.ts",
     "prices:dry-run": "node --import ./scripts/register-alias.mjs scripts/prices-dry-run.mts",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "sentry": "SENTRY_CONFIG_DIR=${SENTRY_CONFIG_DIR:-$HOME/.config/sentry-bgg} sentry"
   },
   "dependencies": {
     "@sentry/nextjs": "11.17.0",
@@ -51,6 +52,7 @@
     "@types/react-dom": "19.3.0",
     "drizzle-kit": "0.31.11",
     "esbuild": "0.28.2",
+    "sentry": "0.51.0",
     "tsx": "4.23.15",
     "typescript": "5.9.3",
     "vitest": "5.1.2"

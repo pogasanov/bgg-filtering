@@ -11,11 +11,19 @@ export const sentryDataCollection = {
   databaseQueryData: false,
 };
 
+/** Every trace while developing, so one is there to look at; 10% in production builds. */
+export function siteTracesSampleRate(nodeEnv: string | undefined): number {
+  return nodeEnv === "production" ? 0.1 : 1;
+}
+
+/** Session Replay only for sessions that hit an error (browser only). */
+export const siteReplayOptions = { replaysSessionSampleRate: 0, replaysOnErrorSampleRate: 1 };
+
 /** Shared Sentry init options for the site's server, edge and browser runtimes. */
 export const siteSentryOptions = {
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.VERCEL_ENV ?? "development",
-  tracesSampleRate: 0,
+  tracesSampleRate: siteTracesSampleRate(process.env.NODE_ENV),
   dataCollection: sentryDataCollection,
   initialScope: { tags: { component: "site" } },
 };
