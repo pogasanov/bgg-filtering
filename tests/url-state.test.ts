@@ -59,3 +59,33 @@ test("Russian is the default language and any language has its own value", () =>
   expect(parseFilters(new URLSearchParams("lang=any")).language).toBe("");
   expect(parseFilters(new URLSearchParams("lang=German")).language).toBe("German");
 });
+
+test("writes each list as one parameter, since a repeated key loses all but its last value in the production rewrite", () => {
+  const query = serializeFilters({
+    ...defaultFilters,
+    tags: ["I Cut, You Choose", "Deck, Bag, and Pool Building"],
+    matrix: [
+      { playerCount: "1", verdict: "best" },
+      { playerCount: "1", verdict: "recommended" },
+      { playerCount: "2", verdict: "not-playable" },
+    ],
+  });
+  const params = new URLSearchParams(query);
+  const keys = [...params.keys()];
+  expect(keys).toEqual([...new Set(keys)]);
+  expect(params.get("m")).toBe("1:best,1:recommended,2:not-playable");
+
+  // What the page receives when only one value per key survives: still every selection.
+  const lastValueOnly = new URLSearchParams(Object.fromEntries(params));
+  expect(parseFilters(lastValueOnly).matrix).toHaveLength(3);
+  expect(parseFilters(lastValueOnly).tags).toEqual(["I Cut, You Choose", "Deck, Bag, and Pool Building"]);
+});
+
+test("still reads links that repeat the key", () => {
+  const parsed = parseFilters(new URLSearchParams("m=1:best&m=2:not-playable&tag=A&tag=B"));
+  expect(parsed.matrix).toEqual([
+    { playerCount: "1", verdict: "best" },
+    { playerCount: "2", verdict: "not-playable" },
+  ]);
+  expect(parsed.tags).toEqual(["A", "B"]);
+});
