@@ -8,6 +8,9 @@ import { makeGame, makeRanked, spyLog } from "./helpers/fixtures";
 import { defaultFilters } from "@/lib/url-state";
 import { createTestDb, rows } from "./helpers/test-db";
 
+/** The defaults list only games with a Russian edition; these tests are about the whole catalog. */
+const everyLanguage = { ...defaultFilters, language: "" };
+
 const NOW = new Date("2026-11-30T03:00:00.000Z");
 const noSleep = async () => {};
 
@@ -37,7 +40,7 @@ describe("runSync", () => {
     const outcome = await runSync({ db, fetchBatch, log: spyLog(), sleep: noSleep, batchSize: 2, now: () => NOW });
 
     expect(outcome).toMatchObject({ status: "success", fetchedCount: 3, failedIds: [] });
-    expect((await queryGamesView(db, defaultFilters)).games).toHaveLength(3);
+    expect((await queryGamesView(db, everyLanguage)).games).toHaveLength(3);
     expect(await lockRows(db)).toEqual([]);
   });
 

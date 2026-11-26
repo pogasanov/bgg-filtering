@@ -5,6 +5,8 @@ const thingXml = `<?xml version="1.0" encoding="utf-8"?>
 <items>
   <item type="boardgame" id="174430">
     <name type="primary" value="Gloomhaven"/>
+    <name type="alternate" value="Мрачная Гавань"/>
+    <name type="alternate" value="Сутінкова Гавань"/>
     <yearpublished value="2017"/>
     <description>Vanquish monsters with &lt;em&gt;strategic&lt;/em&gt; cardplay.</description>
     <minplayers value="1"/>
@@ -69,6 +71,7 @@ describe("BGG XML parser", () => {
     expect(parsed[0]).toMatchObject({
       id: 174430,
       title: "Gloomhaven",
+      titleRu: "Мрачная Гавань",
       year: 2017,
       rank: 4,
       geekRating: 8.294,

@@ -30,3 +30,10 @@ test("nothing active means no chips", () => {
   expect(activeFilterCount(defaultFilters)).toBe(0);
   expect(activeFilterCount({ ...defaultFilters, sort: "weight" })).toBe(0);
 });
+
+test("the default Russian language has no chip; any other choice clears back to Russian", () => {
+  expect(activeFilterChips(defaultFilters).find((chip) => chip.id === "lang")).toBeUndefined();
+  const any = activeFilterChips({ ...defaultFilters, language: "" }).find((chip) => chip.id === "lang")!;
+  expect(any.label).toBe("Любой язык");
+  expect(any.next.language).toBe("Russian");
+});

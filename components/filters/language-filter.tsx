@@ -1,6 +1,7 @@
 "use client";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { languageLabel } from "@/lib/labels";
 
 type LanguageFilterProps = {
   languages: string[];
@@ -20,10 +21,10 @@ export function LanguageFilter({ languages, value, onChange }: LanguageFilterPro
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={ANY}>Любой язык</SelectItem>
+        <SelectItem value={ANY}>{languageLabel("")}</SelectItem>
         {options.map((language) => (
           <SelectItem key={language} value={language}>
-            {language}
+            {languageLabel(language)}
           </SelectItem>
         ))}
       </SelectContent>

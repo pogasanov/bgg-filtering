@@ -10,7 +10,7 @@ test("empty query gives defaults and defaults serialise to nothing", () => {
 test("round-trips every field, including tags with URL-significant characters", () => {
   const filters: GameFilters = {
     search: "brass",
-    language: "Russian",
+    language: "German",
     tags: ["Action / Dexterity", "Card Game, Trick-taking & More"],
     matrix: [
       { playerCount: "2", verdict: "best" },
@@ -43,9 +43,19 @@ test("reads the page number and treats anything else as the first page", () => {
 });
 
 test("adds the page to the query only past the first page", () => {
-  const filters = { ...defaultFilters, language: "Russian" };
+  const filters = { ...defaultFilters, language: "German" };
   expect(serializeView(defaultFilters, 1)).toBe("");
   expect(serializeView(defaultFilters, 2)).toBe("page=2");
-  expect(serializeView(filters, 1)).toBe("lang=Russian");
-  expect(serializeView(filters, 4)).toBe("lang=Russian&page=4");
+  expect(serializeView(filters, 1)).toBe("lang=German");
+  expect(serializeView(filters, 4)).toBe("lang=German&page=4");
+});
+
+test("Russian is the default language and any language has its own value", () => {
+  expect(defaultFilters.language).toBe("Russian");
+  expect(parseFilters(new URLSearchParams("")).language).toBe("Russian");
+  expect(parseFilters(new URLSearchParams("lang=")).language).toBe("Russian");
+  expect(serializeFilters({ ...defaultFilters, language: "Russian" })).toBe("");
+  expect(serializeFilters({ ...defaultFilters, language: "" })).toBe("lang=any");
+  expect(parseFilters(new URLSearchParams("lang=any")).language).toBe("");
+  expect(parseFilters(new URLSearchParams("lang=German")).language).toBe("German");
 });

@@ -5,6 +5,7 @@ import { ResultsTable } from "@/components/results/results-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { defaultSortDir, type GameFilters } from "@/lib/filtering";
 import type { GamesView } from "@/lib/games-view";
+import { RUSSIAN } from "@/lib/url-state";
 
 type ResultsProps = {
   view: GamesView;
@@ -28,6 +29,9 @@ export function Results({ view, filters }: ResultsProps) {
     );
   }
 
+  // Prices are for Russian editions only, so they are shown only while the list is of those.
+  const russian = filters.language === RUSSIAN;
+
   return (
     <>
       <TagCountsSync counts={view.tagCounts} />
@@ -35,10 +39,15 @@ export function Results({ view, filters }: ResultsProps) {
 
       <PendingResults>
         <div className="hidden lg:block">
-          <ResultsTable games={view.games} sort={filters.sort} sortDir={filters.sortDir ?? defaultSortDir(filters.sort)} />
+          <ResultsTable
+            games={view.games}
+            sort={filters.sort}
+            sortDir={filters.sortDir ?? defaultSortDir(filters.sort)}
+            russian={russian}
+          />
         </div>
         <div className="lg:hidden">
-          <ResultsList games={view.games} />
+          <ResultsList games={view.games} russian={russian} />
         </div>
       </PendingResults>
 

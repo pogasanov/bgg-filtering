@@ -9,9 +9,14 @@ import {
 } from "./bgg/types";
 import { defaultSortDir, type GameFilters } from "./filtering";
 
+/** The language the site opens on: the Russian editions, with Russian titles and shop prices. */
+export const RUSSIAN = "Russian";
+/** The `lang` value for "any language". An empty language means any; a missing `lang` means Russian. */
+export const ANY_LANGUAGE_PARAM = "any";
+
 export const defaultFilters: GameFilters = {
   search: "",
-  language: "",
+  language: RUSSIAN,
   tags: [],
   matrix: [],
   sort: "rank",
@@ -40,6 +45,11 @@ function parseMatrix(values: string[]): MatrixSelection[] {
   return selections;
 }
 
+function parseLanguage(value: string | null): string {
+  if (value === null || value === "") return RUSSIAN;
+  return value === ANY_LANGUAGE_PARAM ? "" : value;
+}
+
 /** Reads filters from a query string. Anything unrecognised is ignored rather than rejected. */
 export function parseFilters(params: URLSearchParams): GameFilters {
   const sortParam = params.get("sort") as SortKey | null;
@@ -48,7 +58,7 @@ export function parseFilters(params: URLSearchParams): GameFilters {
 
   return {
     search: params.get("q") ?? "",
-    language: params.get("lang") ?? "",
+    language: parseLanguage(params.get("lang")),
     tags: [...new Set(params.getAll("tag").filter((tag) => tag !== ""))],
     matrix: parseMatrix(params.getAll("m")),
     sort,
@@ -62,7 +72,7 @@ export function parseFilters(params: URLSearchParams): GameFilters {
 export function serializeFilters(filters: GameFilters): string {
   const params = new URLSearchParams();
   if (filters.search.trim() !== "") params.set("q", filters.search);
-  if (filters.language !== "") params.set("lang", filters.language);
+  if (filters.language !== RUSSIAN) params.set("lang", filters.language === "" ? ANY_LANGUAGE_PARAM : filters.language);
   for (const tag of filters.tags) params.append("tag", tag);
   for (const selection of filters.matrix) params.append("m", `${selection.playerCount}:${selection.verdict}`);
   if (filters.minYear !== null) params.set("ymin", String(filters.minYear));

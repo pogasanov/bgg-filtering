@@ -79,7 +79,11 @@ export function filterCondition(filters: GameFilters): SQL | undefined {
   const conditions: (SQL | undefined)[] = [];
 
   const search = filters.search.trim().toLowerCase();
-  if (search) conditions.push(sql`strpos(lower(${games.title}), ${search}) > 0`);
+  if (search) {
+    conditions.push(
+      sql`(strpos(lower(${games.title}), ${search}) > 0 or strpos(lower(coalesce(${games.titleRu}, '')), ${search}) > 0)`,
+    );
+  }
 
   if (filters.language) {
     conditions.push(
@@ -131,9 +135,9 @@ export async function queryListedIds(db: Db): Promise<number[]> {
   return rows.map((row) => row.id);
 }
 
-/** How many games the catalog lists. */
+/** How many games the catalog lists under the default filters: the unfiltered pages' length. */
 export function countCatalogGames(db: Db): Promise<number> {
-  return countGames(db, undefined);
+  return countGames(db, filterCondition(defaultFilters));
 }
 
 /** Games per tag among the ranked games passing the condition. */
@@ -157,6 +161,7 @@ const listedColumns = {
   id: games.bggId,
   rank: games.rank,
   title: games.title,
+  titleRu: games.titleRu,
   year: games.year,
   thumbnailUrl: games.thumbnailUrl,
   geekRating: games.geekRating,

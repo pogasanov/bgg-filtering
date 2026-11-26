@@ -59,7 +59,7 @@ test("thumbnail falls back to a placeholder tile", () => {
 
 test("table renders one row per game with dashes for missing numbers", () => {
   const sparse = { ...pollGame, description: "SECRET", playingTime: null, weight: null, rank: null, minPlayers: null, maxPlayers: null };
-  const html = render(ResultsTable, { games: [sparse], sort: "rank", sortDir: "asc" });
+  const html = render(ResultsTable, { games: [sparse], sort: "rank", sortDir: "asc", russian: false });
   expect(html.match(/<tr/g)).toHaveLength(2);
   expect(html).toContain('aria-sort="ascending"');
   expect(html.match(/—/g)!.length).toBeGreaterThanOrEqual(4);
@@ -68,13 +68,13 @@ test("table renders one row per game with dashes for missing numbers", () => {
 });
 
 test("only the active sort column announces a direction", () => {
-  const html = render(ResultsTable, { games: [pollGame], sort: "weight", sortDir: "desc" });
+  const html = render(ResultsTable, { games: [pollGame], sort: "weight", sortDir: "desc", russian: false });
   expect(html.match(/aria-sort="/g)).toHaveLength(1);
   expect(html).toContain('aria-sort="descending"');
 });
 
 test("empty result shows a reset action", () => {
-  const html = render(ResultsTable, { games: [], sort: "rank", sortDir: "asc" });
+  const html = render(ResultsTable, { games: [], sort: "rank", sortDir: "asc", russian: false });
   expect(html).toContain("Ничего не найдено");
   expect(html).toContain("Сбросить фильтры");
 });
@@ -90,29 +90,29 @@ test("bar shows the count, chips and reset only when filtered", () => {
 });
 
 test("phone list shows thumbnail, title, strip and rating per game", () => {
-  const html = render(ResultsList, { games: [pollGame] });
+  const html = render(ResultsList, { games: [pollGame], russian: false });
   expect(html.match(/<li/g)).toHaveLength(1);
   expect(html.match(/data-verdict="/g)).toHaveLength(7);
   expect(html).toContain('data-thumb="placeholder"');
-  expect(render(ResultsList, { games: [] })).toContain("Ничего не найдено");
+  expect(render(ResultsList, { games: [], russian: false })).toContain("Ничего не найдено");
 });
 
 test("on phones the strip lets taps through to the row link; on desktop it stays hoverable", () => {
-  const list = render(ResultsList, { games: [pollGame] });
+  const list = render(ResultsList, { games: [pollGame], russian: false });
   expect(list).toMatch(/<span(?=[^>]*role="img")(?=[^>]*pointer-events-none)/);
-  const table = render(ResultsTable, { games: [pollGame], sort: "rank", sortDir: "asc" });
+  const table = render(ResultsTable, { games: [pollGame], sort: "rank", sortDir: "asc", russian: false });
   expect(table).not.toMatch(/<span(?=[^>]*role="img")(?=[^>]*pointer-events-none)/);
 });
 
 test("complexity is drawn as a five-step meter next to the number", () => {
-  const html = render(ResultsTable, { games: [{ ...pollGame, weight: 3.2 }], sort: "rank", sortDir: "asc" });
+  const html = render(ResultsTable, { games: [{ ...pollGame, weight: 3.2 }], sort: "rank", sortDir: "asc", russian: false });
   expect(html.match(/data-meter-bar="/g)).toHaveLength(5);
   expect(html.match(/data-meter-bar="on"/g)).toHaveLength(3);
   expect(html).toContain("3,2");
 });
 
 test("a game without a complexity value gets a dash and no meter", () => {
-  const html = render(ResultsTable, { games: [{ ...pollGame, weight: null }], sort: "rank", sortDir: "asc" });
+  const html = render(ResultsTable, { games: [{ ...pollGame, weight: null }], sort: "rank", sortDir: "asc", russian: false });
   expect(html).not.toContain("data-meter-bar");
 });
 
@@ -144,7 +144,7 @@ test("price cell: best in stock, sale, out-of-stock fallback, nothing", () => {
 });
 
 test("table has a sortable price column and rows that toggle a panel instead of linking out", () => {
-  const html = render(ResultsTable, { games: [pricedGame], sort: "price", sortDir: "asc" });
+  const html = render(ResultsTable, { games: [pricedGame], sort: "price", sortDir: "asc", russian: true });
   expect(html).toContain("Цена");
   expect(html).toContain('aria-sort="ascending"');
   expect(html).toMatch(/<button(?=[^>]*aria-expanded="false")(?=[^>]*aria-controls="prices-5")/);
@@ -154,17 +154,41 @@ test("table has a sortable price column and rows that toggle a panel instead of 
 });
 
 test("the voters column gives way to the price on narrower screens", () => {
-  const html = render(ResultsTable, { games: [pricedGame], sort: "rank", sortDir: "asc" });
+  const html = render(ResultsTable, { games: [pricedGame], sort: "rank", sortDir: "asc", russian: true });
   expect(html.match(/hidden xl:table-cell/g)).toHaveLength(2);
 });
 
 test("phone list item toggles the same panel and shows the price", () => {
-  const html = render(ResultsList, { games: [pricedGame] });
+  const html = render(ResultsList, { games: [pricedGame], russian: true });
   expect(html).toMatch(/<button(?=[^>]*aria-expanded="false")(?=[^>]*aria-controls="prices-m-5")/);
   expect(html).not.toContain(`href="${pollGame.bggUrl}"`);
   expect(html).toContain("1\u00a0390\u00a0₽");
 });
 
 test("closed phone items stay cheap to render off screen", () => {
-  expect(render(ResultsList, { games: [pricedGame] })).toMatch(/<li[^>]*content-visibility:auto/);
+  expect(render(ResultsList, { games: [pricedGame], russian: true })).toMatch(/<li[^>]*content-visibility:auto/);
+});
+
+test("in the Russian view the rows show the Russian title, falling back to the BGG one", () => {
+  const table = render(ResultsTable, { games: [pricedGame], sort: "rank", sortDir: "asc", russian: true });
+  expect(table).toContain("Опросная игра");
+  expect(table).not.toContain("Poll Game");
+  const untranslated = render(ResultsList, { games: [{ ...pricedGame, titleRu: null }], russian: true });
+  expect(untranslated).toContain("Poll Game");
+});
+
+test("outside the Russian view there are no prices and rows open BGG with the original title", () => {
+  const table = render(ResultsTable, { games: [pricedGame], sort: "rank", sortDir: "asc", russian: false });
+  expect(table).not.toContain("Цена");
+  expect(table).not.toContain("1\u00a0390\u00a0₽");
+  expect(table).not.toContain("aria-expanded=");
+  expect(table).not.toContain("hidden xl:table-cell");
+  expect(table).toContain(`href="${pollGame.bggUrl}"`);
+  expect(table).toContain("Poll Game");
+  expect(table).not.toContain("Опросная игра");
+
+  const list = render(ResultsList, { games: [pricedGame], russian: false });
+  expect(list).not.toContain("1\u00a0390\u00a0₽");
+  expect(list).not.toContain("aria-expanded=");
+  expect(list).toContain(`href="${pollGame.bggUrl}"`);
 });

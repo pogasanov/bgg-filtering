@@ -31,11 +31,12 @@ beforeAll(async () => {
 
 afterAll(() => close());
 
-function makeGame(id: number, year: number | null, languages: string[] = []): NormalizedGame {
+function makeGame(id: number, year: number | null, languages: string[] = ["Russian"]): NormalizedGame {
   return {
     id,
     rank: id,
     title: "Game " + id,
+    titleRu: null,
     year,
     thumbnailUrl: null,
     geekRating: 8,

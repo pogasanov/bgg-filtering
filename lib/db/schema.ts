@@ -36,6 +36,8 @@ export const games = pgTable(
     bggId: integer("bgg_id").primaryKey(),
     rank: integer("rank"),
     title: text("title").notNull(),
+    /** The Russian title, guessed from BGG's alternate names. */
+    titleRu: text("title_ru"),
     year: integer("year"),
     geekRating: doublePrecision("geek_rating"),
     averageRating: doublePrecision("average_rating"),

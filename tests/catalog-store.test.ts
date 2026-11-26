@@ -12,6 +12,9 @@ import type { NormalizedGame, TopRankItem } from "@/lib/bgg/types";
 import { defaultFilters } from "@/lib/url-state";
 import { createTestDb, rows } from "./helpers/test-db";
 
+/** The defaults list only games with a Russian edition; these tests are about the whole catalog. */
+const everyLanguage = { ...defaultFilters, language: "" };
+
 const NOW = new Date("2026-11-30T03:00:00.000Z");
 const SIX_HOURS = 6 * 60 * 60 * 1000;
 
@@ -20,6 +23,7 @@ function game(id: number, overrides: Partial<NormalizedGame> = {}): NormalizedGa
     id,
     rank: id,
     title: `Game ${id}`,
+    titleRu: null,
     year: 2020,
     thumbnailUrl: null,
     geekRating: 7.8,
@@ -69,7 +73,7 @@ describe("catalog store", () => {
     await replaceRankedGames(db, [ranked(1), ranked(2)], NOW);
     await upsertGames(db, [game(1), game(3)], NOW);
 
-    const view = await queryGamesView(db, defaultFilters);
+    const view = await queryGamesView(db, everyLanguage);
 
     expect(view.games.map((item) => item.id)).toEqual([1]);
     expect(view.total).toBe(1);
@@ -81,7 +85,7 @@ describe("catalog store", () => {
     await replaceRankedGames(db, [ranked(1)], NOW);
     await upsertGames(db, [game(1)], NOW);
 
-    const [stored] = (await queryGamesView(db, defaultFilters)).games;
+    const [stored] = (await queryGamesView(db, everyLanguage)).games;
 
     expect(stored.categories).toEqual(["Adventure"]);
     expect(stored.mechanics).toEqual(["Worker Placement"]);
@@ -95,7 +99,7 @@ describe("catalog store", () => {
     await replaceRankedGames(db, [ranked(1), ranked(2)], NOW);
     await upsertGames(db, [game(1, { thumbnailUrl: "https://cf.geekdo-images.com/a/t.jpg" }), game(2)], NOW);
 
-    const games = (await queryGamesView(db, defaultFilters)).games;
+    const games = (await queryGamesView(db, everyLanguage)).games;
 
     expect(games.map((item) => item.thumbnailUrl)).toEqual(["https://cf.geekdo-images.com/a/t.jpg", null]);
   });
@@ -106,7 +110,7 @@ describe("catalog store", () => {
     await upsertGames(db, [game(1, { languages: ["English", "French"] })], NOW);
     await upsertGames(db, [game(1, { languages: ["German"] })], NOW);
 
-    expect((await queryGamesView(db, defaultFilters)).games[0].languages).toEqual(["German"]);
+    expect((await queryGamesView(db, everyLanguage)).games[0].languages).toEqual(["German"]);
   });
 
   test("replaceRankedGames removes games that left the list", async () => {

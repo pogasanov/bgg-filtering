@@ -1,4 +1,4 @@
-import { ExpandableTableRow, RowToggle } from "@/components/results/expandable-row";
+import { BggLink, ExpandableTableRow, RowToggle } from "@/components/results/expandable-row";
 import { GameThumb } from "@/components/results/game-thumb";
 import { PollStrip } from "@/components/results/poll-strip";
 import { PriceCell } from "@/components/results/price-cell";
@@ -13,9 +13,17 @@ type ResultsTableProps = {
   games: ListedGame[];
   sort: SortKey;
   sortDir: SortDir;
+  /**
+   * The Russian view: Russian titles, the price column, and a row that opens the price panel.
+   * Otherwise the BGG titles, no prices, and a row that opens the game on BGG.
+   */
+  russian: boolean;
 };
 
-const COLUMN_COUNT = 11;
+/** The title a row shows: the Russian one in the Russian view where the game has it. */
+export function displayTitle(game: ListedGame, russian: boolean): string {
+  return russian ? (game.titleRu ?? game.title) : game.title;
+}
 /** Gives way to the price column where the table would otherwise not fit. */
 const narrowHidden = "hidden xl:table-cell";
 const headClass = "h-9 px-3 text-xs font-medium text-muted-foreground";
@@ -57,9 +65,11 @@ export function EmptyResults() {
 
 /**
  * One page of games. The cells are rendered on the server; the sort buttons, the reset button, the
- * poll tooltips and the row toggle that opens the price panel are the interactive parts.
+ * poll tooltips and, in the Russian view, the row toggle that opens the price panel are the interactive parts.
  */
-export function ResultsTable({ games, sort, sortDir }: ResultsTableProps) {
+export function ResultsTable({ games, sort, sortDir, russian }: ResultsTableProps) {
+  const columnCount = russian ? 11 : 10;
+
   function sortHead(key: SortKey, label = sortLabels[key], className?: string) {
     const active = sort === key;
     return (
@@ -85,34 +95,29 @@ export function ResultsTable({ games, sort, sortDir }: ResultsTableProps) {
           {sortHead("weight")}
           {sortHead("geekRating")}
           {sortHead("averageRating")}
-          {sortHead("numVoters", undefined, narrowHidden)}
-          {sortHead("price")}
+          {sortHead("numVoters", undefined, russian ? narrowHidden : undefined)}
+          {russian ? sortHead("price") : null}
         </TableRow>
       </TableHeader>
       <TableBody>
         {games.length === 0 ? (
           <TableRow className="hover:bg-transparent">
-            <TableCell colSpan={COLUMN_COUNT}>
+            <TableCell colSpan={columnCount}>
               <EmptyResults />
             </TableCell>
           </TableRow>
         ) : null}
         {games.map((game) => {
           const tags = gameTags(game).slice(0, 4).join(" · ");
-          return (
-            <ExpandableTableRow
-              key={game.id}
-              gameId={game.id}
-              offers={game.offers}
-              bggUrl={game.bggUrl}
-              colSpan={COLUMN_COUNT}
-            >
+          const title = displayTitle(game, russian);
+          const cells = (
+            <>
               <TableCell className={cn(numClass, "text-muted-foreground")}>{formatNumber(game.rank, 0)}</TableCell>
               <TableCell className="max-w-0 w-full px-3 py-2">
                 <div className="flex items-center gap-3">
                   <GameThumb url={game.thumbnailUrl} size={40} />
                   <div className="min-w-0">
-                    <RowToggle title={game.title} />
+                    {russian ? <RowToggle title={title} /> : <BggLink title={title} bggUrl={game.bggUrl} />}
                     {tags ? <div className="truncate text-xs text-muted-foreground">{tags}</div> : null}
                   </div>
                 </div>
@@ -129,12 +134,32 @@ export function ResultsTable({ games, sort, sortDir }: ResultsTableProps) {
               </TableCell>
               <TableCell className={cn(numClass, "font-semibold")}>{formatNumber(game.geekRating, 2)}</TableCell>
               <TableCell className={numClass}>{formatNumber(game.averageRating, 2)}</TableCell>
-              <TableCell className={cn(numClass, narrowHidden, "text-muted-foreground")}>
+              <TableCell className={cn(numClass, russian && narrowHidden, "text-muted-foreground")}>
                 {formatNumber(game.numVoters, 0)}
               </TableCell>
-              <TableCell className={numClass}>
-                <PriceCell offers={game.offers} />
-              </TableCell>
+              {russian ? (
+                <TableCell className={numClass}>
+                  <PriceCell offers={game.offers} />
+                </TableCell>
+              ) : null}
+            </>
+          );
+          if (!russian) {
+            return (
+              <TableRow key={game.id} className="relative h-14">
+                {cells}
+              </TableRow>
+            );
+          }
+          return (
+            <ExpandableTableRow
+              key={game.id}
+              gameId={game.id}
+              offers={game.offers}
+              bggUrl={game.bggUrl}
+              colSpan={columnCount}
+            >
+              {cells}
             </ExpandableTableRow>
           );
         })}

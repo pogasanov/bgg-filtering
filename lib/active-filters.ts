@@ -1,6 +1,7 @@
 import { matrixVerdicts, playerCounts } from "./bgg/types";
 import type { GameFilters } from "./filtering";
-import { matrixCellLabel } from "./labels";
+import { languageLabel, matrixCellLabel } from "./labels";
+import { RUSSIAN } from "./url-state";
 import { yearRangeLabel } from "./year-presets";
 
 export type FilterChip = {
@@ -44,8 +45,9 @@ export function activeFilterChips(filters: GameFilters): FilterChip[] {
     chips.push({ id: `tag:${tag}`, label: tag, next: { ...filters, tags: filters.tags.filter((item) => item !== tag) } });
   }
 
-  if (filters.language !== "") {
-    chips.push({ id: "lang", label: filters.language, next: { ...filters, language: "" } });
+  // Russian is the default, so only another choice (any language included) is a filter to clear.
+  if (filters.language !== RUSSIAN) {
+    chips.push({ id: "lang", label: languageLabel(filters.language), next: { ...filters, language: RUSSIAN } });
   }
 
   if (filters.search.trim() !== "") {

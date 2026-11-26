@@ -6,6 +6,7 @@ import {
   type PlayerRecommendations,
   playerCounts,
 } from "./types";
+import { russianTitle } from "./russian-title";
 
 const xmlParser = new XMLParser({
   ignoreAttributes: false,
@@ -89,6 +90,9 @@ export function parseThingXml(xml: string): NormalizedGame[] {
     ].sort();
     const names = asArray(item.name);
     const primaryName = names.find((name: any) => name.type === "primary") ?? names[0];
+    const alternateNames = names
+      .filter((name: any) => name !== primaryName && name.value !== undefined)
+      .map((name: any) => String(name.value));
     const ratings = item.statistics?.ratings ?? {};
     const ranks = asArray(ratings.ranks?.rank);
     const boardGameRank = ranks.find((rank: any) => rank.type === "subtype" && rank.name === "boardgame");
@@ -104,6 +108,7 @@ export function parseThingXml(xml: string): NormalizedGame[] {
       id: Number(item.id),
       rank: numberOrNull(boardGameRank?.value),
       title: String(primaryName?.value ?? "Untitled"),
+      titleRu: russianTitle(alternateNames),
       year: numberOrNull(item.yearpublished?.value),
       thumbnailUrl: stringOrNull(item.thumbnail),
       geekRating: numberOrNull(ratings.bayesaverage?.value),

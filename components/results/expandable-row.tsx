@@ -46,6 +46,23 @@ export function RowToggle({ title, className }: { title: string; className?: str
 }
 
 /**
+ * The game's title as a link to its BGG page, for the views without prices. Stretched over the
+ * whole row like the toggle, so a click anywhere on the row opens BGG.
+ */
+export function BggLink({ title, bggUrl, className }: { title: string; bggUrl: string; className?: string }) {
+  return (
+    <a
+      href={bggUrl}
+      target="_blank"
+      rel="noreferrer"
+      className={cn("block truncate font-medium outline-none after:absolute after:inset-0 focus-visible:underline", className)}
+    >
+      {title}
+    </a>
+  );
+}
+
+/**
  * A results-table row that opens a price panel beneath itself. The cells are rendered on the
  * server and passed in; only the open state and the panel live in the browser. Each row keeps
  * its own state, so several can be open at once.

@@ -47,3 +47,9 @@ export function formatNumber(value: number | null | undefined, digits = 2): stri
   if (value === null || value === undefined) return "—";
   return value.toLocaleString("ru-RU", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
+
+/** A BGG language name as the filter shows it; an empty language means any. */
+export function languageLabel(language: string): string {
+  if (language === "") return "Любой язык";
+  return language === "Russian" ? "Русский" : language;
+}

@@ -31,6 +31,8 @@ export type NormalizedGame = {
   id: number;
   rank: number | null;
   title: string;
+  /** The Russian title from BGG's alternate names; `null` when it has none. */
+  titleRu: string | null;
   year: number | null;
   thumbnailUrl: string | null;
   geekRating: number | null;

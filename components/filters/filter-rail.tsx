@@ -8,6 +8,8 @@ import { TagFilter } from "@/components/filters/tag-filter";
 import { YearFilter } from "@/components/filters/year-filter";
 import type { CatalogStatus } from "@/lib/catalog/types";
 import type { GameFilters } from "@/lib/filtering";
+import { languageLabel } from "@/lib/labels";
+import { RUSSIAN } from "@/lib/url-state";
 import { yearRangeLabel } from "@/lib/year-presets";
 
 export type FilterRailProps = {
@@ -69,10 +71,10 @@ export function FilterRail(props: FilterRailProps) {
       <FilterGroup
         title="Язык издания"
         collapsible
-        defaultOpen={filters.language !== ""}
-        summary={filters.language || undefined}
-        activeCount={filters.language ? 1 : 0}
-        onClear={() => onChange({ ...filters, language: "" })}
+        defaultOpen={filters.language !== RUSSIAN}
+        summary={languageLabel(filters.language)}
+        activeCount={filters.language !== RUSSIAN ? 1 : 0}
+        onClear={() => onChange({ ...filters, language: RUSSIAN })}
       >
         <LanguageFilter
           languages={props.allLanguages}

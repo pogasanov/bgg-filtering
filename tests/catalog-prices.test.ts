@@ -8,6 +8,9 @@ import { makeGame } from "./helpers/fixtures";
 import { seedOffers } from "./helpers/seed-offers";
 import { createTestDb } from "./helpers/test-db";
 
+/** The defaults list only games with a Russian edition; these tests are about the whole catalog. */
+const everyLanguage = { ...defaultFilters, language: "" };
+
 let close: (() => Promise<void>) | undefined;
 
 async function setup(): Promise<Db> {
@@ -28,7 +31,7 @@ describe("offers on a page of games", () => {
     const db = await setup();
     await seedOffers(db);
 
-    const view = await queryGamesView(db, defaultFilters, 1, DEC_10);
+    const view = await queryGamesView(db, everyLanguage, 1, DEC_10);
     const one = view.games.find((game) => game.id === 1)!;
 
     expect(one.offers).toEqual([
@@ -51,7 +54,7 @@ describe("offers on a page of games", () => {
     const db = await setup();
     await seedOffers(db);
 
-    const one = (await queryGamesView(db, defaultFilters, 1, new Date("2026-12-13T00:00:00.000Z"))).games.find((game) => game.id === 1)!;
+    const one = (await queryGamesView(db, everyLanguage, 1, new Date("2026-12-13T00:00:00.000Z"))).games.find((game) => game.id === 1)!;
 
     expect(one.offers[0].stale).toBe(true);
     expect(one.bestPrice).toBeNull();
@@ -61,7 +64,7 @@ describe("offers on a page of games", () => {
     const db = await setup();
     await seedOffers(db);
 
-    const one = (await queryGamesView(db, defaultFilters, 1, new Date("2027-02-01T00:00:00.000Z"))).games.find((game) => game.id === 1)!;
+    const one = (await queryGamesView(db, everyLanguage, 1, new Date("2027-02-01T00:00:00.000Z"))).games.find((game) => game.id === 1)!;
 
     expect(one.offers[0].salePercent).toBeNull();
   });
@@ -96,7 +99,7 @@ describe("sorting by price", () => {
     const db = await setup();
     await seedPrices(db);
 
-    const view = await queryGamesView(db, { ...defaultFilters, sort: "price", sortDir: undefined }, 1, DEC_10);
+    const view = await queryGamesView(db, { ...everyLanguage, sort: "price", sortDir: undefined }, 1, DEC_10);
 
     expect(view.games.map((game) => game.id)).toEqual([2, 4, 3, 1, 5, 6]);
     expect(view.games.map((game) => game.bestPrice)).toEqual([900, 3000, null, null, null, null]);
@@ -106,7 +109,7 @@ describe("sorting by price", () => {
     const db = await setup();
     await seedPrices(db);
 
-    const view = await queryGamesView(db, { ...defaultFilters, sort: "price", sortDir: "desc" }, 1, DEC_10);
+    const view = await queryGamesView(db, { ...everyLanguage, sort: "price", sortDir: "desc" }, 1, DEC_10);
 
     expect(view.games.map((game) => game.id)).toEqual([4, 2, 3, 1, 5, 6]);
   });
