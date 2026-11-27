@@ -10,6 +10,7 @@ Filters live in a rail on the left with the player-count × verdict matrix on to
 - **Database:** Postgres on Neon (Free).
 - **Weekly sync:** a Node script run by a Modal cron job (Starter) every Monday at 03:00 UTC. It refreshes game details from the BGG XML API, then asks the site to revalidate. 2500 games take about 20 minutes (125 batches of 20, 5.2 seconds apart).
 - **Errors and logs:** Sentry (Developer plan), for both the site and the worker.
+- **Product analytics:** PostHog (EU Cloud, free), for the site only, reached through the site's own `/relay` path.
 
 ## Local setup
 
@@ -37,7 +38,7 @@ Migrations run over the direct connection `DATABASE_URL_UNPOOLED` when it is set
 
 ### Accounts
 
-Use **dedicated personal accounts created for this project** on Neon, Vercel, Modal and Sentry. Never use other accounts that happen to be logged in on your machine. The tooling enforces this:
+Use **dedicated personal accounts created for this project** on Neon, Vercel, Modal, Sentry and PostHog. Never use other accounts that happen to be logged in on your machine. The tooling enforces this:
 
 - Vercel commands go through `pnpm vc …`. Its CLI login lives in a separate config directory (`~/.config/vercel-bgg`, override with `VERCEL_GLOBAL_CONFIG`), so a global `vercel login` to another account never affects this project. `VERCEL_TOKEN` in `.env.local` is optional, for non-interactive runs.
 - Modal commands run with `MODAL_PROFILE=bgg`. If that profile does not exist, they fail instead of using another one.
@@ -75,7 +76,15 @@ What the site sends:
 
 Source maps are uploaded during the Vercel build with an org auth token. On Vercel it is set as `SENTRY_AUTH_TOKEN`, together with `SENTRY_ORG=bgfilter` and `SENTRY_PROJECT=bgfilter-site`. The token was created with `pnpm sentry token create bgfilter/vercel-sourcemaps`. Never commit it.
 
-### 3. Vercel
+### 3. PostHog
+
+The site has its own PostHog project in the project's PostHog account, in **EU Cloud** (`eu.posthog.com`). Its project API key (`phc_…`) is public and goes into `NEXT_PUBLIC_POSTHOG_KEY`; without it PostHog is off, which is the default for local runs.
+
+The browser never talks to PostHog directly. It sends to `https://bg.gsnv.dev/relay/…`, and `next.config.ts` rewrites that to `eu.i.posthog.com` (and `/relay/static/…` to `eu-assets.i.posthog.com`), so blockers and networks that block PostHog's hosts don't drop the events. The path name is deliberately neutral; don't rename it to anything with "posthog", "analytics" or "ingest" in it.
+
+What the site sends: pageviews, page leaves and autocaptured clicks. No visitor is identified, so no person profiles are created. Session recording stays off unless it is turned on in the project's settings.
+
+### 4. Vercel
 
 1. Log in with the project's Vercel account. This opens the browser, and the login is stored in `~/.config/vercel-bgg`, not in the global Vercel CLI config:
 
@@ -89,7 +98,7 @@ pnpm vc login
 pnpm vc link
 ```
 
-3. Add the production environment variables: `DATABASE_URL`, `REVALIDATE_SECRET` (any long random string), `NEXT_PUBLIC_SENTRY_DSN`. Optionally also `SENTRY_ORG`, `SENTRY_PROJECT` and `SENTRY_AUTH_TOKEN` for source maps.
+3. Add the production environment variables: `DATABASE_URL`, `REVALIDATE_SECRET` (any long random string), `NEXT_PUBLIC_SENTRY_DSN`. `NEXT_PUBLIC_POSTHOG_KEY`. Optionally also `SENTRY_ORG`, `SENTRY_PROJECT` and `SENTRY_AUTH_TOKEN` for source maps.
 
 ```bash
 pnpm vc env add DATABASE_URL production
@@ -103,7 +112,7 @@ pnpm vc deploy --prod
 
 Functions run in `fra1` (`vercel.json`), next to the Neon database.
 
-### 4. Modal
+### 5. Modal
 
 1. In the project's Modal account, add a payment method. Then set a **workspace spend limit** (Settings → Usage) so overage stops work instead of charging the card. The weekly job uses well under $1 of the free $30 monthly compute.
 2. Create the dedicated CLI profile without making it the active one. This opens the browser; log in with the project's Modal account. Your other Modal profiles stay active for other work.

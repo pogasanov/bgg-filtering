@@ -1,13 +1,14 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs/config";
 import { fileURLToPath } from "node:url";
+import { POSTHOG_PROXY_PATH, posthogProxyRewrites } from "./lib/posthog-options";
 import { filterParamKeys } from "./lib/url-state";
 
 /**
  * A language prefix: one lower-case path segment, as `languageSlug` writes it. Rewrites run as a
  * chain, so the internal routes "/" is rewritten to ("/view", "/page") must not pass for a language.
  */
-const LANGUAGE_SOURCE = "/:lang((?!(?:view|page|api)(?:/|$))[a-z0-9-]+)";
+const LANGUAGE_SOURCE = `/:lang((?!(?:view|page|api|${POSTHOG_PROXY_PATH.slice(1)})(?:/|$))[a-z0-9-]+)`;
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 
@@ -15,6 +16,8 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   // Rendered output is cached explicitly with "use cache"; whatever is not cached runs per request.
   cacheComponents: true,
+  // PostHog posts to paths ending in "/" ("/e/"); a redirect to drop the slash would break them.
+  skipTrailingSlashRedirect: true,
   partialPrefetching: true,
   async redirects() {
     // Russian is the default language and lives at "/", without a prefix.
@@ -29,6 +32,8 @@ const nextConfig: NextConfig = {
       // alone goes to the static page of the full list. "/" with neither is the static first page.
       // Every language other than Russian has the same routes under its own prefix ("/en").
       beforeFiles: [
+        // PostHog through our own domain, so blockers and blocked hosts don't drop the analytics.
+        ...posthogProxyRewrites,
         ...filterQuery.map((has) => ({ source: "/", has: [has], destination: "/view" })),
         { source: "/", has: [pageQuery], missing: filterQuery, destination: "/page/:number" },
         ...filterQuery.map((has) => ({ source: LANGUAGE_SOURCE, has: [has], destination: "/view/:lang" })),
