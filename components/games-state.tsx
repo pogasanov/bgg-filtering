@@ -30,7 +30,7 @@ import {
   playerCountFromSlug,
 } from "@/lib/collections";
 import { languageFromSlug, viewHref } from "@/lib/language-path";
-import { defaultFilters, parseFilters, RUSSIAN } from "@/lib/url-state";
+import { DEFAULT_LANGUAGE, defaultFilters, parseFilters } from "@/lib/url-state";
 
 type GamesState = {
   /** What the controls show. Changes at once; the server-rendered results follow through the URL. */
@@ -84,15 +84,15 @@ export function GamesProvider(props: GamesProviderProps) {
   const { lang, slug: collectionSlug } = useParams<{ lang?: string | string[]; slug?: string }>();
   const slug = Array.isArray(lang) ? lang[0] : lang;
   const [pathLanguage] = useState(() =>
-    slug === undefined ? null : (languageFromSlug(slug, props.facets.allLanguages) ?? RUSSIAN),
+    slug === undefined ? null : (languageFromSlug(slug, props.facets.allLanguages) ?? DEFAULT_LANGUAGE),
   );
-  // A collection page ("/na-dvoih", "/mehaniki/…") is static too: its filters come from its path.
+  // A collection page ("/best-2-player-board-games", "/mechanics/…") is static too: its filters come from its path.
   const [collectionFilters] = useState(() => collectionFiltersFor(segment, collectionSlug, props.facets.allTags));
   if (collectionFilters) return <GamesState {...props} initialFilters={collectionFilters} />;
   return openedOnView ? (
     <UrlSeededState {...props} pathLanguage={pathLanguage} />
   ) : (
-    <GamesState {...props} initialFilters={{ ...defaultFilters, language: pathLanguage ?? RUSSIAN }} />
+    <GamesState {...props} initialFilters={{ ...defaultFilters, language: pathLanguage ?? DEFAULT_LANGUAGE }} />
   );
 }
 
@@ -144,7 +144,7 @@ function GamesState({
 
   // Ask the server for the results whenever the filters change. The URL is replaced, not pushed, so a
   // reload or a copied link restores the view and the back button still leaves the page. A new set of
-  // filters always starts on the first page. The language picks the path ("/", "/en"), the other
+  // filters always starts on the first page. The language picks the path ("/", "/ru"), the other
   // filters the query. Typing in the search box is sent after a pause; everything else at once.
   useEffect(() => {
     const href = viewHref(filters);
@@ -165,9 +165,9 @@ function GamesState({
   }, [filters, router]);
 
   const resetFilters = useCallback(() => {
-    // Every chip goes, the language included, so a reset shows every edition. Sorting is a view
+    // Every chip goes, the language included. Sorting is a view
     // setting, not a filter: a reset keeps it.
-    setFilters((current) => ({ ...defaultFilters, language: "", sort: current.sort, sortDir: current.sortDir }));
+    setFilters((current) => ({ ...defaultFilters, sort: current.sort, sortDir: current.sortDir }));
   }, []);
 
   const sortBy = useCallback((key: SortKey) => {

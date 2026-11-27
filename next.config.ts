@@ -1,12 +1,19 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs/config";
 import { fileURLToPath } from "node:url";
-import { MECHANIC_COLLECTION_ROUTE, PLAYER_COLLECTION_ROUTE, playerCollections } from "./lib/collections";
-import { GAME_ROUTE } from "./lib/game-page";
+import { MECHANIC_COLLECTION_ROUTE, mechanicCollectionPrefix, PLAYER_COLLECTION_ROUTE, playerCollectionsOf } from "./lib/collections";
+import { GAME_ROUTE, gamePrefix } from "./lib/game-page";
+import { locales, SITE_LOCALE, SITE_URLS } from "./lib/i18n/locale";
 import { POSTHOG_PROXY_PATH, posthogProxyRewrites } from "./lib/posthog-options";
 import { filterParamKeys } from "./lib/url-state";
 
-/** First path segments that are not languages: internal routes, the proxy, collections and game pages. */
+/** The other language's site, whose addresses this site sends on to it. */
+const OTHER_LOCALES = locales.filter((locale) => locale !== SITE_LOCALE);
+
+/**
+ * First path segments that are not edition languages: internal routes, the proxy, and the
+ * collections and game pages of every language's site (the other's are redirected to it).
+ */
 const RESERVED_SEGMENTS = [
   "view",
   "page",
@@ -15,7 +22,7 @@ const RESERVED_SEGMENTS = [
   PLAYER_COLLECTION_ROUTE,
   MECHANIC_COLLECTION_ROUTE,
   GAME_ROUTE,
-  ...playerCollections.map(({ slug }) => slug),
+  ...locales.flatMap((locale) => [mechanicCollectionPrefix(locale), gamePrefix(locale), ...playerCollectionsOf(locale).map(({ slug }) => slug)]),
 ];
 
 /**
@@ -53,8 +60,23 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    // Russian is the default language and lives at "/", without a prefix.
-    return [{ source: "/ru", destination: "/", permanent: true }];
+    return [
+      // 301 rather than Next's 308: Yandex documents 301 for a moved page.
+      // Every edition is the default and lives at "/", without a prefix; "/any" was its old address.
+      { source: "/any", destination: "/", statusCode: 301 },
+      // The other language's collections and game pages, reached on this site by an old or shared
+      // link, open on that language's site. The address is the same there.
+      ...OTHER_LOCALES.flatMap((locale) => {
+        const site = SITE_URLS[locale];
+        // The Russian prefixes are this site's internal routes too: on the English site they are only
+        // redirected when asked for directly, which the rewrites below never do.
+        return [
+          { source: `/${gamePrefix(locale)}/:slug`, destination: `${site}/${gamePrefix(locale)}/:slug`, statusCode: 301 },
+          { source: `/${mechanicCollectionPrefix(locale)}/:slug`, destination: `${site}/${mechanicCollectionPrefix(locale)}/:slug`, statusCode: 301 },
+          ...playerCollectionsOf(locale).map(({ slug }) => ({ source: `/${slug}`, destination: `${site}/${slug}`, statusCode: 301 })),
+        ];
+      }),
+    ];
   },
   async rewrites() {
     const filterQuery = filterParamKeys.map((key) => ({ type: "query" as const, key }));
@@ -63,13 +85,19 @@ const nextConfig: NextConfig = {
       // Static pages never read the URL, so the query picks the route here, with the address bar left
       // as it was. Any filter or sort goes to the view route, which renders per request. A page number
       // alone goes to the static page of the full list. "/" with neither is the static first page.
-      // Every language other than Russian has the same routes under its own prefix ("/en").
+      // Every edition language has the same routes under its own prefix ("/ru", "/en").
       beforeFiles: [
         // PostHog through our own domain, so blockers and blocked hosts don't drop the analytics.
         ...posthogProxyRewrites,
-        // Collections live at short Russian addresses ("/na-dvoih") on one static route. A query on
-        // them is ignored: changing a filter there moves to the usual view.
-        ...playerCollections.map(({ slug }) => ({ source: `/${slug}`, destination: `/${PLAYER_COLLECTION_ROUTE}/${slug}` })),
+        // Collections live at short addresses in the site's language ("/best-2-player-board-games",
+        // "/na-dvoih") on one static route. A query on them is ignored: changing a filter there moves
+        // to the usual view.
+        ...playerCollectionsOf(SITE_LOCALE).map(({ slug }) => ({ source: `/${slug}`, destination: `/${PLAYER_COLLECTION_ROUTE}/${slug}` })),
+        // The English site shows the game and mechanic routes under English names.
+        ...(gamePrefix() !== GAME_ROUTE ? [{ source: `/${gamePrefix()}/:slug`, destination: `/${GAME_ROUTE}/:slug` }] : []),
+        ...(mechanicCollectionPrefix() !== MECHANIC_COLLECTION_ROUTE
+          ? [{ source: `/${mechanicCollectionPrefix()}/:slug`, destination: `/${MECHANIC_COLLECTION_ROUTE}/:slug` }]
+          : []),
         ...filterQuery.map((has) => ({ source: "/", has: [has], destination: "/view" })),
         { source: "/", has: [pageQuery], missing: filterQuery, destination: "/page/:number" },
         ...filterQuery.map((has) => ({ source: LANGUAGE_SOURCE, has: [has], destination: "/view/:lang" })),

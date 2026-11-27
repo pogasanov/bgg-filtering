@@ -32,11 +32,11 @@ test("nothing active means no chips", () => {
   expect(activeFilterCount({ ...none, sort: "weight" })).toBe(0);
 });
 
-test("the default Russian language has a chip that clears to any language; any language has none", () => {
-  const russian = activeFilterChips(defaultFilters).find((chip) => chip.id === "lang")!;
+test("a chosen language has a chip that clears to every edition; the default has none", () => {
+  const russian = activeFilterChips({ ...defaultFilters, language: "Russian" }).find((chip) => chip.id === "lang")!;
   expect(russian.label).toBe("Русский");
   expect(russian.next.language).toBe("");
   const german = activeFilterChips({ ...defaultFilters, language: "German" }).find((chip) => chip.id === "lang")!;
   expect(german.next.language).toBe("");
-  expect(activeFilterChips({ ...defaultFilters, language: "" }).find((chip) => chip.id === "lang")).toBeUndefined();
+  expect(activeFilterChips(defaultFilters).find((chip) => chip.id === "lang")).toBeUndefined();
 });

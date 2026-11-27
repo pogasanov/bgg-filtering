@@ -32,16 +32,28 @@ describe("view headings and titles", () => {
     );
   });
 
-  test("editions are named in Russian, with the BGG name as a fallback", () => {
-    expect(editionsPhrase("Russian")).toBeNull();
-    expect(editionsPhrase("")).toBe("все издания");
+  test("editions are named in the site's language, with the BGG name as a fallback", () => {
+    expect(editionsPhrase("")).toBeNull();
+    expect(editionsPhrase("Russian")).toBe("русские издания");
     expect(editionsPhrase("German")).toBe("немецкие издания");
     expect(editionsPhrase("Esperanto")).toBe("издания на языке Esperanto");
+    expect(editionsPhrase("German", "en")).toBe("German editions");
+    expect(editionsPhrase("Esperanto", "en")).toBe("Esperanto editions");
   });
 
   test("only the Russian view promises shop prices", () => {
-    expect(viewDescription({ ...defaultFilters, tags: ["Economic"] })).toContain("цены в российских магазинах");
-    expect(viewDescription({ ...defaultFilters, language: "English" })).not.toContain("цены");
+    expect(viewDescription({ ...defaultFilters, language: "Russian", tags: ["Economic"] })).toContain("цены в российских магазинах");
+    expect(viewDescription({ ...defaultFilters, tags: ["Economic"] })).not.toContain("цены");
+    expect(viewDescription({ ...defaultFilters, language: "Russian", tags: ["Economic"] }, "en")).toContain("prices in Russian shops");
+  });
+
+  test("the English site reads in English", () => {
+    expect(viewTitle(defaultFilters, 1, "en")).toBe("Best board games by player count — from BoardGameGeek votes");
+    expect(viewHeading({ ...defaultFilters, matrix: [{ playerCount: "2", verdict: "best" }] }, "en")).toBe("Best 2-player board games");
+    expect(viewHeading({ ...defaultFilters, matrix: [{ playerCount: "1", verdict: "best" }] }, "en")).toBe("Best solo board games");
+    expect(viewHeading({ ...defaultFilters, matrix: [{ playerCount: "6+", verdict: "best" }] }, "en")).toBe("Best board games for 7+ players");
+    expect(viewHeading({ ...defaultFilters, tags: ["Worker Placement"] }, "en")).toBe("Best Worker Placement board games");
+    expect(viewTitle({ ...defaultFilters, language: "English" }, 2, "en")).toBe("Best board games by player count: English editions — page 2");
   });
 });
 
@@ -54,6 +66,10 @@ describe("collections in headings and canonical addresses", () => {
     expect(canonicalPath({ ...defaultFilters, matrix: [{ playerCount: "2", verdict: "best" }], sort: "year" }, 1)).toBe("/na-dvoih");
     expect(canonicalPath({ ...defaultFilters, tags: ["Cooperative Game"] }, 1)).toBe("/mehaniki/kooperativ");
     expect(canonicalPath({ ...defaultFilters, matrix: [{ playerCount: "2", verdict: "best" }] }, 2)).toBe("/?m=2%3Abest&page=2");
+    expect(canonicalPath({ ...defaultFilters, matrix: [{ playerCount: "2", verdict: "best" }] }, 1, "en")).toBe("/best-2-player-board-games");
+    expect(canonicalPath({ ...defaultFilters, tags: ["Cooperative Game"] }, 1, "en")).toBe("/mechanics/cooperative-game");
+    // A collection is every edition: with a language chosen it is an ordinary view.
+    expect(canonicalPath({ ...defaultFilters, language: "Russian", matrix: [{ playerCount: "2", verdict: "best" }] }, 1)).toBe("/ru?m=2%3Abest");
   });
 });
 
@@ -66,22 +82,36 @@ describe("canonical addresses", () => {
   });
 
   test("metadata carries the title, canonical and share texts; searches are kept out of the index", () => {
-    const meta = viewMetadata({ ...defaultFilters, language: "" }, 2);
-    expect(meta.title).toEqual({ absolute: "Лучшие настолки по числу игроков: все издания — страница 2" });
-    expect(meta.alternates?.canonical).toBe("/any?page=2");
-    expect(meta.openGraph).toMatchObject({ url: "/any?page=2", siteName: "Настолки по числу игроков" });
+    const meta = viewMetadata({ ...defaultFilters, language: "Russian" }, 2);
+    expect(meta.title).toEqual({ absolute: "Лучшие настолки по числу игроков: русские издания — страница 2" });
+    expect(meta.alternates?.canonical).toBe("/ru?page=2");
+    expect(meta.openGraph).toMatchObject({ url: "/ru?page=2", siteName: "Настолки по числу игроков", locale: "ru_RU" });
     expect(meta.robots).toBeUndefined();
     expect(viewMetadata({ ...defaultFilters, search: "крылья" }, 1).robots).toEqual({ index: false, follow: true });
+  });
+
+  test("point to the same page on each language's site, the English one for everyone else", () => {
+    const collection = viewMetadata({ ...defaultFilters, matrix: [{ playerCount: "2", verdict: "best" }] }, 1);
+    expect(collection.alternates?.languages).toEqual({
+      en: "https://mynextboardgame.com/best-2-player-board-games",
+      ru: "https://ru.mynextboardgame.com/na-dvoih",
+      "x-default": "https://mynextboardgame.com/best-2-player-board-games",
+    });
+    expect(viewMetadata({ ...defaultFilters, language: "English" }, 2).alternates?.languages).toMatchObject({
+      en: "https://mynextboardgame.com/en?page=2",
+      ru: "https://ru.mynextboardgame.com/en?page=2",
+    });
   });
 });
 
 describe("the home page's WebSite record", () => {
-  test("names the site, its other names and its address on the new domain", () => {
+  test("names the site, its other names and its address", () => {
     expect(websiteJsonLd()).toMatchObject({
       "@type": "WebSite",
       name: "Настолки по числу игроков",
-      alternateName: ["My Next Board Game", "mynextboardgame.com"],
-      url: "https://mynextboardgame.com/",
+      alternateName: ["My Next Board Game", "ru.mynextboardgame.com"],
+      url: "https://ru.mynextboardgame.com/",
+      inLanguage: "ru",
     });
   });
 });

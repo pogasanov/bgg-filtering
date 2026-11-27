@@ -111,7 +111,7 @@ describe("catalog page", () => {
 
   test("has a phone filter trigger, sort control and a BGG footer outside the rail", async () => {
     const html = await render([makeGame(1, 2000)], { ...defaultFilters, tags: ["X"] });
-    expect(html).toMatch(/<button[^>]*aria-label="Фильтры, активных: 2"/);
+    expect(html).toMatch(/<button[^>]*aria-label="Фильтры, активных: 1"/);
     expect(html).toContain('aria-label="Сортировка"');
     expect(html.match(/aria-label="Powered by BoardGameGeek"/g)!.length).toBeGreaterThanOrEqual(2);
   });
@@ -136,10 +136,12 @@ describe("catalog page", () => {
     expect(html).toContain('href="/?ymin=1990&amp;page=3"');
   });
 
-  test("opens on Russian with a chip to clear it, and links pages of another language under its prefix", async () => {
-    const russian = await render([makeGame(1, 2000)]);
+  test("opens on every edition with no language chip, and links pages of a language under its prefix", async () => {
+    const every = await render([makeGame(1, 2000)]);
+    expect(every).not.toContain('aria-label="Убрать фильтр: Русский"');
+    expect(every).not.toContain("Сбросить всё");
+    const russian = await render([makeGame(1, 2000)], { ...defaultFilters, language: "Russian" });
     expect(russian).toContain('aria-label="Убрать фильтр: Русский"');
-    expect(russian).not.toContain("Сбросить всё");
 
     const games = Array.from({ length: 150 }, (_, index) => makeGame(index + 1, 2000, ["English"]));
     const english = await render(games, { ...defaultFilters, language: "English" });

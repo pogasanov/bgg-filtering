@@ -3,7 +3,8 @@ import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import { LocaleProvider } from "@/components/locale";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { SITE_LOCALE } from "@/lib/i18n/locale";
+import { OG_LOCALE, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 /**
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
-    locale: "ru_RU",
+    locale: OG_LOCALE,
   },
   twitter: { card: "summary_large_image", title: SITE_NAME, description: SITE_DESCRIPTION },
   verification: verification(),
@@ -38,7 +39,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang={SITE_LOCALE} className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body>
         <LocaleProvider>
           <TooltipProvider delayDuration={150}>{children}</TooltipProvider>

@@ -4,14 +4,14 @@ import { mechanicCollectionPath, MIN_MECHANIC_GAMES, playerCollectionPath, playe
 import type { GameFilters } from "@/lib/filtering";
 import { gameName, gamePath } from "@/lib/game-page";
 import { canonicalPath, SITE_URL } from "@/lib/seo";
-import { defaultFilters, serializeView } from "@/lib/url-state";
+import { defaultFilters, RUSSIAN, serializeView } from "@/lib/url-state";
 
 /**
- * The pages of the full lists (Russian editions at "/", English at "/en", every edition at "/any",
- * each with all its pages), the collections, and every game's page. Other filtered views are
- * endless combinations and are left out.
+ * This site's pages of the full lists (every edition at "/", Russian editions at "/ru", English at
+ * "/en", each with all its pages), the collections, and every game's page. Other filtered views are
+ * endless combinations and are left out. The other language's site lists its own addresses.
  */
-const LISTS: GameFilters[] = [defaultFilters, { ...defaultFilters, language: "English" }, { ...defaultFilters, language: "" }];
+const LISTS: GameFilters[] = [defaultFilters, { ...defaultFilters, language: RUSSIAN }, { ...defaultFilters, language: "English" }];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { status, tagCounts } = await loadCatalogFrame();

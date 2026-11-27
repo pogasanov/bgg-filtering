@@ -7,6 +7,7 @@ import { PriceCell } from "@/components/results/price-cell";
 import { ResetFiltersButton, SortButton } from "@/components/results/results-controls";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ListedGame, SortDir, SortKey } from "@/lib/bgg/types";
+import { SITE_LOCALE } from "@/lib/i18n/locale";
 import { formatNumber } from "@/lib/labels";
 import { encodePollCells, pollCells } from "@/lib/poll";
 import { cn } from "@/lib/utils";
@@ -22,9 +23,9 @@ type ResultsTableProps = {
   russian: boolean;
 };
 
-/** The title a row shows: the Russian one in the Russian view where the game has it. */
+/** The title a row shows: the Russian one where the game has it, in the Russian view or on the Russian site. */
 export function displayTitle(game: ListedGame, russian: boolean): string {
-  return russian ? (game.titleRu ?? game.title) : game.title;
+  return russian || SITE_LOCALE === "ru" ? (game.titleRu ?? game.title) : game.title;
 }
 /** Gives way to the price column where the table would otherwise not fit. */
 const narrowHidden = "hidden xl:table-cell";

@@ -9,14 +9,16 @@ import {
 } from "./bgg/types";
 import { defaultSortDir, type GameFilters } from "./filtering";
 
-/** The language the site opens on: the Russian editions, with Russian titles and shop prices. */
+/** The Russian editions: the ones with Russian titles and shop prices. */
 export const RUSSIAN = "Russian";
-/** The `lang` value for "any language". An empty language means any; a missing `lang` means Russian. */
+/** The edition language the site opens on: none chosen, every edition. */
+export const DEFAULT_LANGUAGE = "";
+/** The `lang` value older links wrote for "any language"; it means the default now. */
 export const ANY_LANGUAGE_PARAM = "any";
 
 export const defaultFilters: GameFilters = {
   search: "",
-  language: RUSSIAN,
+  language: DEFAULT_LANGUAGE,
   tags: [],
   matrix: [],
   sort: "rank",
@@ -59,8 +61,8 @@ function parseMatrix(values: string[]): MatrixSelection[] {
 }
 
 function parseLanguage(value: string | null): string {
-  if (value === null || value === "") return RUSSIAN;
-  return value === ANY_LANGUAGE_PARAM ? "" : value;
+  if (value === null || value === "" || value === ANY_LANGUAGE_PARAM) return DEFAULT_LANGUAGE;
+  return value;
 }
 
 /** Reads filters from a query string. Anything unrecognised is ignored rather than rejected. */
@@ -85,7 +87,7 @@ export function parseFilters(params: URLSearchParams): GameFilters {
 export function serializeFilters(filters: GameFilters): string {
   const params = new URLSearchParams();
   if (filters.search.trim() !== "") params.set("q", filters.search);
-  if (filters.language !== RUSSIAN) params.set("lang", filters.language === "" ? ANY_LANGUAGE_PARAM : filters.language);
+  if (filters.language !== DEFAULT_LANGUAGE) params.set("lang", filters.language);
   if (filters.tags.length > 0) params.set("tag", filters.tags.join(TAG_SEPARATOR));
   if (filters.matrix.length > 0) {
     params.set("m", filters.matrix.map((selection) => `${selection.playerCount}:${selection.verdict}`).join(MATRIX_SEPARATOR));

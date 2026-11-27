@@ -50,12 +50,12 @@ test("adds the page to the query only past the first page", () => {
   expect(serializeView(filters, 4)).toBe("lang=German&page=4");
 });
 
-test("Russian is the default language and any language has its own value", () => {
-  expect(defaultFilters.language).toBe("Russian");
-  expect(parseFilters(new URLSearchParams("")).language).toBe("Russian");
-  expect(parseFilters(new URLSearchParams("lang=")).language).toBe("Russian");
-  expect(serializeFilters({ ...defaultFilters, language: "Russian" })).toBe("");
-  expect(serializeFilters({ ...defaultFilters, language: "" })).toBe("lang=any");
+test("no edition language is chosen by default; the old lang=any reads as the default", () => {
+  expect(defaultFilters.language).toBe("");
+  expect(parseFilters(new URLSearchParams("")).language).toBe("");
+  expect(parseFilters(new URLSearchParams("lang=")).language).toBe("");
+  expect(serializeFilters({ ...defaultFilters, language: "" })).toBe("");
+  expect(serializeFilters({ ...defaultFilters, language: "Russian" })).toBe("lang=Russian");
   expect(parseFilters(new URLSearchParams("lang=any")).language).toBe("");
   expect(parseFilters(new URLSearchParams("lang=German")).language).toBe("German");
 });

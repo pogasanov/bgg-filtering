@@ -2,10 +2,10 @@ import { expect, test } from "vitest";
 import { changedFilterGroups, filterProperties, linkHost, normalizeSearch, searchProperties } from "@/lib/analytics";
 import { defaultFilters } from "@/lib/url-state";
 
-test("the default filters: only the language, and one readable combination", () => {
+test("the default filters: nothing active, and one readable combination", () => {
   const props = filterProperties(defaultFilters);
-  expect(props.filters_active).toEqual(["language"]);
-  expect(props.filters_combo).toBe("lang=Russian");
+  expect(props.filters_active).toEqual([]);
+  expect(props.filters_combo).toBe("lang=any");
   expect(props.filter_sort).toBe("rank:asc");
   expect(props.filter_search).toBeNull();
 });
@@ -46,7 +46,7 @@ test("names the groups that changed", () => {
   expect(
     changedFilterGroups(defaultFilters, { ...defaultFilters, tags: ["Cooperative"], sort: "price", sortDir: "asc", maxYear: 2020 }),
   ).toEqual(["tags", "years", "sort"]);
-  expect(changedFilterGroups(defaultFilters, { ...defaultFilters, language: "" })).toEqual(["language"]);
+  expect(changedFilterGroups(defaultFilters, { ...defaultFilters, language: "Russian" })).toEqual(["language"]);
 });
 
 test("link host", () => {

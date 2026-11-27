@@ -7,7 +7,7 @@ import type { GameFilters } from "@/lib/filtering";
 import { languageFromSlug } from "@/lib/language-path";
 import { pageCount } from "@/lib/pagination";
 import { viewMetadata } from "@/lib/seo";
-import { parseFilters, parsePage, RUSSIAN, serializeView } from "@/lib/url-state";
+import { DEFAULT_LANGUAGE, parseFilters, parsePage, serializeView } from "@/lib/url-state";
 
 type PageProps = {
   params: Promise<{ lang?: string[] }>;
@@ -33,7 +33,7 @@ async function resolve({ params, searchParams }: PageProps): Promise<{ filters: 
   if (lang.length === 1) {
     const { facets } = await loadCatalogFrame();
     const language = languageFromSlug(lang[0], facets.allLanguages);
-    if (language === null || language === RUSSIAN) return null;
+    if (language === null || language === DEFAULT_LANGUAGE) return null;
     filters.language = language;
   }
   return { filters, page: parsePage(query) };

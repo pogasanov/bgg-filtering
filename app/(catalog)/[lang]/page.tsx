@@ -2,28 +2,28 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CachedCatalogResults } from "@/components/results/catalog-results";
 import { loadCatalogFrame } from "@/lib/catalog/cached";
-import { ANY_LANGUAGE_SLUG, languageFromSlug, languageSlug } from "@/lib/language-path";
+import { languageFromSlug, languageSlug } from "@/lib/language-path";
 import { viewMetadata } from "@/lib/seo";
-import { defaultFilters, RUSSIAN, serializeView } from "@/lib/url-state";
+import { DEFAULT_LANGUAGE, defaultFilters, RUSSIAN, serializeView } from "@/lib/url-state";
 
-// The first page of another language ("/en"), static like "/" is for Russian. Requests with filters
+// The first page of one edition language ("/ru", "/en"), static like "/" is for every edition. Requests with filters
 // are rewritten to /view/<language> in next.config.ts, further pages to /<language>/page/N.
 export const ensureStatic = "navigation";
 
 type Props = { params: Promise<{ lang: string }> };
 
-/** English and "any language" are built ahead; any other language is built on its first request and kept. */
+/** Russian and English are built ahead; any other language is built on its first request and kept. */
 export function generateStaticParams() {
-  return [{ lang: languageSlug("English") }, { lang: ANY_LANGUAGE_SLUG }];
+  return [{ lang: languageSlug(RUSSIAN) }, { lang: languageSlug("English") }];
 }
 
-/** The language a prefix stands for; null for an unknown prefix and for Russian, which has none. */
+/** The language a prefix stands for; null for an unknown prefix and for every edition, which has none. */
 async function prefixLanguage(params: Props["params"]): Promise<string | null> {
   const { lang } = await params;
   const { facets } = await loadCatalogFrame();
   const language = languageFromSlug(lang, facets.allLanguages);
-  // Russian has no prefix: "/ru" is redirected to "/" in next.config.ts.
-  return language === RUSSIAN ? null : language;
+  // Every edition has no prefix: "/any" is redirected to "/" in next.config.ts.
+  return language === DEFAULT_LANGUAGE ? null : language;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

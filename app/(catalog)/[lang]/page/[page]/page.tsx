@@ -3,24 +3,24 @@ import { notFound } from "next/navigation";
 import { CachedCatalogResults } from "@/components/results/catalog-results";
 import { loadCatalogFrame, loadPageCount } from "@/lib/catalog/cached";
 import { loadGameCount } from "@/lib/catalog/load";
-import { ANY_LANGUAGE_SLUG, languageFromSlug, languageSlug } from "@/lib/language-path";
+import { languageFromSlug, languageSlug } from "@/lib/language-path";
 import { pageCount } from "@/lib/pagination";
 import { viewMetadata } from "@/lib/seo";
-import { defaultFilters, RUSSIAN, serializeView } from "@/lib/url-state";
+import { DEFAULT_LANGUAGE, defaultFilters, RUSSIAN, serializeView } from "@/lib/url-state";
 
-// The further pages of another language's unfiltered list. Visitors see "/en?page=N".
+// The further pages of one edition language's unfiltered list. Visitors see "/ru?page=N".
 export const ensureStatic = "navigation";
 
 type Props = { params: Promise<{ lang: string; page: string }> };
 
 /**
- * Every page the catalog has now, in English and in "any language" (the whole catalog, so its page
- * count is exact); other languages and later pages are built on first request.
+ * Every page the whole catalog has now, in Russian and in English (an upper bound for each; a page
+ * past a language's end is not found); other languages and later pages are built on first request.
  */
 export async function generateStaticParams() {
   const last = Math.max(2, pageCount(await loadGameCount()));
   const pages = Array.from({ length: last - 1 }, (_, index) => String(index + 2));
-  return [languageSlug("English"), ANY_LANGUAGE_SLUG].flatMap((lang) => pages.map((page) => ({ lang, page })));
+  return [languageSlug(RUSSIAN), languageSlug("English")].flatMap((lang) => pages.map((page) => ({ lang, page })));
 }
 
 /** The language and page number the path stands for; null when either is not a real one. */
@@ -29,7 +29,7 @@ async function resolve(params: Props["params"]): Promise<{ language: string; pag
   if (!/^[1-9]\d*$/.test(page)) return null;
   const { facets } = await loadCatalogFrame();
   const language = languageFromSlug(lang, facets.allLanguages);
-  if (language === null || language === RUSSIAN) return null;
+  if (language === null || language === DEFAULT_LANGUAGE) return null;
   return { language, page: Number(page) };
 }
 

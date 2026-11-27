@@ -2,8 +2,15 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { cacheLife } from "next/cache";
 import { ImageResponse } from "next/og";
+import { SITE_LOCALE } from "@/lib/i18n/locale";
+import { SITE_URL } from "@/lib/seo";
 
-export const alt = "Настолки по числу игроков — лучшее с BoardGameGeek под ваш состав";
+const text = {
+  en: { title: "My Next Board Game", subtitle: "The best of BGG for your group size" },
+  ru: { title: "Настолки по числу игроков", subtitle: "Лучшее с BGG — под ваш состав" },
+}[SITE_LOCALE];
+
+export const alt = SITE_LOCALE === "ru" ? "Настолки по числу игроков — лучшее с BoardGameGeek под ваш состав" : "My Next Board Game — the best of BoardGameGeek for your group size";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -76,12 +83,10 @@ async function renderPng(): Promise<Uint8Array<ArrayBuffer>> {
           ))}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div style={{ fontSize: 76, letterSpacing: -2.5, lineHeight: 1.05 }}>Настолки по числу игроков</div>
-          <div style={{ fontSize: 34, color: "#737373", lineHeight: 1.35 }}>
-            Лучшее с BGG — под ваш состав
-          </div>
+          <div style={{ fontSize: 76, letterSpacing: -2.5, lineHeight: 1.05 }}>{text.title}</div>
+          <div style={{ fontSize: 34, color: "#737373", lineHeight: 1.35 }}>{text.subtitle}</div>
         </div>
-        <div style={{ fontFamily: "Geist Mono", fontSize: 26, color: "#a3a3a3" }}>mynextboardgame.com</div>
+        <div style={{ fontFamily: "Geist Mono", fontSize: 26, color: "#a3a3a3" }}>{new URL(SITE_URL).host}</div>
       </div>
     ),
     {

@@ -1,57 +1,30 @@
 "use client";
 
-import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { DEFAULT_LOCALE, isLocale, locales, type Locale } from "@/lib/i18n/locale";
+import { isLocale, locales, SITE_LOCALE, SITE_URLS, type Locale } from "@/lib/i18n/locale";
 import { messages, type Messages, type TextKey } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 
 /**
- * The interface language lives in the browser, not in the URL or a cookie: the pages are static and
- * cached, so the server always renders Russian, and the visitor's choice is applied after hydration.
- * The path prefix ("/en") already means the edition language, a different thing.
+ * The interface language is the site's: each language has a site of its own, built in it
+ * (SITE_LOCALE). The switch moves to the same page on the other language's site.
  */
-const STORAGE_KEY = "ui-locale";
-const CHANGE_EVENT = "ui-locale-change";
-
-function readStoredLocale(): Locale {
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return isLocale(stored) ? stored : DEFAULT_LOCALE;
-  } catch {
-    return DEFAULT_LOCALE;
-  }
-}
-
-function subscribe(onChange: () => void) {
-  window.addEventListener("storage", onChange);
-  window.addEventListener(CHANGE_EVENT, onChange);
-  return () => {
-    window.removeEventListener("storage", onChange);
-    window.removeEventListener(CHANGE_EVENT, onChange);
-  };
-}
-
-export function setStoredLocale(locale: Locale) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, locale);
-  } catch {
-    // Storage can be blocked; the choice then lasts until the page is reloaded.
-  }
-  window.dispatchEvent(new Event(CHANGE_EVENT));
-}
-
-// Outside the provider (tests, isolated renders) the interface is Russian.
-const LocaleContext = createContext<Locale>(DEFAULT_LOCALE);
+const LocaleContext = createContext<Locale>(SITE_LOCALE);
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  const locale = useSyncExternalStore(subscribe, readStoredLocale, () => DEFAULT_LOCALE);
+  return <LocaleContext value={SITE_LOCALE}>{children}</LocaleContext>;
+}
 
-  useEffect(() => {
-    document.documentElement.lang = locale;
-  }, [locale]);
-
-  return <LocaleContext value={locale}>{children}</LocaleContext>;
+/**
+ * The same page on another language's site. Collections and game pages have an address of their
+ * own in each language, which the page's hreflang link gives; every other page keeps its path and
+ * query, the sort included.
+ */
+function alternateUrl(locale: Locale): string {
+  const link = document.querySelector<HTMLLinkElement>(`link[rel="alternate"][hreflang="${locale}"]`);
+  if (link?.href && new URL(link.href).pathname !== window.location.pathname) return link.href;
+  return new URL(window.location.pathname + window.location.search, SITE_URLS[locale]).toString();
 }
 
 export function useLocale(): Locale {
@@ -79,7 +52,7 @@ export function LocaleSwitch({ className }: { className?: string }) {
       type="single"
       value={locale}
       onValueChange={(next) => {
-        if (isLocale(next)) setStoredLocale(next);
+        if (isLocale(next) && next !== locale) window.location.assign(alternateUrl(next));
       }}
       variant="outline"
       size="sm"

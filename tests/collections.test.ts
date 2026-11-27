@@ -38,9 +38,19 @@ describe("collections", () => {
     expect(mechanicSlug("Worker Placement")).toBe("razmeshchenie-rabochih");
     expect(mechanicCollectionPath("Cooperative Game")).toBe("/mehaniki/kooperativ");
     const names = Object.keys(mechanicNamesRu);
-    expect(new Set(names.map(mechanicSlug)).size).toBe(names.length);
+    expect(new Set(names.map((name) => mechanicSlug(name))).size).toBe(names.length);
     expect(mechanicFromSlug("kooperativ", names)).toBe("Cooperative Game");
     expect(mechanicFromSlug("nothing-like-it", names)).toBeNull();
+  });
+
+  test("the English site has English addresses for the same collections", () => {
+    expect(playerCollectionPath("2", "en")).toBe("/best-2-player-board-games");
+    expect(playerCollectionPath("6+", "en")).toBe("/best-board-games-for-7-plus-players");
+    expect(playerCountFromSlug("best-solo-board-games", "en")).toBe("1");
+    expect(playerCountFromSlug("na-dvoih", "en")).toBeNull();
+    expect(mechanicCollectionPath("Worker Placement", "en")).toBe("/mechanics/worker-placement");
+    expect(mechanicFromSlug("worker-placement", ["Worker Placement"], "en")).toBe("Worker Placement");
+    expect(collectionPath(playerCollectionFilters("3"), 1, "en")).toBe("/best-3-player-board-games");
   });
 
   test("a view that is exactly one collection has its address; anything more does not", () => {

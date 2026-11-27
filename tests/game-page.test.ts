@@ -4,7 +4,7 @@ import { describe, expect, test, vi } from "vitest";
 import { GamePage } from "@/components/game/game-page";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { ListedGame } from "@/lib/bgg/types";
-import { gameIdFromSlug, gamePath, gameSummary } from "@/lib/game-page";
+import { gameIdFromSlug, gameName, gamePath, gameSummary } from "@/lib/game-page";
 import { EMPTY_HISTORY } from "@/lib/prices/history";
 import { pollGame } from "./fixtures";
 import { offer, sampleHistory } from "./price-fixtures";
@@ -32,6 +32,15 @@ describe("game page helpers", () => {
     expect(gameIdFromSlug("266192")).toBe(266192);
     expect(gameIdFromSlug("krylya")).toBeNull();
     expect(gameIdFromSlug("0-x")).toBeNull();
+    expect(gamePath(266192, "Wingspan", "en")).toBe("/game/266192-wingspan");
+  });
+
+  test("the English site names the game by its BGG title and answers in English", () => {
+    expect(gameName(game, "en")).toBe("Poll Game");
+    expect(gameName(game, "ru")).toBe("Опросная игра");
+    expect(gameSummary(game, "en")).toBe(
+      "According to the BGG player poll, Poll Game is best with 3 players, recommended with 2, not recommended with 4. In Russian shops from 1\u00a0990\u00a0₽.",
+    );
   });
 
   test("the summary states the poll for the supported counts and the price", () => {

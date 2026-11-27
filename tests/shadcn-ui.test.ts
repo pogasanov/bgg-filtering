@@ -49,7 +49,7 @@ describe("shadcn foundation", () => {
     expect(css).toContain("--color-poll-no: var(--poll-no)");
     expect(css).toContain("--color-meter: var(--meter)");
     expect(css).toContain("--font-sans: var(--font-geist-sans)");
-    expect(layout).toContain('lang="ru"');
+    expect(layout).toContain("lang={SITE_LOCALE}");
     expect(layout).toContain("geist/font");
     expect(layout).toContain("TooltipProvider");
   });

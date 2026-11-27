@@ -57,7 +57,7 @@ describe("queryGamesView", () => {
 });
 
 describe("queryCatalogFrame", () => {
-  test("offers the mechanics, languages and years of listed games only, with mechanic counts of the default (Russian) view", async () => {
+  test("offers the mechanics, languages and years of listed games only, with mechanic counts of the default view, every edition", async () => {
     await storeCatalog(db, [
       makeGame(1, { year: 2020, categories: ["Economic"], mechanics: ["Worker Placement"], languages: ["German"] }),
       makeGame(2, { year: 1995, categories: ["Economic"], mechanics: ["Worker Placement"], languages: ["English", "German", "Russian"] }),
@@ -76,7 +76,7 @@ describe("queryCatalogFrame", () => {
     });
     expect(frame.total).toBe(3);
     expect(frame.status.gameCount).toBe(3);
-    // Game 1 has no Russian edition, so its mechanics are not counted.
-    expect(Object.fromEntries(frame.tagCounts)).toEqual({ "Set Collection": 1, "Worker Placement": 1 });
+    // No language is chosen by default, so every listed game counts.
+    expect(Object.fromEntries(frame.tagCounts)).toEqual({ "Set Collection": 1, "Worker Placement": 2 });
   });
 });

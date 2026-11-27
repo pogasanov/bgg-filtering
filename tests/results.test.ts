@@ -90,7 +90,7 @@ test("empty result shows a reset action", () => {
 });
 
 test("bar shows the count, chips and reset only when filtered", () => {
-  const chips = activeFilterChips({ ...defaultFilters, tags: ["Worker Placement"] });
+  const chips = activeFilterChips({ ...defaultFilters, language: "Russian", tags: ["Worker Placement"] });
   const html = render(ResultsBar, { shown: 47, total: 2000, chips, onChange() {}, onReset() {} });
   expect(html).toContain(">47<");
   expect(html).toContain("Убрать фильтр: Размещение рабочих");
@@ -191,15 +191,14 @@ test("in the Russian view the rows show the Russian title, falling back to the B
   expect(untranslated).toContain("Poll Game");
 });
 
-test("outside the Russian view there are no prices and rows open BGG with the original title", () => {
+test("outside the Russian view there are no prices and rows open BGG; the Russian site keeps the Russian title", () => {
   const table = render(ResultsTable, { games: [pricedGame], sort: "rank", sortDir: "asc", russian: false });
   expect(table).not.toContain("Цена");
   expect(table).not.toContain("1\u00a0390\u00a0₽");
   expect(table).not.toContain("aria-expanded=");
   expect(table).not.toContain("hidden xl:table-cell");
   expect(table).toContain(`href="${pollGame.bggUrl}"`);
-  expect(table).toContain("Poll Game");
-  expect(table).not.toContain("Опросная игра");
+  expect(table).toContain("Опросная игра");
 
   const list = render(ResultsList, { games: [pricedGame], russian: false });
   expect(list).not.toContain("1\u00a0390\u00a0₽");

@@ -6,25 +6,109 @@ import { PersonalPrice } from "@/components/results/personal-price";
 import type { ListedGame } from "@/lib/bgg/types";
 import { mechanicCollectionPath, playerCollectionPath } from "@/lib/collections";
 import { gameName, gamePath, gameSummary, pollVerdicts } from "@/lib/game-page";
+import { intlLocale, SITE_LOCALE, type Locale } from "@/lib/i18n/locale";
 import { mechanicLabel } from "@/lib/i18n/mechanics";
 import { formatNumber, playerCountText } from "@/lib/labels";
 import { pollCells, type PollCell } from "@/lib/poll";
 import { changeRows } from "@/lib/prices/changes";
 import type { GameHistory } from "@/lib/prices/history";
 import { formatPrice, inStock, shopNames, type GameOffer } from "@/lib/prices/offers";
-import { SITE_URL } from "@/lib/seo";
+import { playerCollectionTitle, SITE_URL } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 /*
  * A game's own page: what the player-count poll says, what the tracked shops ask, its mechanics.
- * Server-rendered and cached with the catalog; the text is Russian, like the catalog's first render.
+ * Server-rendered and cached with the catalog, in the site's language.
  */
+
+const texts = {
+  en: {
+    catalog: "Catalog",
+    searchPlaceholder: "Search by title…",
+    searchLabel: "Search by title",
+    breadcrumbs: "Breadcrumbs",
+    rank: (rank: number) => `BGG rank #${rank}`,
+    players: "Players",
+    time: "Time",
+    weight: "Weight",
+    geek: "Geek",
+    average: "Average",
+    ratings: "Ratings",
+    playerCount: "Best player count",
+    prices: "Prices in Russian shops",
+    mechanics: "Mechanics",
+    more: "More",
+    bggPage: "BoardGameGeek page ↗",
+    noVotes: "No player-count votes on BGG yet.",
+    pollPlayers: "Players",
+    pollVotes: "Votes: best · recommended · not rec.",
+    pollTotal: "Votes",
+    pollResult: "Result",
+    outOfRange: "outside the player range",
+    silent: "No votes",
+    verdicts: { best: "best", recommended: "recommended", "not-recommended": "not recommended", unknown: "no data" },
+    checked: (date: string) => `checked ${date}`,
+    neverChecked: "not checked",
+    noPrice: "no price",
+    outOfStock: "out of stock",
+    inStock: "in stock",
+    notTracked: "Not found in the tracked shops.",
+    shop: "Shop",
+    price: "Price",
+    availability: "Availability",
+    toShop: "Shop ↗",
+    lowest: "All-time low",
+    updated: (date: string) => `Prices updated ${date}`,
+    changes: "Price changes",
+  },
+  ru: {
+    catalog: "Каталог",
+    searchPlaceholder: "Поиск по названию…",
+    searchLabel: "Поиск по названию",
+    breadcrumbs: "Навигация",
+    rank: (rank: number) => `№ ${rank} в рейтинге BGG`,
+    players: "Игроки",
+    time: "Время",
+    weight: "Сложность",
+    geek: "Geek",
+    average: "Средний",
+    ratings: "Оценок",
+    playerCount: "На сколько игроков",
+    prices: "Цены в магазинах",
+    mechanics: "Механики",
+    more: "Ещё",
+    bggPage: "Страница на BoardGameGeek ↗",
+    noVotes: "На BGG пока нет голосов по числу игроков.",
+    pollPlayers: "Игроки",
+    pollVotes: "Голоса: лучше · рекомендуют · не рек.",
+    pollTotal: "Голосов",
+    pollResult: "Итог",
+    outOfRange: "вне диапазона игроков",
+    silent: "Нет голосов",
+    verdicts: { best: "лучше всего", recommended: "рекомендуют", "not-recommended": "не рекомендуют", unknown: "нет данных" },
+    checked: (date: string) => `проверено ${date}`,
+    neverChecked: "не проверялась",
+    noPrice: "без цены",
+    outOfStock: "нет в наличии",
+    inStock: "в наличии",
+    notTracked: "Игра не найдена в отслеживаемых магазинах.",
+    shop: "Магазин",
+    price: "Цена",
+    availability: "Наличие",
+    toShop: "В магазин ↗",
+    lowest: "Самая низкая цена за всё время",
+    updated: (date: string) => `Цены обновлены ${date}`,
+    changes: "Изменения цен",
+  },
+} satisfies Record<Locale, unknown>;
+
+const t = texts[SITE_LOCALE];
 
 const linkClass = "underline-offset-2 hover:underline outline-none focus-visible:underline";
 const chipClass = "rounded-[4px] border px-2 py-0.5 text-xs hover:bg-muted outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
 function day(iso: string): string {
-  return new Date(iso).toLocaleDateString("ru-RU", { timeZone: "UTC" });
+  return new Date(iso).toLocaleDateString(intlLocale(SITE_LOCALE), { timeZone: "UTC" });
 }
 
 function Stat({ label, children }: { label: string; children: ReactNode }) {
@@ -53,12 +137,6 @@ function WeightMeter({ weight }: { weight: number }) {
   );
 }
 
-const verdictText: Record<PollCell["verdict"], string> = {
-  best: "лучше всего",
-  recommended: "рекомендуют",
-  "not-recommended": "не рекомендуют",
-  unknown: "нет данных",
-};
 
 function cellClass(cell: PollCell) {
   return cn(
@@ -77,16 +155,16 @@ function PollTable({ game }: { game: ListedGame }) {
   const cells = pollCells(game);
   const voted = cells.filter((cell) => cell.best + cell.recommended + cell.notRecommended > 0 && cell.verdict !== "unknown");
   const silent = cells.filter((cell) => !voted.includes(cell)).map((cell) => playerCountText(cell.playerCount));
-  if (voted.length === 0) return <p className="text-[13px] text-muted-foreground">На BGG пока нет голосов по числу игроков.</p>;
+  if (voted.length === 0) return <p className="text-[13px] text-muted-foreground">{t.noVotes}</p>;
 
   return (
     <table className="w-full border-collapse text-[13px]">
       <thead>
         <tr>
-          <th className={headClass}>Игроки</th>
-          <th className={headClass}>Голоса: лучше · рекомендуют · не рек.</th>
-          <th className={cn(headClass, "hidden text-right sm:table-cell")}>Голосов</th>
-          <th className={headClass}>Итог</th>
+          <th className={headClass}>{t.pollPlayers}</th>
+          <th className={headClass}>{t.pollVotes}</th>
+          <th className={cn(headClass, "hidden text-right sm:table-cell")}>{t.pollTotal}</th>
+          <th className={headClass}>{t.pollResult}</th>
         </tr>
       </thead>
       <tbody>
@@ -112,8 +190,8 @@ function PollTable({ game }: { game: ListedGame }) {
                 {formatNumber(total, 0)}
               </td>
               <td className={cn(cellPad, "text-xs whitespace-nowrap", cell.verdict === "best" && "font-semibold")}>
-                {verdictText[cell.verdict]}
-                {cell.inRange ? null : <span className="block font-normal text-muted-foreground">вне диапазона игроков</span>}
+                {t.verdicts[cell.verdict]}
+                {cell.inRange ? null : <span className="block font-normal text-muted-foreground">{t.outOfRange}</span>}
               </td>
             </tr>
           );
@@ -121,7 +199,7 @@ function PollTable({ game }: { game: ListedGame }) {
         {silent.length > 0 ? (
           <tr>
             <td className={cn(cellPad, "text-xs text-muted-foreground")} colSpan={4}>
-              Нет голосов: {silent.join(", ")}
+              {t.silent}: {silent.join(", ")}
             </td>
           </tr>
         ) : null}
@@ -131,14 +209,14 @@ function PollTable({ game }: { game: ListedGame }) {
 }
 
 function availability(offer: GameOffer): string {
-  if (offer.stale) return offer.checkedAt ? `проверено ${day(offer.checkedAt)}` : "не проверялась";
-  if (offer.price === null) return "без цены";
-  return offer.available === false ? "нет в наличии" : "в наличии";
+  if (offer.stale) return offer.checkedAt ? t.checked(day(offer.checkedAt)) : t.neverChecked;
+  if (offer.price === null) return t.noPrice;
+  return offer.available === false ? t.outOfStock : t.inStock;
 }
 
 function Prices({ game, history }: { game: ListedGame; history: GameHistory }) {
   if (game.offers.length === 0) {
-    return <p className="text-[13px] text-muted-foreground">Игра не найдена в отслеживаемых магазинах.</p>;
+    return <p className="text-[13px] text-muted-foreground">{t.notTracked}</p>;
   }
   const rows = changeRows(history, game.offers);
   const checks = game.offers.flatMap((offer) => (offer.checkedAt ? [offer.checkedAt] : [])).sort();
@@ -149,9 +227,9 @@ function Prices({ game, history }: { game: ListedGame; history: GameHistory }) {
       <table className="w-full border-collapse text-[13px]">
         <thead>
           <tr>
-            <th className={headClass}>Магазин</th>
-            <th className={cn(headClass, "text-right")}>Цена</th>
-            <th className={cn(headClass, "hidden sm:table-cell")}>Наличие</th>
+            <th className={headClass}>{t.shop}</th>
+            <th className={cn(headClass, "text-right")}>{t.price}</th>
+            <th className={cn(headClass, "hidden sm:table-cell")}>{t.availability}</th>
             <th className={headClass} />
           </tr>
         </thead>
@@ -179,7 +257,7 @@ function Prices({ game, history }: { game: ListedGame; history: GameHistory }) {
                 <td className={cn(cellPad, "hidden sm:table-cell")}>{availability(offer)}</td>
                 <td className={cn(cellPad, "text-right")}>
                   <a href={offer.url} target="_blank" rel="noreferrer" className={cn(chipClass, "whitespace-nowrap")}>
-                    В магазин ↗
+                    {t.toShop}
                   </a>
                 </td>
               </tr>
@@ -190,15 +268,15 @@ function Prices({ game, history }: { game: ListedGame; history: GameHistory }) {
       <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
         {history.lowest ? (
           <span>
-            Самая низкая цена за всё время <span className="font-mono text-foreground">{formatPrice(history.lowest.price)}</span> ·{" "}
+            {t.lowest} <span className="font-mono text-foreground">{formatPrice(history.lowest.price)}</span> ·{" "}
             {shopNames[history.lowest.shop]}, {day(history.lowest.at)}
           </span>
         ) : null}
-        {updatedAt ? <span>Цены обновлены {day(updatedAt)}</span> : null}
+        {updatedAt ? <span>{t.updated(day(updatedAt))}</span> : null}
       </p>
       {rows.length > 0 ? (
         <div>
-          <h3 className="mb-1 text-xs font-medium text-muted-foreground">Изменения цен</h3>
+          <h3 className="mb-1 text-xs font-medium text-muted-foreground">{t.changes}</h3>
           <PriceChanges rows={rows} game={{ gameId: game.id, title: gameName(game) }} />
         </div>
       ) : null}
@@ -221,7 +299,7 @@ function structuredData(game: ListedGame, bestCollection: { name: string; path: 
   const url = `${SITE_URL}${gamePath(game.id, name)}`;
   const prices = game.offers.filter(inStock).map((offer) => offer.price as number);
   const crumbs = [
-    { name: "Каталог", path: "/" },
+    { name: t.catalog, path: "/" },
     ...(bestCollection ? [bestCollection] : []),
     { name, path: gamePath(game.id, name) },
   ];
@@ -233,7 +311,7 @@ function structuredData(game: ListedGame, bestCollection: { name: string; path: 
             "@context": "https://schema.org",
             "@type": "Product",
             name,
-            ...(game.titleRu && game.titleRu !== game.title ? { alternateName: game.title } : {}),
+            ...(name !== game.title ? { alternateName: game.title } : {}),
             ...(game.thumbnailUrl ? { image: game.thumbnailUrl } : {}),
             url,
             offers: {
@@ -255,22 +333,13 @@ function structuredData(game: ListedGame, bestCollection: { name: string; path: 
   ];
 }
 
-const playersPhrase: Record<string, string> = {
-  "1": "для одного",
-  "2": "на двоих",
-  "3": "на троих",
-  "4": "на четверых",
-  "5": "на пятерых",
-  "6": "на шестерых",
-  "6+": "на компанию от семи",
-};
 
 export function GamePage({ game, history }: { game: ListedGame; history: GameHistory }) {
   const name = gameName(game);
   const { best } = pollVerdicts(game);
-  const bestCollection = best.length > 0 ? { name: `Лучшие ${playersPhrase[best[0]]}`, path: playerCollectionPath(best[0]) } : null;
-  const mechanics = [...game.mechanics].sort((a, b) => mechanicLabel(a, "ru").localeCompare(mechanicLabel(b, "ru"), "ru"));
-  const subtitle = [game.titleRu && game.titleRu !== game.title ? game.title : null, game.year, game.rank !== null ? `№ ${game.rank} в рейтинге BGG` : null]
+  const bestCollection = best.length > 0 ? { name: playerCollectionTitle(best[0]), path: playerCollectionPath(best[0]) } : null;
+  const mechanics = [...game.mechanics].sort((a, b) => mechanicLabel(a, SITE_LOCALE).localeCompare(mechanicLabel(b, SITE_LOCALE), SITE_LOCALE));
+  const subtitle = [name !== game.title ? game.title : null, game.year, game.rank !== null ? t.rank(game.rank) : null]
     .filter((part) => part !== null)
     .join(" · ");
 
@@ -282,24 +351,24 @@ export function GamePage({ game, history }: { game: ListedGame; history: GameHis
       />
       <header className="sticky top-0 z-20 flex items-center gap-3 border-b bg-background px-4 py-2.5">
         <Link href="/" className={cn(linkClass, "text-[13px] whitespace-nowrap")}>
-          ← Каталог
+          ← {t.catalog}
         </Link>
         {/* A plain form: the catalog's own search takes over from "/?q=…". */}
         <form action="/" className="max-w-xl flex-1">
           <input
             type="search"
             name="q"
-            placeholder="Поиск по названию…"
-            aria-label="Поиск по названию"
+            placeholder={t.searchPlaceholder}
+            aria-label={t.searchLabel}
             className="h-9 w-full rounded-md border bg-transparent px-3 text-[13px] outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
           />
         </form>
       </header>
 
       <main className="mx-auto max-w-[860px] px-4 pt-4 pb-10">
-        <nav aria-label="Навигация" className="mb-3.5 text-xs text-muted-foreground">
+        <nav aria-label={t.breadcrumbs} className="mb-3.5 text-xs text-muted-foreground">
           <Link href="/" className={linkClass}>
-            Каталог
+            {t.catalog}
           </Link>
           {bestCollection ? (
             <>
@@ -330,36 +399,36 @@ export function GamePage({ game, history }: { game: ListedGame; history: GameHis
             <h1 className="text-[19px] leading-tight font-semibold tracking-tight sm:text-[22px]">{name}</h1>
             {subtitle ? <p className="mt-0.5 text-[13px] text-muted-foreground">{subtitle}</p> : null}
             <div className="mt-2.5 flex flex-wrap gap-x-[18px] gap-y-1.5 text-[13px]">
-              <Stat label="Игроки">{playersRange(game)}</Stat>
-              <Stat label="Время">{game.playingTime === null ? "—" : `${game.playingTime}′`}</Stat>
-              <Stat label="Сложность">
+              <Stat label={t.players}>{playersRange(game)}</Stat>
+              <Stat label={t.time}>{game.playingTime === null ? "—" : `${game.playingTime}′`}</Stat>
+              <Stat label={t.weight}>
                 {game.weight !== null ? <WeightMeter weight={game.weight} /> : null}
                 {formatNumber(game.weight, 1)}
               </Stat>
-              <Stat label="Geek">{formatNumber(game.geekRating, 2)}</Stat>
-              <Stat label="Средний">{formatNumber(game.averageRating, 2)}</Stat>
-              <Stat label="Оценок">{formatNumber(game.numVoters, 0)}</Stat>
+              <Stat label={t.geek}>{formatNumber(game.geekRating, 2)}</Stat>
+              <Stat label={t.average}>{formatNumber(game.averageRating, 2)}</Stat>
+              <Stat label={t.ratings}>{formatNumber(game.numVoters, 0)}</Stat>
             </div>
           </div>
         </div>
 
         <p className="mt-[18px] max-w-[70ch] text-sm">{gameSummary(game)}</p>
 
-        <Section title="На сколько игроков">
+        <Section title={t.playerCount}>
           <PollTable game={game} />
         </Section>
 
-        <Section title="Цены в магазинах">
+        <Section title={t.prices}>
           <Prices game={game} history={history} />
         </Section>
 
         {mechanics.length > 0 ? (
-          <Section title="Механики">
+          <Section title={t.mechanics}>
             <ul className="flex flex-wrap gap-1.5">
               {mechanics.map((mechanic) => (
                 <li key={mechanic}>
                   <Link href={mechanicCollectionPath(mechanic)} className={cn(chipClass, "inline-block")}>
-                    {mechanicLabel(mechanic, "ru")}
+                    {mechanicLabel(mechanic, SITE_LOCALE)}
                   </Link>
                 </li>
               ))}
@@ -367,17 +436,17 @@ export function GamePage({ game, history }: { game: ListedGame; history: GameHis
           </Section>
         ) : null}
 
-        <Section title="Ещё">
+        <Section title={t.more}>
           <ul className="flex flex-wrap gap-1.5">
             <li>
               <a href={game.bggUrl} target="_blank" rel="noreferrer" className={cn(chipClass, "inline-block")}>
-                Страница на BoardGameGeek ↗
+                {t.bggPage}
               </a>
             </li>
             {bestCollection ? (
               <li>
                 <Link href={bestCollection.path} className={cn(chipClass, "inline-block")}>
-                  Лучшие настолки {playersPhrase[best[0]]}
+                  {bestCollection.name}
                 </Link>
               </li>
             ) : null}
