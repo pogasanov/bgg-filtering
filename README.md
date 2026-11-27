@@ -1,6 +1,6 @@
 # BGG Player Recommendation Finder
 
-Live at **https://bg.gsnv.dev**.
+Live at **https://mynextboardgame.com**.
 
 A public, non-commercial Next.js site for filtering the top 2500 BoardGameGeek games by categories, mechanics, and player-count recommendation polls.
 
@@ -22,13 +22,13 @@ The site is built to be found by search engines and by the AI assistants that se
 - **Game pages** (`app/igra/[slug]`, `components/game/game-page.tsx`): `/igra/<BGG id>-<name>` for every listed game. The poll with its votes, a one-sentence answer ("лучше всего на 3… в магазинах от 5 990 ₽"), the shops with links, the price changes and the mechanics. `Product` + `AggregateOffer` and `BreadcrumbList` JSON-LD; the product only while the game can be bought. The 200 best-ranked games are built with the site, the rest on their first request; an address with another name redirects to the current one. The price panel in the catalog links to the game's page.
 - **Titles and canonical addresses** (`lib/seo.ts`): every list page has its own title, description, visually hidden `<h1>` and canonical address (its filters and page, without the sort). A title search is kept out of the index with an `X-Robots-Tag: noindex` header. A page number past the end is a 404.
 - **Text for machines:** the player-count poll is colour and shape on screen, so each row also says it in text for screen readers and crawlers ("Опрос: лучше всего на 3; рекомендуют на 2, 4").
-- **Page weight:** Googlebot reads only the first 2 MB of a page, uncompressed. A list page is about 1.4 MB; a filtered view about 2 MB, because Next sends its rendered rows twice. Keep classes repeated in every row short (`num-cell`, `poll-cell`, `meter-bar` in `app/globals.css`), and check the size after changing a row: `curl -s https://bg.gsnv.dev/ | wc -c`. The tag filter renders its first 30 options on the server and the rest in the browser.
+- **Page weight:** Googlebot reads only the first 2 MB of a page, uncompressed. A list page is about 1.4 MB; a filtered view about 2 MB, because Next sends its rendered rows twice. Keep classes repeated in every row short (`num-cell`, `poll-cell`, `meter-bar` in `app/globals.css`), and check the size after changing a row: `curl -s https://mynextboardgame.com/ | wc -c`. The tag filter renders its first 30 options on the server and the rest in the browser.
 - **Bots and metadata:** `htmlLimitedBots` in `next.config.ts` lists only link-preview bots (Telegram's included). Search engines get the same cached pages as visitors, with the metadata in `<head>`.
 - **IndexNow:** after each sync and price run the worker tells Yandex, Bing and the other IndexNow engines that the pages in the sitemap changed (`lib/indexnow.ts`), only when it refreshed the public site. The key is public by design and is served from `public/<key>.txt`.
 
 ### Webmaster tools
 
-Add `https://bg.gsnv.dev` to [Yandex Webmaster](https://webmaster.yandex.ru), [Google Search Console](https://search.google.com/search-console) and [Bing Webmaster Tools](https://www.bing.com/webmasters), with the project's own accounts. Prove ownership with a DNS TXT record on `gsnv.dev`, or put each tool's meta-tag value into `YANDEX_VERIFICATION`, `GOOGLE_SITE_VERIFICATION` or `BING_SITE_VERIFICATION` on Vercel and redeploy. Then submit `https://bg.gsnv.dev/sitemap.xml` in each. Their AI reports: «Видимость сайта в Алисе AI» in Yandex Webmaster, the generative AI performance report in Search Console, AI Performance in Bing.
+Add `https://mynextboardgame.com` to [Yandex Webmaster](https://webmaster.yandex.ru), [Google Search Console](https://search.google.com/search-console) and [Bing Webmaster Tools](https://www.bing.com/webmasters), with the project's own accounts. Prove ownership with a DNS TXT record on `mynextboardgame.com` (its DNS is on Vercel, in the project's account), or put each tool's meta-tag value into `YANDEX_VERIFICATION`, `GOOGLE_SITE_VERIFICATION` or `BING_SITE_VERIFICATION` on Vercel and redeploy. Then submit `https://mynextboardgame.com/sitemap.xml` in each. Their AI reports: «Видимость сайта в Алисе AI» in Yandex Webmaster, the generative AI performance report in Search Console, AI Performance in Bing.
 
 ## Local setup
 
@@ -98,7 +98,7 @@ Source maps are uploaded during the Vercel build with an org auth token. On Verc
 
 The site has its own PostHog project in the project's PostHog account, in **EU Cloud** (`eu.posthog.com`). Its project API key (`phc_…`) is public and goes into `NEXT_PUBLIC_POSTHOG_KEY`; without it PostHog is off, which is the default for local runs.
 
-The browser never talks to PostHog directly. It sends to `https://bg.gsnv.dev/relay/…`, and `next.config.ts` rewrites that to `eu.i.posthog.com` (and `/relay/static/…` to `eu-assets.i.posthog.com`), so blockers and networks that block PostHog's hosts don't drop the events. The path name is deliberately neutral; don't rename it to anything with "posthog", "analytics" or "ingest" in it. Blockers also match PostHog's own API paths on any host (`/i/v0/e/`, `/flags/`, `/s/`), so the SDK sends to aliases (`/relay/c1`…`/relay/c6`, `/relay/k/<token>/v`) through `rewriteRequestPath`, and `lib/posthog-options.ts` rewrites each back.
+The browser never talks to PostHog directly. It sends to `https://mynextboardgame.com/relay/…`, and `next.config.ts` rewrites that to `eu.i.posthog.com` (and `/relay/static/…` to `eu-assets.i.posthog.com`), so blockers and networks that block PostHog's hosts don't drop the events. The path name is deliberately neutral; don't rename it to anything with "posthog", "analytics" or "ingest" in it. Blockers also match PostHog's own API paths on any host (`/i/v0/e/`, `/flags/`, `/s/`), so the SDK sends to aliases (`/relay/c1`…`/relay/c6`, `/relay/k/<token>/v`) through `rewriteRequestPath`, and `lib/posthog-options.ts` rewrites each back.
 
 What the site sends: pageviews, page leaves and autocaptured clicks, plus four product events defined in `lib/analytics.ts`:
 
@@ -149,7 +149,7 @@ modal token new --profile bgfilter --no-activate
 3. Create the worker secret:
 
 ```bash
-MODAL_PROFILE=bgfilter modal secret create bgg-sync DATABASE_URL=... BGG_TOKEN=... REVALIDATE_URL=https://bg.gsnv.dev/api/revalidate REVALIDATE_SECRET=... SENTRY_DSN=...
+MODAL_PROFILE=bgfilter modal secret create bgg-sync DATABASE_URL=... BGG_TOKEN=... REVALIDATE_URL=https://mynextboardgame.com/api/revalidate REVALIDATE_SECRET=... SENTRY_DSN=...
 ```
 
 4. Deploy both schedules (BGG sync on Mondays at 03:00 UTC, shop prices daily at 05:00 UTC) and run the first sync:
@@ -189,7 +189,7 @@ pnpm worker:run
 Each check sends one deliberate error, tagged `component:site` or `component:worker`:
 
 ```bash
-curl -H "Authorization: Bearer $REVALIDATE_SECRET" https://bg.gsnv.dev/api/sentry-check
+curl -H "Authorization: Bearer $REVALIDATE_SECRET" https://mynextboardgame.com/api/sentry-check
 ```
 
 ```bash
@@ -219,11 +219,16 @@ Most visitors are expected to come from Russia, where reachability is the main r
 | `bgfilter.vercel.app` | 1 of 6 OK | 6 of 6 OK |
 | `nextjs.org`, `vercel.com` (custom domains on Vercel) | 3 of 3 OK each | 3 of 3 OK each |
 | thumbnails from `cf.geekdo-images.com` | OK | OK |
-| `bg.gsnv.dev` (project's own domain, attached later that day) | 5 of 5 OK | 5 of 5 OK |
 
 When the Moscow requests to `bgfilter.vercel.app` failed, the TCP connection to Vercel's IPs succeeded and the request then timed out. That points at filtering of the `*.vercel.app` name, not at blocked IPs.
 
-**Fix applied:** the site's public address is **https://bg.gsnv.dev**, a subdomain of `gsnv.dev`, whose DNS is on Vercel in another account. It is attached to the `bgfilter` project with `pnpm vc domains add bg.gsnv.dev bgfilter`. Share this address, not `bgfilter.vercel.app`.
+**Check of 2026-11-27**, after the move to the project's own domain (same nodes):
+
+| Target | Moscow | Saint Petersburg |
+|---|---|---|
+| `mynextboardgame.com` | 5 of 5 OK | 5 of 5 OK |
+
+**Fix applied:** the site's public address is **https://mynextboardgame.com**. The domain was bought through Vercel in the project's account, so its DNS is on Vercel too, and it is the `bgfilter` project's primary domain. Every other address of the project, `www.mynextboardgame.com` and `bgfilter.vercel.app` included, answers with a 308 redirect to it, keeping the path. Share only `mynextboardgame.com`.
 
 **Plan B, if a custom domain is unreliable from Russia too:**
 

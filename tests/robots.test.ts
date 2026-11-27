@@ -23,6 +23,6 @@ describe("robots.txt", () => {
   });
 
   test("points to the sitemap on the public address", () => {
-    expect(result.sitemap).toBe("https://bg.gsnv.dev/sitemap.xml");
+    expect(result.sitemap).toBe("https://mynextboardgame.com/sitemap.xml");
   });
 });

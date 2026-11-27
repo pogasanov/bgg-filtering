@@ -40,12 +40,12 @@ describe("PostHog proxy", () => {
   });
 
   test("requests lazy-loaded scripts under neutral names", () => {
-    const base = "https://bg.gsnv.dev/";
-    expect(neutralScriptUrl("https://bg.gsnv.dev/relay/static/1.455.2/posthog-recorder.js", base)).toBe(
-      "https://bg.gsnv.dev/relay/m/1.455.2/m1.js",
+    const base = "https://mynextboardgame.com/";
+    expect(neutralScriptUrl("https://mynextboardgame.com/relay/static/1.455.2/posthog-recorder.js", base)).toBe(
+      "https://mynextboardgame.com/relay/m/1.455.2/m1.js",
     );
-    expect(neutralScriptUrl("https://bg.gsnv.dev/relay/static/web-vitals-with-attribution.js?v=1.455.2", base)).toBe(
-      "https://bg.gsnv.dev/relay/m/m9.js?v=1.455.2",
+    expect(neutralScriptUrl("https://mynextboardgame.com/relay/static/web-vitals-with-attribution.js?v=1.455.2", base)).toBe(
+      "https://mynextboardgame.com/relay/m/m9.js?v=1.455.2",
     );
     expect(neutralScriptUrl("/relay/static/toolbar.js?t=1", base)).toBe("/relay/static/toolbar.js?t=1");
     expect(neutralScriptUrl("https://us-assets.i.posthog.com/static/surveys.js", base)).toBe(
@@ -54,14 +54,14 @@ describe("PostHog proxy", () => {
   });
 
   test("sends API requests to neutral paths, each rewritten back to PostHog", () => {
-    const rewrite = (path: string) => neutralRequestUrl(new URL(path, "https://bg.gsnv.dev")).toString();
-    expect(rewrite("/relay/i/v0/e/?ip=0&compression=gzip-js")).toBe("https://bg.gsnv.dev/relay/c2?ip=0&compression=gzip-js");
-    expect(rewrite("/relay/e/")).toBe("https://bg.gsnv.dev/relay/c1");
-    expect(rewrite("/relay/s/?ver=1")).toBe("https://bg.gsnv.dev/relay/c4?ver=1");
-    expect(rewrite("/relay/flags/?v=2&config=true")).toBe("https://bg.gsnv.dev/relay/c5?v=2&config=true");
-    expect(rewrite("/relay/array/phc_abc/config")).toBe("https://bg.gsnv.dev/relay/k/phc_abc/v");
-    expect(rewrite("/relay/array/phc_abc/config.js")).toBe("https://bg.gsnv.dev/relay/k/phc_abc/v.js");
-    expect(rewrite("/relay/i/v1/metrics")).toBe("https://bg.gsnv.dev/relay/i/v1/metrics");
+    const rewrite = (path: string) => neutralRequestUrl(new URL(path, "https://mynextboardgame.com")).toString();
+    expect(rewrite("/relay/i/v0/e/?ip=0&compression=gzip-js")).toBe("https://mynextboardgame.com/relay/c2?ip=0&compression=gzip-js");
+    expect(rewrite("/relay/e/")).toBe("https://mynextboardgame.com/relay/c1");
+    expect(rewrite("/relay/s/?ver=1")).toBe("https://mynextboardgame.com/relay/c4?ver=1");
+    expect(rewrite("/relay/flags/?v=2&config=true")).toBe("https://mynextboardgame.com/relay/c5?v=2&config=true");
+    expect(rewrite("/relay/array/phc_abc/config")).toBe("https://mynextboardgame.com/relay/k/phc_abc/v");
+    expect(rewrite("/relay/array/phc_abc/config.js")).toBe("https://mynextboardgame.com/relay/k/phc_abc/v.js");
+    expect(rewrite("/relay/i/v1/metrics")).toBe("https://mynextboardgame.com/relay/i/v1/metrics");
     expect(rewrite("https://eu.i.posthog.com/e/")).toBe("https://eu.i.posthog.com/e/");
 
     for (const [path, alias] of Object.entries(POSTHOG_PATH_ALIASES)) {

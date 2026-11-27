@@ -81,7 +81,7 @@ async function renderPng(): Promise<Uint8Array<ArrayBuffer>> {
             Лучшее с BGG — под ваш состав
           </div>
         </div>
-        <div style={{ fontFamily: "Geist Mono", fontSize: 26, color: "#a3a3a3" }}>bg.gsnv.dev</div>
+        <div style={{ fontFamily: "Geist Mono", fontSize: 26, color: "#a3a3a3" }}>mynextboardgame.com</div>
       </div>
     ),
     {
