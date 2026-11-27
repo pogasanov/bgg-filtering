@@ -71,9 +71,12 @@ function matchesSelection(selection: MatrixSelection): SQL {
   return sql`exists (select 1 from ${playerRecommendations} where ${playerRecommendations.gameId} = ${games.bggId} and ${playerRecommendations.playerCount} = ${selection.playerCount} and ${playerRecommendations.verdict} = ${selection.verdict})`;
 }
 
+/** The tag filter offers BGG mechanics only; categories are stored but neither offered nor matched. */
+const isMechanic = eq(gameTags.kind, "mechanic");
+
 /**
- * The WHERE clause for the filters. Every filter narrows the list (AND); selected tags match any of
- * them (OR); in the matrix, verdicts within one player-count row are alternatives and every row must match.
+ * The WHERE clause for the filters. Every filter narrows the list (AND); a game must have every selected
+ * mechanic (AND); in the matrix, verdicts within one player-count row are alternatives and every row must match.
  */
 export function filterCondition(filters: GameFilters): SQL | undefined {
   const conditions: (SQL | undefined)[] = [];
@@ -95,9 +98,9 @@ export function filterCondition(filters: GameFilters): SQL | undefined {
   if (filters.minYear !== null) conditions.push(sql`(${games.year} is null or ${games.year} >= ${filters.minYear})`);
   if (filters.maxYear !== null) conditions.push(sql`(${games.year} is null or ${games.year} <= ${filters.maxYear})`);
 
-  if (filters.tags.length > 0) {
+  for (const tag of filters.tags) {
     conditions.push(
-      sql`exists (select 1 from ${gameTags} where ${gameTags.gameId} = ${games.bggId} and ${inArray(gameTags.name, filters.tags)})`,
+      sql`exists (select 1 from ${gameTags} where ${gameTags.gameId} = ${games.bggId} and ${isMechanic} and ${gameTags.name} = ${tag})`,
     );
   }
 
@@ -145,21 +148,24 @@ export function countCatalogGames(db: Db): Promise<number> {
   return countGames(db, filterCondition(defaultFilters));
 }
 
-/** Games per tag among the ranked games passing the condition. */
+/** Games per mechanic among the ranked games passing the condition. */
 async function countTags(db: Db, where: SQL | undefined): Promise<Map<string, number>> {
   const rows = await db
     .select({ name: gameTags.name, count: countDistinct(gameTags.gameId) })
     .from(gameTags)
     .innerJoin(games, eq(games.bggId, gameTags.gameId))
     .innerJoin(rankedGames, isRanked)
-    .where(where)
+    .where(and(isMechanic, where))
     .groupBy(gameTags.name);
   return new Map(rows.map((row) => [row.name, Number(row.count)]));
 }
 
-/** Tag counts under every filter except the tag selection itself. */
+/**
+ * Mechanic counts under every filter, the selected mechanics included: since a game must have all of
+ * them, a count says how many games stay if that mechanic is added, and a selected one counts the list.
+ */
 export function tagCounts(db: Db, filters: GameFilters): Promise<Map<string, number>> {
-  return countTags(db, filterCondition({ ...filters, tags: [] }));
+  return countTags(db, filterCondition(filters));
 }
 
 const listedColumns = {
@@ -312,7 +318,8 @@ export async function queryCatalogFrame(db: Db): Promise<CatalogFrame> {
       .selectDistinct({ name: gameTags.name })
       .from(gameTags)
       .innerJoin(rankedGames, eq(rankedGames.bggId, gameTags.gameId))
-      .innerJoin(games, isRanked),
+      .innerJoin(games, isRanked)
+      .where(isMechanic),
     db
       .selectDistinct({ name: gameLanguages.name })
       .from(gameLanguages)

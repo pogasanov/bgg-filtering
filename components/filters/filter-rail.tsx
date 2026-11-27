@@ -6,6 +6,7 @@ import { MatrixGrid } from "@/components/filters/matrix-grid";
 import { RailFooter } from "@/components/filters/rail-footer";
 import { TagFilter } from "@/components/filters/tag-filter";
 import { YearFilter } from "@/components/filters/year-filter";
+import { useLocale, useMessages } from "@/components/locale";
 import type { CatalogStatus } from "@/lib/catalog/types";
 import type { GameFilters } from "@/lib/filtering";
 import { languageLabel } from "@/lib/labels";
@@ -24,6 +25,8 @@ export type FilterRailProps = {
 /** The filter groups and the service footer. Used as the desktop rail and inside the phone sheet. */
 export function FilterRail(props: FilterRailProps) {
   const { filters, onChange } = props;
+  const locale = useLocale();
+  const t = useMessages();
   const yearActive = filters.minYear !== null || filters.maxYear !== null;
 
   return (
@@ -31,7 +34,7 @@ export function FilterRail(props: FilterRailProps) {
       {/* Only the groups scroll; the footer with the BGG mark and sync stays in view. */}
       <div data-rail-scroll className="min-h-0 flex-1 overflow-y-auto [&>*:last-child]:border-b-0">
       <FilterGroup
-        title="Игроки × вердикт"
+        title={t.matrixTitle}
         activeCount={filters.matrix.length}
         onClear={() => onChange({ ...filters, matrix: [] })}
       >
@@ -39,9 +42,9 @@ export function FilterRail(props: FilterRailProps) {
       </FilterGroup>
 
       <FilterGroup
-        title="Год"
+        title={t.yearTitle}
         collapsible
-        summary={yearActive ? yearRangeLabel(filters.minYear, filters.maxYear) : undefined}
+        summary={yearActive ? yearRangeLabel(filters.minYear, filters.maxYear, locale) : undefined}
         activeCount={yearActive ? 1 : 0}
         onClear={() => onChange({ ...filters, minYear: null, maxYear: null })}
       >
@@ -54,7 +57,7 @@ export function FilterRail(props: FilterRailProps) {
       </FilterGroup>
 
       <FilterGroup
-        title="Категории и механики"
+        title={t.mechanicsTitle}
         collapsible
         activeCount={filters.tags.length}
         onClear={() => onChange({ ...filters, tags: [] })}
@@ -68,9 +71,9 @@ export function FilterRail(props: FilterRailProps) {
       </FilterGroup>
 
       <FilterGroup
-        title="Язык издания"
+        title={t.editionLanguage}
         collapsible
-        summary={languageLabel(filters.language)}
+        summary={languageLabel(filters.language, locale)}
         activeCount={filters.language !== "" ? 1 : 0}
         onClear={() => onChange({ ...filters, language: "" })}
       >

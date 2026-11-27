@@ -1,13 +1,14 @@
-// Bundles the weekly sync worker into one CommonJS file for the Modal container.
+// Bundles the Modal workers (weekly BGG sync, daily prices) into one CommonJS file each.
 // Uses esbuild's JS API: pnpm's bin shim cannot run esbuild's native binary directly.
 import { build } from "esbuild";
 
-await build({
-  entryPoints: ["worker/sync-entry.ts"],
+const shared = {
   bundle: true,
   platform: "node",
   target: "node22",
   format: "cjs",
-  outfile: "worker/dist/sync.cjs",
   logLevel: "warning",
-});
+};
+
+await build({ ...shared, entryPoints: ["worker/sync-entry.ts"], outfile: "worker/dist/sync.cjs" });
+await build({ ...shared, entryPoints: ["worker/prices-entry.ts"], outfile: "worker/dist/prices.cjs" });

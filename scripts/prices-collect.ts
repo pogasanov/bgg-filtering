@@ -9,12 +9,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { closeDb, getDb } from "@/lib/db/client";
-import { fetchCatalogue, storeCollection } from "@/lib/prices/collect";
 import { buildUserAgent } from "@/lib/prices/http";
-import { loadGamesForPricing } from "@/lib/prices/games";
 import { refreshSite } from "@/lib/prices/refresh-site";
-import type { ShopOutcome } from "@/lib/prices/report";
-import { countCandidates, getCurrentOffers } from "@/lib/prices/store";
+import { runPriceCollection } from "@/lib/prices/run-collection";
 import { shopCodes, type ShopCode, type ShopProduct } from "@/lib/prices/types";
 
 const CACHE_DIR = join(process.cwd(), "data", "price-cache");
@@ -35,45 +32,14 @@ function readCache(shop: ShopCode): ShopProduct[] {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const startedAt = new Date();
-  const db = getDb();
   try {
-    const games = await loadGamesForPricing(db);
-    if (games.every((game) => game.names.length === 1)) {
-      throw new Error("No alternate names are stored yet. Run the BGG sync (pnpm worker:local) once, then try again.");
-    }
-    const userAgent = buildUserAgent(process.env.PRICE_BOT_INFO_URL);
-    console.log(`Games: ${games.length}`);
-  
-    // One shop failing must not stop the others.
-    const outcomes: ShopOutcome[] = [];
-    for (const shop of options.shops) {
-      try {
-        const products = options.fromCache ? readCache(shop) : await fetchCatalogue(shop, games, userAgent);
-        console.log(`  ${shop}: ${products.length} products${options.fromCache ? " (cached)" : ""}`);
-        outcomes.push({ shop, products });
-      } catch (error) {
-        const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-        console.log(`  ${shop}: FAILED — ${message}`);
-        outcomes.push({ shop, error: message });
-      }
-    }
-  
-
-    const summary = await storeCollection(db, games, outcomes, startedAt, new Date());
-    for (const shop of summary.shops) {
-      console.log(
-        shop.error === null
-          ? `  ${shop.shop}: ${shop.confirmed} confirmed, ${shop.candidates} candidates, ${shop.pricesChanged} prices changed`
-          : `  ${shop.shop}: FAILED — ${shop.error}`,
-      );
-    }
-    console.log(`  Russian titles changed: ${summary.russianTitlesChanged}`);
-    const offers = await getCurrentOffers(db);
-    console.log(
-      `Stored: ${offers.length} current prices for ${new Set(offers.map((offer) => offer.bggId)).size} games; ` +
-        `${await countCandidates(db)} candidates wait for review.`,
-    );
+    const summary = await runPriceCollection({
+      db: getDb(),
+      shops: options.shops,
+      userAgent: buildUserAgent(process.env.PRICE_BOT_INFO_URL),
+      log: console.log,
+      readCatalogue: options.fromCache ? readCache : undefined,
+    });
     if (summary.shops.some((shop) => shop.error !== null)) process.exitCode = 1;
     await refreshSite(
       { REVALIDATE_URL: process.env.REVALIDATE_URL, REVALIDATE_SECRET: process.env.REVALIDATE_SECRET },

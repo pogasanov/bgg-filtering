@@ -57,7 +57,7 @@ Migrations run over the direct connection `DATABASE_URL_UNPOOLED` when it is set
 Use **dedicated personal accounts created for this project** on Neon, Vercel, Modal, Sentry and PostHog. Never use other accounts that happen to be logged in on your machine. The tooling enforces this:
 
 - Vercel commands go through `pnpm vc …`. Its CLI login lives in a separate config directory (`~/.config/vercel-bgg`, override with `VERCEL_GLOBAL_CONFIG`), so a global `vercel login` to another account never affects this project. `VERCEL_TOKEN` in `.env.local` is optional, for non-interactive runs.
-- Modal commands run with `MODAL_PROFILE=bgg`. If that profile does not exist, they fail instead of using another one.
+- Modal runs in the owner's personal `pogasanov` workspace, through the CLI profile `bgfilter`. Modal commands run with `MODAL_PROFILE=bgfilter`; if that profile does not exist, they fail instead of using whichever profile is active.
 
 ### 1. Neon
 
@@ -138,19 +138,19 @@ Functions run in `fra1` (`vercel.json`), next to the Neon database.
 ### 5. Modal
 
 1. In the project's Modal account, add a payment method. Then set a **workspace spend limit** (Settings → Usage) so overage stops work instead of charging the card. The weekly job uses well under $1 of the free $30 monthly compute.
-2. Create the dedicated CLI profile without making it the active one. This opens the browser; log in with the project's Modal account. Your other Modal profiles stay active for other work.
+2. Create the dedicated CLI profile without making it the active one. This opens the browser; log in to the `pogasanov` Modal workspace. Your other Modal profiles stay active for other work.
 
 ```bash
-modal token new --profile bgg --no-activate
+modal token new --profile bgfilter --no-activate
 ```
 
 3. Create the worker secret:
 
 ```bash
-MODAL_PROFILE=bgg modal secret create bgg-sync DATABASE_URL=... BGG_TOKEN=... REVALIDATE_URL=https://bg.gsnv.dev/api/revalidate REVALIDATE_SECRET=... SENTRY_DSN=...
+MODAL_PROFILE=bgfilter modal secret create bgg-sync DATABASE_URL=... BGG_TOKEN=... REVALIDATE_URL=https://bg.gsnv.dev/api/revalidate REVALIDATE_SECRET=... SENTRY_DSN=...
 ```
 
-4. Deploy the weekly schedule and run the first sync:
+4. Deploy both schedules (BGG sync on Mondays at 03:00 UTC, shop prices daily at 05:00 UTC) and run the first sync:
 
 ```bash
 pnpm worker:deploy
@@ -158,6 +158,12 @@ pnpm worker:deploy
 
 ```bash
 pnpm worker:run
+```
+
+5. Run the first price collection by hand. It reads the shops one request at a time, so it takes a while:
+
+```bash
+pnpm worker:run-prices
 ```
 
 ## Operations

@@ -1,6 +1,8 @@
 import { playerCounts, type ListedGame, type PlayerCount, type RecommendationVerdict } from "./bgg/types";
 import { isNotPlayable } from "./filtering";
-import { playerCountText, playersLabel, verdictLabels } from "./labels";
+import { DEFAULT_LOCALE, type Locale } from "./i18n/locale";
+import { messages } from "./i18n/messages";
+import { playerCountText, playersLabel, verdictLabel } from "./labels";
 
 export type PollCell = {
   playerCount: PlayerCount;
@@ -26,39 +28,39 @@ export function pollCells(game: ListedGame): PollCell[] {
   });
 }
 
-export function pollCellLabel(cell: PollCell): string {
-  const players = playersLabel(cell.playerCount);
-  const outOfRange = cell.inRange ? "" : " · вне диапазона игроков";
+export function pollCellLabel(cell: PollCell, locale: Locale = DEFAULT_LOCALE): string {
+  const t = messages[locale];
+  const players = playersLabel(cell.playerCount, locale);
+  const outOfRange = cell.inRange ? "" : ` · ${t.pollOutOfRange}`;
   const total = cell.best + cell.recommended + cell.notRecommended;
-  if (cell.verdict === "unknown" || total === 0) return `${players}: нет данных${cell.inRange ? "" : outOfRange}`;
+  if (cell.verdict === "unknown" || total === 0) return `${players}: ${t.pollNoData}${outOfRange}`;
 
   const share = (votes: number) => `${votes} (${Math.round((votes / total) * 100)}%)`;
   return (
-    `${players}: ${verdictLabels[cell.verdict]} — лучше ${share(cell.best)}, ` +
-    `реком. ${share(cell.recommended)}, не рек. ${share(cell.notRecommended)}${outOfRange}`
+    `${players}: ${verdictLabel(cell.verdict, locale)} — ${t.pollBest} ${share(cell.best)}, ` +
+    `${t.pollRecommended} ${share(cell.recommended)}, ${t.pollNotRecommended} ${share(cell.notRecommended)}${outOfRange}`
   );
 }
 
-export function pollStripLabel(game: ListedGame): string {
-  return pollCells(game).map(pollCellLabel).join("; ");
+export function pollStripLabel(game: ListedGame, locale: Locale = DEFAULT_LOCALE): string {
+  return pollCells(game)
+    .map((cell) => pollCellLabel(cell, locale))
+    .join("; ");
 }
 
-const summaryGroups: [RecommendationVerdict, string][] = [
-  ["best", "лучше всего"],
-  ["recommended", "рекомендуют"],
-  ["not-recommended", "не рекомендуют"],
-];
+const summaryVerdicts = ["best", "recommended", "not-recommended"] as const;
 
 /**
  * The poll in one short sentence of page text: the strip itself is colour and shape, which neither
  * screen readers nor search engines read. Only the counts the game supports are named.
  */
-export function pollSummary(cells: PollCell[]): string {
-  const parts = summaryGroups.flatMap(([verdict, label]) => {
+export function pollSummary(cells: PollCell[], locale: Locale = DEFAULT_LOCALE): string {
+  const t = messages[locale];
+  const parts = summaryVerdicts.flatMap((verdict) => {
     const counts = cells.filter((cell) => cell.inRange && cell.verdict === verdict).map((cell) => playerCountText(cell.playerCount));
-    return counts.length > 0 ? [`${label} на ${counts.join(", ")}`] : [];
+    return counts.length > 0 ? [t.pollSummaryPart(verdictLabel(verdict, locale), counts.join(", "))] : [];
   });
-  return parts.length > 0 ? `Опрос: ${parts.join("; ")}` : "Опрос: нет данных";
+  return t.pollSummary(parts.length > 0 ? parts.join("; ") : t.pollNoData);
 }
 
 const verdictCodes: Record<RecommendationVerdict, string> = { best: "b", recommended: "r", "not-recommended": "n", unknown: "u" };

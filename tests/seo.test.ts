@@ -26,7 +26,7 @@ describe("view headings and titles", () => {
       language: "English",
       sort: "year" as const,
     };
-    expect(viewHeading(filters)).toBe("Лучшие настолки на четверых: Cooperative Game, с 2015, английские издания");
+    expect(viewHeading(filters)).toBe("Лучшие настолки на четверых: Кооператив, с 2015, английские издания");
     expect(viewHeading({ ...defaultFilters, matrix: [{ playerCount: "3", verdict: "not-playable" }, { playerCount: "1", verdict: "best" }] })).toBe(
       "Лучшие настолки по числу игроков: 1 игрок: лучше всего, 3 игрока: нельзя играть",
     );

@@ -254,14 +254,14 @@ describe("game filtering", () => {
 
   test("combines year bounds with the existing filters using AND logic", async () => {
     const strategyGames = [
-      makeGame({ id: 30, rank: 30, title: "Strategy Classic", year: 1990, categories: ["Strategy"] }),
-      makeGame({ id: 31, rank: 31, title: "Strategy Modern", year: 2020, categories: ["Strategy"] }),
+      makeGame({ id: 30, rank: 30, title: "Strategy Classic", year: 1990, mechanics: ["Worker Placement"] }),
+      makeGame({ id: 31, rank: 31, title: "Strategy Modern", year: 2020, mechanics: ["Worker Placement"] }),
     ];
 
     const result = await filterGames(strategyGames, {
       search: "strategy",
       language: "",
-      tags: ["Strategy"],
+      tags: ["Worker Placement"],
       matrix: [],
       sort: "rank",
       minYear: 2000,
@@ -296,16 +296,28 @@ describe("sorting", () => {
   });
 });
 
-describe("tag counts", () => {
-  test("counts games per tag under the other filters, ignoring the tag selection", async () => {
-    const games = [
-      makeGame({ id: 1, year: 2020, categories: ["Economic"], mechanics: ["Worker Placement"] }),
-      makeGame({ id: 2, year: 2020, categories: ["Economic"], mechanics: [] }),
-      makeGame({ id: 3, year: 1990, categories: ["Economic"], mechanics: ["Worker Placement"] }),
-    ];
+describe("mechanics", () => {
+  const games = [
+    makeGame({ id: 1, year: 2020, categories: ["Economic"], mechanics: ["Worker Placement", "Set Collection"] }),
+    makeGame({ id: 2, year: 2020, categories: ["Economic"], mechanics: ["Set Collection"] }),
+    makeGame({ id: 3, year: 1990, categories: ["Economic"], mechanics: ["Worker Placement"] }),
+  ];
+
+  test("a game must have every selected mechanic", async () => {
+    expect((await filterGames(games, { ...base, tags: ["Worker Placement"] })).map((g) => g.id)).toEqual([1, 3]);
+    expect((await filterGames(games, { ...base, tags: ["Worker Placement", "Set Collection"] })).map((g) => g.id)).toEqual([1]);
+  });
+
+  test("categories are not matched", async () => {
+    expect(await filterGames(games, { ...base, tags: ["Economic"] })).toEqual([]);
+  });
+
+  test("counts games per mechanic under every filter, the selection included; categories are left out", async () => {
     const counts = await tagCounts(games, { ...base, minYear: 2000, tags: ["Worker Placement"] });
-    expect(counts.get("Economic")).toBe(2);
+    // Only game 1 has Worker Placement after 2000, so adding Set Collection keeps one game.
+    expect(counts.get("Set Collection")).toBe(1);
     expect(counts.get("Worker Placement")).toBe(1);
+    expect(counts.has("Economic")).toBe(false);
     expect(counts.has("Deck Building")).toBe(false);
   });
 });

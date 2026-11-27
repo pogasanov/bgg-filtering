@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLocale, useMessages } from "@/components/locale";
 import { PriceChanges } from "@/components/prices/price-changes";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
+import { intlLocale, type Locale } from "@/lib/i18n/locale";
 import { changeRows } from "@/lib/prices/changes";
 import type { GameHistory } from "@/lib/prices/history";
 import { formatPrice, shopNames, type GameOffer } from "@/lib/prices/offers";
@@ -12,14 +14,15 @@ export type HistoryState = { status: "loading" } | { status: "error" } | { statu
 
 const linkClass = "underline underline-offset-2 outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
-function date(isoTime: string) {
-  return new Date(isoTime).toLocaleDateString("ru-RU");
+function date(isoTime: string, locale: Locale) {
+  return new Date(isoTime).toLocaleDateString(intlLocale(locale));
 }
 
 /** Which game a panel belongs to; for analytics only, so the views can be rendered without it. */
 export type PanelGame = { gameId?: number; title?: string };
 
 function BggLink({ bggUrl, game }: { bggUrl: string; game: PanelGame }) {
+  const t = useMessages();
   return (
     <a
       href={bggUrl}
@@ -30,7 +33,7 @@ function BggLink({ bggUrl, game }: { bggUrl: string; game: PanelGame }) {
         track("outbound_link_clicked", { destination: "bgg", placement: "price_panel", game_id: game.gameId, game_title: game.title, url: bggUrl })
       }
     >
-      Страница на BoardGameGeek
+      {t.bggPage}
     </a>
   );
 }
@@ -39,16 +42,18 @@ function BggLink({ bggUrl, game }: { bggUrl: string; game: PanelGame }) {
 function PanelFooter({ offers, lowest, bggUrl, game }: { offers: GameOffer[]; lowest: GameHistory["lowest"]; bggUrl: string; game: PanelGame }) {
   const checkTimes = offers.flatMap((offer) => (offer.checkedAt === null ? [] : [offer.checkedAt])).sort();
   const updatedAt = checkTimes[checkTimes.length - 1];
+  const locale = useLocale();
+  const t = useMessages();
 
   return (
     <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
       {lowest ? (
         <span>
-          Минимум за всё время: <span className="font-mono text-foreground">{formatPrice(lowest.price)}</span> ·{" "}
-          {shopNames[lowest.shop]}, {date(lowest.at)}
+          {t.lowestEver} <span className="font-mono text-foreground">{formatPrice(lowest.price)}</span> ·{" "}
+          {shopNames[lowest.shop]}, {date(lowest.at, locale)}
         </span>
       ) : null}
-      {updatedAt ? <span>Цены обновлены {date(updatedAt)}</span> : null}
+      {updatedAt ? <span>{t.pricesUpdated(date(updatedAt, locale))}</span> : null}
       <BggLink bggUrl={bggUrl} game={game} />
     </p>
   );
@@ -63,11 +68,12 @@ type PricePanelViewProps = PanelGame & {
 
 /** The panel's layout for a given load state. Kept free of fetching so every state can be rendered directly. */
 export function PricePanelView({ offers, bggUrl, state, onRetry, gameId, title }: PricePanelViewProps) {
+  const t = useMessages();
   const game: PanelGame = { gameId, title };
   if (offers.length === 0) {
     return (
       <div className="grid gap-2 px-4 py-4 text-[13px] text-muted-foreground">
-        <p>Игра не найдена в отслеживаемых магазинах.</p>
+        <p>{t.notInShops}</p>
         <p>
           <BggLink bggUrl={bggUrl} game={game} />
         </p>
@@ -79,13 +85,13 @@ export function PricePanelView({ offers, bggUrl, state, onRetry, gameId, title }
     <div className="grid max-w-3xl gap-3 px-4 py-3">
       {state.status === "ready" ? <PriceChanges rows={changeRows(state.history, offers)} game={game} /> : null}
       {state.status === "loading" ? (
-        <div aria-busy="true" aria-label="Загрузка истории цен" className="h-16 animate-pulse rounded-md bg-muted/60" />
+        <div aria-busy="true" aria-label={t.historyLoading} className="h-16 animate-pulse rounded-md bg-muted/60" />
       ) : null}
       {state.status === "error" ? (
         <div role="alert" className="flex items-center gap-3 text-[13px] text-muted-foreground">
-          <p>Не удалось загрузить историю цен</p>
+          <p>{t.historyFailed}</p>
           <Button variant="outline" size="sm" onClick={onRetry}>
-            Повторить
+            {t.retry}
           </Button>
         </div>
       ) : null}

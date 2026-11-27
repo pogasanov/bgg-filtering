@@ -45,11 +45,31 @@ test("year shows presets and hides the slider until a custom range", () => {
   expect(slotCount(render({ filters: { ...defaultFilters, minYear: 2015, maxYear: 2024 } }), "slider")).toBe(1);
 });
 
-test("tags show counts and keep selected tags that left the data", () => {
+test("mechanics show counts and keep selected mechanics that left the data", () => {
   const html = render({ filters: { ...defaultFilters, tags: ["Gone Tag"] } });
   expect(html).toContain("Gone Tag");
   expect(html).toContain(">12<");
   expect(html.indexOf("Gone Tag")).toBeLessThan(html.indexOf("Economic"));
+});
+
+test("mechanics are titled and named in Russian, with the BGG name kept for the URL", () => {
+  const html = render();
+  expect(html).toContain(">Механики<");
+  expect(html).not.toContain("Категории");
+  expect(html).toMatch(/data-mechanic="Worker Placement"[^>]*title="Worker Placement"/);
+  expect(html).toContain(">Размещение рабочих<");
+});
+
+test("mechanics list the most common first, hide the empty ones and fold the rest", () => {
+  const names = Array.from({ length: 14 }, (_, index) => `Mechanic ${index + 1}`);
+  const html = render({
+    allTags: [...names, "Unused"],
+    tagCounts: new Map([...names.map((name, index): [string, number] => [name, 100 - index]), ["Unused", 0]]),
+  });
+  const listed = [...html.matchAll(/data-mechanic="([^"]+)"/g)].map((match) => match[1]);
+  expect(listed).toEqual(names.slice(0, 10));
+  expect(html).toContain("Ещё 4");
+  expect(html).not.toContain('data-mechanic="Unused"');
 });
 
 test("groups show a per-group counter only when something is active", () => {
