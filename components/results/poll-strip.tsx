@@ -2,6 +2,7 @@
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ListedGame } from "@/lib/bgg/types";
+import { playerCountText } from "@/lib/labels";
 import { pollCellLabel, pollCells, pollStripLabel, type PollCell } from "@/lib/poll";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +52,7 @@ export function PollStrip({ game, hoverable = true }: PollStripProps) {
               aria-hidden="true"
               className={cellClass(cell)}
             >
-              {cell.verdict === "unknown" ? "·" : cell.playerCount}
+              {cell.verdict === "unknown" ? "·" : playerCountText(cell.playerCount)}
             </span>
           ))}
         </span>

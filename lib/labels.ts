@@ -25,10 +25,15 @@ export const sortLabels: Record<SortKey, string> = {
   price: "Цена",
 };
 
+/** What a visitor sees for a player count. BGG's "6+" bucket means more than six, so it reads "7+". */
+export function playerCountText(count: PlayerCount): string {
+  return count === "6+" ? "7+" : count;
+}
+
 export function playersLabel(count: PlayerCount): string {
   if (count === "1") return "1 игрок";
   if (count === "2" || count === "3" || count === "4") return `${count} игрока`;
-  return `${count} игроков`;
+  return `${playerCountText(count)} игроков`;
 }
 
 export function matrixCellLabel(selection: MatrixSelection): string {
