@@ -1,3 +1,7 @@
+"use client";
+
+import { useMessages } from "@/components/locale";
+
 /** The linked BGG mark required by the API terms. Its orange is the one brand colour in the interface. */
 export function PoweredByBgg() {
   return (
@@ -17,13 +21,14 @@ export function PoweredByBgg() {
 }
 
 export function BggAttribution() {
+  const t = useMessages();
   return (
     <p className="text-[11px] leading-snug text-muted-foreground">
-      Данные:{" "}
+      {t.dataFrom}{" "}
       <a href="https://boardgamegeek.com" target="_blank" rel="noreferrer" className="underline underline-offset-2">
         BoardGameGeek
       </a>
-      . Не аффилировано с BGG. Некоммерческий сайт.
+      {t.notAffiliated}
     </p>
   );
 }

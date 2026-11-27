@@ -2,6 +2,7 @@
 
 import { ChevronDown, X } from "lucide-react";
 import type { ReactNode } from "react";
+import { useMessages } from "@/components/locale";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type FilterGroupProps = {
@@ -16,6 +17,7 @@ type FilterGroupProps = {
 };
 
 function GroupStatus({ title, summary, activeCount = 0, onClear }: Omit<FilterGroupProps, "children">) {
+  const t = useMessages();
   return (
     <>
       {summary ? <span className="font-mono text-[11px] font-normal text-muted-foreground">{summary}</span> : null}
@@ -23,7 +25,7 @@ function GroupStatus({ title, summary, activeCount = 0, onClear }: Omit<FilterGr
         <button
           type="button"
           onClick={onClear}
-          aria-label={`Сбросить: ${title}`}
+          aria-label={t.clearGroup(title)}
           className="inline-flex items-center gap-0.5 rounded border px-1 font-mono text-[10px] leading-4 text-foreground outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           {activeCount}

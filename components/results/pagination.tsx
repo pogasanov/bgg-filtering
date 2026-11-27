@@ -1,6 +1,9 @@
+"use client";
+
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useMessages } from "@/components/locale";
 import type { GameFilters } from "@/lib/filtering";
 import { formatNumber } from "@/lib/labels";
 import { viewHref } from "@/lib/language-path";
@@ -29,6 +32,7 @@ function PageLink({ href, className, children, ...props }: { href: string; class
 
 /** Links to the other pages of the same filters. Nothing is shown while everything fits on one page. */
 export function Pagination({ page, pageCount, shown, filters }: PaginationProps) {
+  const t = useMessages();
   if (pageCount <= 1) return null;
 
   const href = (target: number) => viewHref(filters, target);
@@ -37,16 +41,16 @@ export function Pagination({ page, pageCount, shown, filters }: PaginationProps)
 
   return (
     <nav
-      aria-label="Страницы результатов"
+      aria-label={t.pagesAria}
       className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t px-4 py-3"
     >
       <p className="font-mono text-xs text-muted-foreground">
-        {formatNumber(first, 0)}–{formatNumber(last, 0)} из {formatNumber(shown, 0)}
+        {formatNumber(first, 0)}–{formatNumber(last, 0)} {t.ofTotal(formatNumber(shown, 0))}
       </p>
       <ul className="flex items-center gap-0.5">
         <li>
           {page > 1 ? (
-            <PageLink href={href(page - 1)} aria-label="Предыдущая страница">
+            <PageLink href={href(page - 1)} aria-label={t.previousPage}>
               <ChevronLeft className="size-3.5" aria-hidden="true" />
             </PageLink>
           ) : null}
@@ -63,7 +67,7 @@ export function Pagination({ page, pageCount, shown, filters }: PaginationProps)
                   {item}
                 </span>
               ) : (
-                <PageLink href={href(item)} aria-label={`Страница ${item}`}>
+                <PageLink href={href(item)} aria-label={t.pageN(item)}>
                   {item}
                 </PageLink>
               )}
@@ -72,7 +76,7 @@ export function Pagination({ page, pageCount, shown, filters }: PaginationProps)
         )}
         <li>
           {page < pageCount ? (
-            <PageLink href={href(page + 1)} aria-label="Следующая страница">
+            <PageLink href={href(page + 1)} aria-label={t.nextPage}>
               <ChevronRight className="size-3.5" aria-hidden="true" />
             </PageLink>
           ) : null}

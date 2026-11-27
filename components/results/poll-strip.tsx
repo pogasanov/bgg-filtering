@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/locale";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { playerCountText } from "@/lib/labels";
 import { decodePollCells, pollCellLabel, pollSummary, type PollCell } from "@/lib/poll";
@@ -33,13 +34,14 @@ type PollStripProps = {
 };
 
 export function PollStrip({ cells: code, hoverable = true }: PollStripProps) {
+  const locale = useLocale();
   const cells = decodePollCells(code);
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <span data-poll-strip className={cn("inline-flex gap-0.5", hoverable ? "relative z-10" : "pointer-events-none")}>
-          <span className="sr-only">{pollSummary(cells)}</span>
+          <span className="sr-only">{pollSummary(cells, locale)}</span>
           {cells.map((cell) => (
             <span
               key={cell.playerCount}
@@ -56,7 +58,7 @@ export function PollStrip({ cells: code, hoverable = true }: PollStripProps) {
       <TooltipContent side="bottom" align="start" className="max-w-none text-left">
         <ul className="grid gap-0.5 font-mono text-[11px]">
           {cells.map((cell) => (
-            <li key={cell.playerCount}>{pollCellLabel(cell)}</li>
+            <li key={cell.playerCount}>{pollCellLabel(cell, locale)}</li>
           ))}
         </ul>
       </TooltipContent>

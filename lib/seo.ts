@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { matrixVerdicts, playerCounts, type MatrixSelection, type PlayerCount } from "./bgg/types";
 import type { GameFilters } from "./filtering";
+import { mechanicLabel } from "./i18n/mechanics";
 import { matrixCellLabel } from "./labels";
 import { languageCode, viewHref } from "./language-path";
 import { RUSSIAN } from "./url-state";
@@ -62,8 +63,8 @@ function playerCountBase(matrix: MatrixSelection[]): string | null {
 export function viewHeading(filters: GameFilters): string {
   const base = playerCountBase(filters.matrix);
   const parts = [
-    ...(base ? [] : sortedMatrix(filters.matrix).map(matrixCellLabel)),
-    ...filters.tags,
+    ...(base ? [] : sortedMatrix(filters.matrix).map((selection) => matrixCellLabel(selection))),
+    ...filters.tags.map((tag) => mechanicLabel(tag, "ru")),
     ...(filters.minYear !== null || filters.maxYear !== null ? [yearRangeLabel(filters.minYear, filters.maxYear)] : []),
     ...[editionsPhrase(filters.language)].filter((phrase) => phrase !== null),
     ...(filters.search.trim() ? [`«${filters.search.trim()}»`] : []),

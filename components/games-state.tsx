@@ -14,6 +14,7 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
+import { useLocale } from "@/components/locale";
 import { activeFilterChips, type FilterChip } from "@/lib/active-filters";
 import { changedFilterGroups, filterProperties, rememberFilters, track } from "@/lib/analytics";
 import type { SortKey } from "@/lib/bgg/types";
@@ -113,7 +114,8 @@ function GamesState({
     rememberFilters(initialFilters);
   }, [initialFilters]);
 
-  const chips = useMemo(() => activeFilterChips(filters), [filters]);
+  const locale = useLocale();
+  const chips = useMemo(() => activeFilterChips(filters, locale), [filters, locale]);
 
   // Ask the server for the results whenever the filters change. The URL is replaced, not pushed, so a
   // reload or a copied link restores the view and the back button still leaves the page. A new set of
