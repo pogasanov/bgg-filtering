@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title =
     SITE_LOCALE === "ru"
       ? `${name}${name !== game.title ? ` (${game.title})` : ""} — на сколько игроков и цены`
-      : `${name}: best player count and prices`;
+      : `${name}: best player count`;
   const description = gameSummary(game);
   const url = gamePath(game.id, name);
   return {

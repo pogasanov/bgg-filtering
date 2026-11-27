@@ -41,10 +41,10 @@ describe("view headings and titles", () => {
     expect(editionsPhrase("Esperanto", "en")).toBe("Esperanto editions");
   });
 
-  test("only the Russian view promises shop prices", () => {
-    expect(viewDescription({ ...defaultFilters, language: "Russian", tags: ["Economic"] })).toContain("цены в российских магазинах");
-    expect(viewDescription({ ...defaultFilters, tags: ["Economic"] })).not.toContain("цены");
-    expect(viewDescription({ ...defaultFilters, language: "Russian", tags: ["Economic"] }, "en")).toContain("prices in Russian shops");
+  test("only the Russian site promises shop prices, whatever the editions", () => {
+    expect(viewDescription({ ...defaultFilters, tags: ["Economic"] })).toContain("цены в российских магазинах");
+    expect(viewDescription({ ...defaultFilters, language: "English", tags: ["Economic"] })).toContain("цены в российских магазинах");
+    expect(viewDescription({ ...defaultFilters, language: "Russian", tags: ["Economic"] }, "en")).not.toMatch(/price/i);
   });
 
   test("the English site reads in English", () => {

@@ -6,7 +6,7 @@ import { mechanicLabel } from "./i18n/mechanics";
 import { collectionPath } from "./collections";
 import { matrixCellLabel } from "./labels";
 import { languageCode, viewHref } from "./language-path";
-import { DEFAULT_LANGUAGE, RUSSIAN } from "./url-state";
+import { DEFAULT_LANGUAGE } from "./url-state";
 import { yearRangeLabel } from "./year-presets";
 
 export { SITE_URLS };
@@ -141,13 +141,9 @@ export function viewTitle(filters: GameFilters, page: number, locale: Locale = S
 export function viewDescription(filters: GameFilters, locale: Locale = SITE_LOCALE): string {
   const heading = viewHeading(filters, locale);
   if (heading === siteTexts[locale].defaultHeading) return siteTexts[locale].description;
-  const russian = filters.language === RUSSIAN;
-  if (locale === "en") {
-    const prices = russian ? ", and prices in Russian shops" : "";
-    return `${heading}. Top BoardGameGeek games with the players' poll on the best player count${prices}.`;
-  }
-  const prices = russian ? ", и цены в российских магазинах" : "";
-  return `${heading}. Игры из топа BoardGameGeek с опросом игроков о том, на сколько человек игра лучше всего${prices}.`;
+  // Only the Russian site shows prices (SITE_SHOWS_PRICES), so only its descriptions promise them.
+  if (locale === "en") return `${heading}. Top BoardGameGeek games with the players' poll on the best player count.`;
+  return `${heading}. Игры из топа BoardGameGeek с опросом игроков о том, на сколько человек игра лучше всего, и цены в российских магазинах.`;
 }
 
 /**

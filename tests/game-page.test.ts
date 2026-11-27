@@ -39,7 +39,7 @@ describe("game page helpers", () => {
     expect(gameName(game, "en")).toBe("Poll Game");
     expect(gameName(game, "ru")).toBe("Опросная игра");
     expect(gameSummary(game, "en")).toBe(
-      "According to the BGG player poll, Poll Game is best with 3 players, recommended with 2, not recommended with 4. In Russian shops from 1\u00a0990\u00a0₽.",
+      "According to the BGG player poll, Poll Game is best with 3 players, recommended with 2, not recommended with 4.",
     );
   });
 

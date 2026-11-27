@@ -58,19 +58,14 @@ export function gameSummary(game: ListedGame, locale: Locale = SITE_LOCALE): str
   const { best, recommended, notRecommended } = pollVerdicts(game);
   const name = gameName(game, locale);
   const list = (counts: PlayerCount[]) => countList(counts, locale);
-  const buyable = bestOffer(game.offers);
-  const known = buyable ? null : lowestKnownOffer(game.offers);
-
   if (locale === "en") {
     const parts = [
       ...(best.length ? [`is best with ${list(best)} players`] : []),
       ...(recommended.length ? [`recommended with ${list(recommended)}`] : []),
       ...(notRecommended.length ? [`not recommended with ${list(notRecommended)}`] : []),
     ];
-    const poll = parts.length ? `According to the BGG player poll, ${name} ${parts.join(", ")}.` : `${name} has no player-count poll on BGG yet.`;
-    if (buyable) return `${poll} In Russian shops from ${formatPrice(buyable.price)}.`;
-    if (known) return `${poll} Out of stock in Russian shops now; last price ${formatPrice(known.price)}.`;
-    return poll;
+    // The English site shows no prices.
+    return parts.length ? `According to the BGG player poll, ${name} ${parts.join(", ")}.` : `${name} has no player-count poll on BGG yet.`;
   }
 
   const parts = [
@@ -81,6 +76,8 @@ export function gameSummary(game: ListedGame, locale: Locale = SITE_LOCALE): str
   const poll = parts.length
     ? `По опросу игроков BGG «${name}» ${parts.join(", ")}.`
     : `По числу игроков у «${name}» пока нет опроса на BGG.`;
+  const buyable = bestOffer(game.offers);
+  const known = buyable ? null : lowestKnownOffer(game.offers);
   if (buyable) return `${poll} В магазинах от ${formatPrice(buyable.price)}.`;
   if (known) return `${poll} Сейчас нет в наличии, последняя цена ${formatPrice(known.price)}.`;
   return poll;

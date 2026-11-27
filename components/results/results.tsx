@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { defaultSortDir, type GameFilters } from "@/lib/filtering";
 import type { GamesView } from "@/lib/games-view";
 import { viewHeading } from "@/lib/seo";
-import { RUSSIAN } from "@/lib/url-state";
+import { SITE_SHOWS_PRICES } from "@/lib/i18n/locale";
 
 type ResultsProps = {
   view: GamesView;
@@ -35,8 +35,8 @@ export function Results({ view, filters }: ResultsProps) {
     );
   }
 
-  // Prices are for Russian editions only, so they are shown only while the list is of those.
-  const russian = filters.language === RUSSIAN;
+  // Prices are from Russian shops: the Russian site shows them on every list, the English one never.
+  const russian = SITE_SHOWS_PRICES;
 
   return (
     <>

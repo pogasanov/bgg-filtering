@@ -8,6 +8,7 @@ import { ResultsBar } from "@/components/results/results-bar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sortKeys, type SortDir, type SortKey } from "@/lib/bgg/types";
+import { SITE_SHOWS_PRICES } from "@/lib/i18n/locale";
 import { normalizeSearch, searchProperties, track } from "@/lib/analytics";
 import { defaultSortDir } from "@/lib/filtering";
 import { sortLabel } from "@/lib/labels";
@@ -83,7 +84,7 @@ export function AppResultsBar({ shown, total }: AppResultsBarProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {sortKeys.map((key) => (
+            {sortKeys.filter((key) => key !== "price" || SITE_SHOWS_PRICES).map((key) => (
               <SelectItem key={key} value={key}>
                 {sortLabel(key, locale)}
               </SelectItem>

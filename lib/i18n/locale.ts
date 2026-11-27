@@ -18,6 +18,12 @@ export const SITE_URLS: Record<Locale, string> = {
   ru: "https://ru.mynextboardgame.com",
 };
 
+/**
+ * Shop prices are from Russian shops, so only the Russian site shows them, for every game it lists
+ * whatever the edition filter; the English site shows none anywhere.
+ */
+export const SITE_SHOWS_PRICES = SITE_LOCALE === "ru";
+
 /** The language text is written in when nothing else is asked for. */
 export const DEFAULT_LOCALE: Locale = SITE_LOCALE;
 

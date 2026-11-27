@@ -6,7 +6,7 @@ import { PersonalPrice } from "@/components/results/personal-price";
 import type { ListedGame } from "@/lib/bgg/types";
 import { mechanicCollectionPath, playerCollectionPath } from "@/lib/collections";
 import { gameName, gamePath, gameSummary, pollVerdicts } from "@/lib/game-page";
-import { intlLocale, SITE_LOCALE, type Locale } from "@/lib/i18n/locale";
+import { intlLocale, SITE_LOCALE, SITE_SHOWS_PRICES, type Locale } from "@/lib/i18n/locale";
 import { mechanicLabel } from "@/lib/i18n/mechanics";
 import { formatNumber, playerCountText } from "@/lib/labels";
 import { pollCells, type PollCell } from "@/lib/poll";
@@ -297,7 +297,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function structuredData(game: ListedGame, bestCollection: { name: string; path: string } | null) {
   const name = gameName(game);
   const url = `${SITE_URL}${gamePath(game.id, name)}`;
-  const prices = game.offers.filter(inStock).map((offer) => offer.price as number);
+  // Only the Russian site shows prices, so only it describes the game as a product on sale.
+  const prices = SITE_SHOWS_PRICES ? game.offers.filter(inStock).map((offer) => offer.price as number) : [];
   const crumbs = [
     { name: t.catalog, path: "/" },
     ...(bestCollection ? [bestCollection] : []),
@@ -418,9 +419,11 @@ export function GamePage({ game, history }: { game: ListedGame; history: GameHis
           <PollTable game={game} />
         </Section>
 
-        <Section title={t.prices}>
-          <Prices game={game} history={history} />
-        </Section>
+        {SITE_SHOWS_PRICES ? (
+          <Section title={t.prices}>
+            <Prices game={game} history={history} />
+          </Section>
+        ) : null}
 
         {mechanics.length > 0 ? (
           <Section title={t.mechanics}>

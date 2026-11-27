@@ -8,6 +8,7 @@ import {
   type SortKey,
 } from "./bgg/types";
 import { defaultSortDir, type GameFilters } from "./filtering";
+import { SITE_SHOWS_PRICES } from "./i18n/locale";
 
 /** The Russian editions: the ones with Russian titles and shop prices. */
 export const RUSSIAN = "Russian";
@@ -68,7 +69,8 @@ function parseLanguage(value: string | null): string {
 /** Reads filters from a query string. Anything unrecognised is ignored rather than rejected. */
 export function parseFilters(params: URLSearchParams): GameFilters {
   const sortParam = params.get("sort") as SortKey | null;
-  const sort = sortParam !== null && sortKeys.includes(sortParam) ? sortParam : "rank";
+  // The English site shows no prices, so it has no price order either.
+  const sort = sortParam !== null && sortKeys.includes(sortParam) && (sortParam !== "price" || SITE_SHOWS_PRICES) ? sortParam : "rank";
   const dirParam = params.get("dir");
 
   return {
