@@ -151,11 +151,11 @@ describe("the 7+ player bucket", () => {
     parseThingXml(`<items><item type="boardgame" id="1"><name type="primary" value="A"/>
       <poll name="suggested_numplayers">${rows}</poll></item></items>`)[0].playerRecommendations["6+"];
 
-  test("adds up the votes for seven, eight and more players", () => {
+  test("takes each answer's highest vote count among seven, eight and more players", () => {
     expect(sevenPlus(votes("6", 9, 1, 0) + votes("7", 10, 30, 5) + votes("8", 4, 20, 10) + votes("8+", 0, 1, 40))).toEqual({
-      best: 14,
-      recommended: 50,
-      notRecommended: 15,
+      best: 10,
+      recommended: 30,
+      notRecommended: 10,
       verdict: "recommended",
     });
   });

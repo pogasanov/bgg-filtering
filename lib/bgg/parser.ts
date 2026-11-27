@@ -68,8 +68,9 @@ function withVerdict(votes: Votes): PlayerRecommendation {
 
 /**
  * BGG's poll has one row per player count up to the game's maximum, then one "N+" row for more than
- * that. Counts one to six map straight across. The "6+" bucket means seven or more: the votes for
- * every count from seven up, added together. When the poll stops at six, its "6+" row is all there is
+ * that. Counts one to six map straight across. The "6+" bucket means seven or more: for each answer,
+ * the most votes it got at any count from seven up. Adding the rows would count the same voters once
+ * per row. When the poll stops at six, its "6+" row is all there is
  * on that. An "N+" row for a larger game is about counts past its maximum, so it is left out; a poll
  * that stops below six says nothing on seven or more.
  */
@@ -88,9 +89,9 @@ function playerRecommendationsFromPoll(poll: unknown): PlayerRecommendations {
       overSix = votes;
     } else if (/^\d+$/.test(text) && Number(text) >= 7) {
       hasSevenOrMore = true;
-      sevenOrMore.best += votes.best;
-      sevenOrMore.recommended += votes.recommended;
-      sevenOrMore.notRecommended += votes.notRecommended;
+      sevenOrMore.best = Math.max(sevenOrMore.best, votes.best);
+      sevenOrMore.recommended = Math.max(sevenOrMore.recommended, votes.recommended);
+      sevenOrMore.notRecommended = Math.max(sevenOrMore.notRecommended, votes.notRecommended);
     }
   }
 
