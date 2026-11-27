@@ -50,6 +50,21 @@ export const SITE_ALTERNATE_NAMES = siteTexts[SITE_LOCALE].alternateNames;
 export const SITE_DESCRIPTION = siteTexts[SITE_LOCALE].description;
 export const OG_LOCALE = siteTexts[SITE_LOCALE].ogLocale;
 
+/**
+ * The share image (app/opengraph-image.tsx), in the site's language. Named in every page's metadata
+ * because a page's own openGraph replaces the one Next builds from the image file.
+ */
+export const SHARE_IMAGE = {
+  url: "/opengraph-image",
+  width: 1200,
+  height: 630,
+  type: "image/png",
+  alt:
+    SITE_LOCALE === "ru"
+      ? "Настолки по числу игроков — лучшее с BoardGameGeek под ваш состав"
+      : "My Next Board Game — the best of BoardGameGeek for your group size",
+};
+
 const ruPlayersPhrases: Record<PlayerCount, string> = {
   "1": "для одного",
   "2": "на двоих",
@@ -174,8 +189,8 @@ export function viewMetadata(filters: GameFilters, page: number): Metadata {
     alternates: { canonical: url, languages: languageAlternates((locale) => canonicalPath(filters, page, locale)) },
     // Searches are endless and say nothing a list page does not: kept out of the index, links followed.
     ...(filters.search.trim() ? { robots: { index: false, follow: true } } : {}),
-    openGraph: { type: "website", siteName: SITE_NAME, locale: OG_LOCALE, title, description, url },
-    twitter: { card: "summary_large_image", title, description },
+    openGraph: { type: "website", siteName: SITE_NAME, locale: OG_LOCALE, title, description, url, images: [SHARE_IMAGE] },
+    twitter: { card: "summary_large_image", title, description, images: [SHARE_IMAGE] },
   };
 }
 

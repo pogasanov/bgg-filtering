@@ -4,7 +4,7 @@ import { GamePage } from "@/components/game/game-page";
 import { loadCachedGame, loadCachedGameNames } from "@/lib/catalog/cached";
 import { SITE_LOCALE } from "@/lib/i18n/locale";
 import { gameIdFromSlug, gameName, gamePath, gameSlug, gameSummary } from "@/lib/game-page";
-import { languageAlternates, OG_LOCALE, SITE_NAME } from "@/lib/seo";
+import { languageAlternates, OG_LOCALE, SHARE_IMAGE, SITE_NAME } from "@/lib/seo";
 
 // A game's page ("/game/266192-wingspan", "/igra/266192-krylya" on the Russian site; the English
 // site rewrites its "/game" to this route). Static like the catalog: built once, rebuilt every 12 hours
@@ -47,8 +47,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: { absolute: title },
     description,
     alternates: { canonical: url, languages: languageAlternates((locale) => gamePath(game.id, gameName(game, locale), locale)) },
-    openGraph: { type: "website", siteName: SITE_NAME, locale: OG_LOCALE, title, description, url },
-    twitter: { card: "summary_large_image", title, description },
+    openGraph: { type: "website", siteName: SITE_NAME, locale: OG_LOCALE, title, description, url, images: [SHARE_IMAGE] },
+    twitter: { card: "summary_large_image", title, description, images: [SHARE_IMAGE] },
   };
 }
 

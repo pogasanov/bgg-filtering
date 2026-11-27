@@ -87,6 +87,9 @@ describe("canonical addresses", () => {
     expect(meta.alternates?.canonical).toBe("/ru?page=2");
     expect(meta.openGraph).toMatchObject({ url: "/ru?page=2", siteName: "Настолки по числу игроков", locale: "ru_RU" });
     expect(meta.robots).toBeUndefined();
+    // A page's own openGraph replaces the one Next builds from app/opengraph-image.tsx, so it names the image itself.
+    expect(meta.openGraph).toMatchObject({ images: [{ url: "/opengraph-image", width: 1200, height: 630 }] });
+    expect(meta.twitter).toMatchObject({ images: [{ url: "/opengraph-image" }] });
     expect(viewMetadata({ ...defaultFilters, search: "крылья" }, 1).robots).toEqual({ index: false, follow: true });
   });
 

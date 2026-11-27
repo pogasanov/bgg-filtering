@@ -3,14 +3,14 @@ import { join } from "node:path";
 import { cacheLife } from "next/cache";
 import { ImageResponse } from "next/og";
 import { SITE_LOCALE } from "@/lib/i18n/locale";
-import { SITE_URL } from "@/lib/seo";
+import { SHARE_IMAGE, SITE_URL } from "@/lib/seo";
 
 const text = {
   en: { title: "My Next Board Game", subtitle: "The best of BGG for your group size" },
   ru: { title: "Настолки по числу игроков", subtitle: "Лучшее с BGG — под ваш состав" },
 }[SITE_LOCALE];
 
-export const alt = SITE_LOCALE === "ru" ? "Настолки по числу игроков — лучшее с BoardGameGeek под ваш состав" : "My Next Board Game — the best of BoardGameGeek for your group size";
+export const alt = SHARE_IMAGE.alt;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
