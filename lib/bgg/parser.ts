@@ -1,7 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import {
   type NormalizedGame,
-  type PlayerCount,
   type PlayerRecommendation,
   type PlayerRecommendations,
   playerCounts,
@@ -44,29 +43,60 @@ function stringOrNull(value: unknown): string | null {
   return text === "" ? null : text;
 }
 
-function normalizePlayerCount(value: unknown): PlayerCount | null {
-  const text = String(value ?? "").trim();
-  if (text === "1" || text === "2" || text === "3" || text === "4" || text === "5" || text === "6") return text;
-  if (text === "6+" || text === "6 or more") return "6+";
-  return null;
-}
+type Votes = Pick<PlayerRecommendation, "best" | "recommended" | "notRecommended">;
 
-function recommendationFromResults(resultsNode: unknown): PlayerRecommendation {
-  const recommendation = emptyRecommendation();
+function votesFromResults(resultsNode: unknown): Votes {
+  const votes: Votes = { best: 0, recommended: 0, notRecommended: 0 };
   const results = asArray((resultsNode as { result?: unknown })?.result);
 
   for (const result of results as Array<{ value?: string; numvotes?: string | number }>) {
-    const votes = numberOrNull(result.numvotes) ?? 0;
-    if (result.value === "Best") recommendation.best = votes;
-    if (result.value === "Recommended") recommendation.recommended = votes;
-    if (result.value === "Not Recommended") recommendation.notRecommended = votes;
+    const count = numberOrNull(result.numvotes) ?? 0;
+    if (result.value === "Best") votes.best = count;
+    if (result.value === "Recommended") votes.recommended = count;
+    if (result.value === "Not Recommended") votes.notRecommended = count;
+  }
+  return votes;
+}
+
+function withVerdict(votes: Votes): PlayerRecommendation {
+  const maxVotes = Math.max(votes.best, votes.recommended, votes.notRecommended);
+  if (maxVotes === 0) return { ...votes, verdict: "unknown" };
+  if (votes.best === maxVotes) return { ...votes, verdict: "best" };
+  if (votes.recommended === maxVotes) return { ...votes, verdict: "recommended" };
+  return { ...votes, verdict: "not-recommended" };
+}
+
+/**
+ * BGG's poll has one row per player count up to the game's maximum, then one "N+" row for more than
+ * that. Counts one to six map straight across. The "6+" bucket means seven or more: the votes for
+ * every count from seven up, added together. When the poll stops at six, its "6+" row is all there is
+ * on that. An "N+" row for a larger game is about counts past its maximum, so it is left out; a poll
+ * that stops below six says nothing on seven or more.
+ */
+function playerRecommendationsFromPoll(poll: unknown): PlayerRecommendations {
+  const recommendations = emptyPlayerRecommendations();
+  const sevenOrMore: Votes = { best: 0, recommended: 0, notRecommended: 0 };
+  let overSix: Votes | null = null;
+  let hasSevenOrMore = false;
+
+  for (const resultSet of asArray((poll as { results?: unknown })?.results)) {
+    const text = String((resultSet as { numplayers?: unknown }).numplayers ?? "").trim();
+    const votes = votesFromResults(resultSet);
+    if (text === "1" || text === "2" || text === "3" || text === "4" || text === "5" || text === "6") {
+      recommendations[text] = withVerdict(votes);
+    } else if (text === "6+" || text === "6 or more") {
+      overSix = votes;
+    } else if (/^\d+$/.test(text) && Number(text) >= 7) {
+      hasSevenOrMore = true;
+      sevenOrMore.best += votes.best;
+      sevenOrMore.recommended += votes.recommended;
+      sevenOrMore.notRecommended += votes.notRecommended;
+    }
   }
 
-  const maxVotes = Math.max(recommendation.best, recommendation.recommended, recommendation.notRecommended);
-  if (maxVotes === 0) return recommendation;
-  if (recommendation.best === maxVotes) return { ...recommendation, verdict: "best" };
-  if (recommendation.recommended === maxVotes) return { ...recommendation, verdict: "recommended" };
-  return { ...recommendation, verdict: "not-recommended" };
+  if (hasSevenOrMore) recommendations["6+"] = withVerdict(sevenOrMore);
+  else if (overSix) recommendations["6+"] = withVerdict(overSix);
+  return recommendations;
 }
 
 export function parseThingXml(xml: string): NormalizedGame[] {
@@ -102,13 +132,8 @@ export function parseThingXml(xml: string): NormalizedGame[] {
     const ratings = item.statistics?.ratings ?? {};
     const ranks = asArray(ratings.ranks?.rank);
     const boardGameRank = ranks.find((rank: any) => rank.type === "subtype" && rank.name === "boardgame");
-    const playerRecommendations = emptyPlayerRecommendations();
     const suggestedPlayersPoll = asArray(item.poll).find((poll: any) => poll.name === "suggested_numplayers");
-
-    for (const resultSet of asArray((suggestedPlayersPoll as any)?.results)) {
-      const count = normalizePlayerCount((resultSet as any).numplayers);
-      if (count) playerRecommendations[count] = recommendationFromResults(resultSet);
-    }
+    const playerRecommendations = playerRecommendationsFromPoll(suggestedPlayersPoll);
 
     return {
       id: Number(item.id),

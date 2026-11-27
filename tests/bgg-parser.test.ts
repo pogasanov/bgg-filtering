@@ -139,3 +139,37 @@ describe("names and publishers", () => {
     expect(game.publisherIds).toEqual([]);
   });
 });
+
+describe("the 7+ player bucket", () => {
+  const votes = (numplayers: string, best: number, recommended: number, notRecommended: number) => `
+    <results numplayers="${numplayers}">
+      <result value="Best" numvotes="${best}"/>
+      <result value="Recommended" numvotes="${recommended}"/>
+      <result value="Not Recommended" numvotes="${notRecommended}"/>
+    </results>`;
+  const sevenPlus = (rows: string) =>
+    parseThingXml(`<items><item type="boardgame" id="1"><name type="primary" value="A"/>
+      <poll name="suggested_numplayers">${rows}</poll></item></items>`)[0].playerRecommendations["6+"];
+
+  test("adds up the votes for seven, eight and more players", () => {
+    expect(sevenPlus(votes("6", 9, 1, 0) + votes("7", 10, 30, 5) + votes("8", 4, 20, 10) + votes("8+", 0, 1, 40))).toEqual({
+      best: 14,
+      recommended: 50,
+      notRecommended: 15,
+      verdict: "recommended",
+    });
+  });
+
+  test("falls back to the over-the-maximum row when the poll stops at six", () => {
+    expect(sevenPlus(votes("6", 9, 1, 0) + votes("6+", 0, 2, 60))).toEqual({
+      best: 0,
+      recommended: 2,
+      notRecommended: 60,
+      verdict: "not-recommended",
+    });
+  });
+
+  test("stays unknown when the poll stops below six", () => {
+    expect(sevenPlus(votes("4", 9, 1, 0) + votes("4+", 0, 2, 60)).verdict).toBe("unknown");
+  });
+});
