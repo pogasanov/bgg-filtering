@@ -1,8 +1,10 @@
 import { cacheLife, cacheTag } from "next/cache";
+import type { ListedGame } from "@/lib/bgg/types";
 import type { CatalogFrame } from "@/lib/games-view";
+import type { GameHistory } from "@/lib/prices/history";
 import { pageCount } from "@/lib/pagination";
 import { parseFilters } from "@/lib/url-state";
-import { CATALOG_TAG, loadFrame, loadShownCount } from "./load";
+import { CATALOG_TAG, loadFrame, loadGame, loadGameNames, loadShownCount } from "./load";
 
 const HOUR = 60 * 60;
 
@@ -32,8 +34,27 @@ export async function loadCatalogFrame(): Promise<CatalogFrame> {
  * Cached like the pages, so checking a page number costs no query on a repeated view.
  */
 export async function loadPageCount(query: string): Promise<number> {
+  return pageCount(await loadCachedShownCount(query));
+}
+
+/** How many games the view in the query has over all pages, cached like the pages. */
+export async function loadCachedShownCount(query: string): Promise<number> {
   "use cache";
   cacheCatalogOutput();
-  return pageCount(await loadShownCount(parseFilters(new URLSearchParams(query))));
+  return loadShownCount(parseFilters(new URLSearchParams(query)));
+}
+
+/** A game page's data, cached like the catalog: rebuilt every 12 hours and after a sync or price run. */
+export async function loadCachedGame(id: number): Promise<{ game: ListedGame; history: GameHistory } | null> {
+  "use cache";
+  cacheCatalogOutput();
+  return loadGame(id);
+}
+
+/** Every listed game's id and names, best ranked first. */
+export async function loadCachedGameNames(): Promise<{ id: number; title: string; titleRu: string | null }[]> {
+  "use cache";
+  cacheCatalogOutput();
+  return loadGameNames();
 }
 

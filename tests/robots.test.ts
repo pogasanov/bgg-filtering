@@ -8,7 +8,7 @@ describe("robots.txt", () => {
   test("lets every crawler, AI search included, read the pages but not the API, relay or internal routes", () => {
     const all = rules.find((rule) => rule.userAgent === "*")!;
     expect(all.allow).toBe("/");
-    expect(all.disallow).toEqual(expect.arrayContaining(["/api/", "/relay/", "/view", "/page/"]));
+    expect(all.disallow).toEqual(expect.arrayContaining(["/api/", "/relay/", "/view", "/page/", "/podborka/"]));
     expect(all.other).toEqual({ "Clean-param": "sort&dir" });
     for (const agent of ["OAI-SearchBot", "ChatGPT-User", "Claude-SearchBot", "Claude-User", "PerplexityBot", "YandexBot", "YandexAdditional"]) {
       expect(rules.some((rule) => [rule.userAgent].flat().includes(agent))).toBe(false);

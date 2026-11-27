@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { matrixVerdicts, playerCounts, type MatrixSelection, type PlayerCount } from "./bgg/types";
 import type { GameFilters } from "./filtering";
 import { mechanicLabel } from "./i18n/mechanics";
+import { collectionPath } from "./collections";
 import { matrixCellLabel } from "./labels";
 import { languageCode, viewHref } from "./language-path";
 import { RUSSIAN } from "./url-state";
@@ -47,8 +48,12 @@ function sortedMatrix(matrix: MatrixSelection[]): MatrixSelection[] {
   );
 }
 
-/** The opening words for a view with exactly one player-count choice, when it reads as a phrase. */
-function playerCountBase(matrix: MatrixSelection[]): string | null {
+/**
+ * The opening words for a view that reads as a phrase: exactly one player-count choice, or exactly
+ * one mechanic and nothing from the matrix.
+ */
+function viewBase(matrix: MatrixSelection[], tags: string[]): string | null {
+  if (matrix.length === 0 && tags.length === 1) return `Лучшие настолки с механикой «${mechanicLabel(tags[0], "ru")}»`;
   if (matrix.length !== 1) return null;
   const [{ playerCount, verdict }] = matrix;
   if (verdict === "best") return `Лучшие настолки ${playersPhrases[playerCount]}`;
@@ -61,10 +66,11 @@ function playerCountBase(matrix: MatrixSelection[]): string | null {
  * order, not the set of games, so it is left out.
  */
 export function viewHeading(filters: GameFilters): string {
-  const base = playerCountBase(filters.matrix);
+  const base = viewBase(filters.matrix, filters.tags);
+  const mechanicInBase = filters.matrix.length === 0 && filters.tags.length === 1;
   const parts = [
     ...(base ? [] : sortedMatrix(filters.matrix).map((selection) => matrixCellLabel(selection))),
-    ...filters.tags.map((tag) => mechanicLabel(tag, "ru")),
+    ...(mechanicInBase ? [] : filters.tags.map((tag) => mechanicLabel(tag, "ru"))),
     ...(filters.minYear !== null || filters.maxYear !== null ? [yearRangeLabel(filters.minYear, filters.maxYear)] : []),
     ...[editionsPhrase(filters.language)].filter((phrase) => phrase !== null),
     ...(filters.search.trim() ? [`«${filters.search.trim()}»`] : []),
@@ -86,9 +92,12 @@ export function viewDescription(filters: GameFilters): string {
   return `${heading}. Игры из топа BoardGameGeek с опросом игроков о том, на сколько человек игра лучше всего${prices}.`;
 }
 
-/** The view's own address, which search engines are asked to index: the filters and page, without the sort. */
+/**
+ * The view's own address, which search engines are asked to index: its collection page when it is
+ * one ("/na-dvoih"), otherwise the filters and page without the sort.
+ */
 export function canonicalPath(filters: GameFilters, page: number): string {
-  return viewHref({ ...filters, sort: "rank", sortDir: undefined }, page);
+  return collectionPath(filters, page) ?? viewHref({ ...filters, sort: "rank", sortDir: undefined }, page);
 }
 
 /** Title, description, canonical address and share texts of a list page. */

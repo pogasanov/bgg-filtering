@@ -101,3 +101,11 @@ test("one recorded price is simply one row", () => {
   expect(html.match(/<tr/g)).toHaveLength(2);
   expect(html).toContain("2 000 ₽");
 });
+
+test("the panel links to the game's own page, also when no shop sells it", () => {
+  const ready = render(PricePanelView, { gameId: 266192, title: "Крылья", offers, bggUrl: BGG, state: { status: "ready", history: sampleHistory }, onRetry() {} });
+  expect(ready).toContain('href="/igra/266192-krylya"');
+  expect(ready).toContain("Страница игры");
+  const none = render(PricePanelView, { gameId: 266192, title: "Крылья", offers: [], bggUrl: BGG, state: { status: "loading" }, onRetry() {} });
+  expect(none).toContain('href="/igra/266192-krylya"');
+});

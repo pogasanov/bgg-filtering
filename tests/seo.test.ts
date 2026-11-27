@@ -45,6 +45,18 @@ describe("view headings and titles", () => {
   });
 });
 
+describe("collections in headings and canonical addresses", () => {
+  test("one mechanic reads as a phrase with its Russian name", () => {
+    expect(viewHeading({ ...defaultFilters, tags: ["Worker Placement"] })).toBe("Лучшие настолки с механикой «Размещение рабочих»");
+  });
+
+  test("a view that is a collection points to the collection's address", () => {
+    expect(canonicalPath({ ...defaultFilters, matrix: [{ playerCount: "2", verdict: "best" }], sort: "year" }, 1)).toBe("/na-dvoih");
+    expect(canonicalPath({ ...defaultFilters, tags: ["Cooperative Game"] }, 1)).toBe("/mehaniki/kooperativ");
+    expect(canonicalPath({ ...defaultFilters, matrix: [{ playerCount: "2", verdict: "best" }] }, 2)).toBe("/?m=2%3Abest&page=2");
+  });
+});
+
 describe("canonical addresses", () => {
   test("keep the filters, language and page and drop the sort", () => {
     expect(canonicalPath(defaultFilters, 1)).toBe("/");

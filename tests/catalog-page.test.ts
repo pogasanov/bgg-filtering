@@ -150,14 +150,13 @@ describe("catalog page", () => {
     expect(await render([makeGame(1, 2000)])).not.toContain("Страницы результатов");
   });
 
-  test("names the view in its heading, with the intro only on the first page of the full list", async () => {
+  test("names the view in a heading only machines see, with no visible intro", async () => {
     const home = await render([makeGame(1, 2000)]);
-    expect(home).toMatch(/<h1[^>]*>Лучшие настолки по числу игроков<\/h1>/);
-    expect(home).toContain("Лучшие настолки с BoardGameGeek под ваш состав");
+    expect(home).toContain('<h1 class="sr-only">Лучшие настолки по числу игроков</h1>');
+    expect(home).not.toContain("Лучшие настолки с BoardGameGeek под ваш состав");
 
     const filtered = await render([makeGame(1, 2000)], { ...defaultFilters, matrix: [{ playerCount: "2", verdict: "best" }] });
-    expect(filtered).toMatch(/<h1[^>]*>Лучшие настолки на двоих<\/h1>/);
-    expect(filtered).not.toContain("Лучшие настолки с BoardGameGeek под ваш состав");
+    expect(filtered).toContain('<h1 class="sr-only">Лучшие настолки на двоих</h1>');
   });
 
   test("shows no legend under the results", async () => {
