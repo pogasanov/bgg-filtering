@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { emptyPlayerRecommendations } from "@/lib/bgg/parser";
 import { pollGame } from "./fixtures";
-import { pollCellLabel, pollCells, pollStripLabel } from "@/lib/poll";
+import { decodePollCells, encodePollCells, pollCellLabel, pollCells, pollStripLabel, pollSummary } from "@/lib/poll";
 
 test("verdict sets the cell, range only flags it", () => {
   const cells = pollCells(pollGame);
@@ -27,4 +27,24 @@ test("a game with no poll data gives seven unknown cells", () => {
 
 test("strip label joins every cell", () => {
   expect(pollStripLabel(pollGame).split("; ")).toHaveLength(7);
+});
+
+test("summary names the supported counts by verdict and skips the ones outside the range", () => {
+  expect(pollSummary(pollCells(pollGame))).toBe("Опрос: лучше всего на 2");
+  const cells = pollCells({
+    ...pollGame,
+    playerRecommendations: {
+      ...pollGame.playerRecommendations,
+      "3": { best: 2, recommended: 9, notRecommended: 1, verdict: "recommended" },
+      "4": { best: 0, recommended: 2, notRecommended: 9, verdict: "not-recommended" },
+    },
+  });
+  expect(pollSummary(cells)).toBe("Опрос: лучше всего на 2; рекомендуют на 3; не рекомендуют на 4");
+  expect(pollSummary(pollCells({ ...pollGame, playerRecommendations: emptyPlayerRecommendations() }))).toBe("Опрос: нет данных");
+});
+
+test("cells survive the short form the strip receives", () => {
+  const cells = pollCells(pollGame);
+  expect(decodePollCells(encodePollCells(cells))).toEqual(cells);
+  expect(encodePollCells(cells).length).toBeLessThan(80);
 });

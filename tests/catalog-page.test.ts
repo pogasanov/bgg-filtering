@@ -84,7 +84,7 @@ describe("catalog page", () => {
     expect(html).toContain('aria-label="Поиск по названию"');
     expect(slotCount(html, "table")).toBe(1);
     expect(slotCount(html, "card")).toBe(0);
-    expect(html).not.toContain("<h1");
+    expect(html.match(/<h1/g)).toHaveLength(1);
     expect(html).toContain('aria-label="Powered by BoardGameGeek"');
   });
 
@@ -148,6 +148,16 @@ describe("catalog page", () => {
 
   test("shows no page links while everything fits on one page", async () => {
     expect(await render([makeGame(1, 2000)])).not.toContain("Страницы результатов");
+  });
+
+  test("names the view in its heading, with the intro only on the first page of the full list", async () => {
+    const home = await render([makeGame(1, 2000)]);
+    expect(home).toMatch(/<h1[^>]*>Лучшие настолки по числу игроков<\/h1>/);
+    expect(home).toContain("Лучшие настолки с BoardGameGeek под ваш состав");
+
+    const filtered = await render([makeGame(1, 2000)], { ...defaultFilters, matrix: [{ playerCount: "2", verdict: "best" }] });
+    expect(filtered).toMatch(/<h1[^>]*>Лучшие настолки на двоих<\/h1>/);
+    expect(filtered).not.toContain("Лучшие настолки с BoardGameGeek под ваш состав");
   });
 
   test("shows no legend under the results", async () => {

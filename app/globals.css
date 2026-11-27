@@ -113,6 +113,21 @@
   }
 }
 
+/*
+ * Classes repeated in every row of the results. A row's markup is sent twice (the HTML and the page
+ * payload) for 100 rows in two layouts, so a long class list here costs hundreds of kilobytes and
+ * pushes the page past what crawlers read (Googlebot: the first 2 MB).
+ */
+@utility num-cell {
+  @apply text-right font-mono tabular-nums;
+}
+@utility poll-cell {
+  @apply flex size-4 items-center justify-center rounded-[3px] font-mono text-[9px] leading-none;
+}
+@utility meter-bar {
+  @apply h-[11px] w-[5px] rounded-[1px];
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

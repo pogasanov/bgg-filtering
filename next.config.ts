@@ -10,6 +10,9 @@ import { filterParamKeys } from "./lib/url-state";
  */
 const LANGUAGE_SOURCE = `/:lang((?!(?:view|page|api|${POSTHOG_PROXY_PATH.slice(1)})(?:/|$))[a-z0-9-]+)`;
 
+export const HTML_LIMITED_BOTS =
+  /[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|bitlybot|tumblr|vkShare|quora link preview|redditbot|BingPreview|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|TelegramBot|googleweblight/i;
+
 const root = fileURLToPath(new URL(".", import.meta.url));
 
 const nextConfig: NextConfig = {
@@ -19,6 +22,22 @@ const nextConfig: NextConfig = {
   // PostHog posts to paths ending in "/" ("/e/"); a redirect to drop the slash would break them.
   skipTrailingSlashRedirect: true,
   partialPrefetching: true,
+  // Bots listed here get every page rendered per request, with the metadata in <head>, because they
+  // cannot read metadata streamed later in the page. Next's default list also has the search engines
+  // (YandexBot, Bingbot…): they got 2 MB pages rendered on every visit instead of the cached static
+  // ones, whose metadata is already in <head>. Kept: the link-preview bots, for shared filtered links
+  // whose metadata is streamed; added: Telegram's, which the default list lacks.
+  htmlLimitedBots: HTML_LIMITED_BOTS,
+  async headers() {
+    // A title search is endless and adds nothing a list page lacks: kept out of the index. Sent as
+    // a header because a view's metadata is streamed and crawlers that read no script would miss it.
+    const search = [{ type: "query" as const, key: "q", value: ".*\\S.*" }];
+    const noindex = [{ key: "X-Robots-Tag", value: "noindex, follow" }];
+    return [
+      { source: "/", has: search, headers: noindex },
+      { source: LANGUAGE_SOURCE, has: search, headers: noindex },
+    ];
+  },
   async redirects() {
     // Russian is the default language and lives at "/", without a prefix.
     return [{ source: "/ru", destination: "/", permanent: true }];

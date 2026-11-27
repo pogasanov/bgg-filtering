@@ -1,16 +1,13 @@
 "use client";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { ListedGame } from "@/lib/bgg/types";
-import { pollCellLabel, pollCells, pollStripLabel, type PollCell } from "@/lib/poll";
+import { decodePollCells, pollCellLabel, pollSummary, type PollCell } from "@/lib/poll";
 import { cn } from "@/lib/utils";
-
-const cellBase = "flex size-4 items-center justify-center rounded-[3px] font-mono text-[9px] leading-none";
 
 // Solid fill, outlined fill and dot differ in shape as well as colour, so the strip reads without colour vision.
 function cellClass(cell: PollCell) {
   return cn(
-    cellBase,
+    "poll-cell",
     cell.verdict === "best" && "bg-poll-best text-poll-best-foreground",
     cell.verdict === "recommended" && "bg-poll-rec text-poll-rec-foreground",
     cell.verdict === "not-recommended" && "bg-poll-no text-poll-no-foreground ring-1 ring-poll-no-border ring-inset",
@@ -21,10 +18,12 @@ function cellClass(cell: PollCell) {
 
 /**
  * The poll verdict for each player count. One tooltip for the whole strip rather than one per
- * square: with thousands of rows, per-square tooltips and tab stops would swamp the page.
+ * square: with thousands of rows, per-square tooltips and tab stops would swamp the page. The
+ * squares are hidden from assistive technology; a one-line summary in the text speaks for them.
  */
 type PollStripProps = {
-  game: ListedGame;
+  /** The cells as `encodePollCells` writes them: a short string keeps the page payload small. */
+  cells: string;
   /**
    * Hoverable strips sit above the row link so the tooltip can open. On touch screens there is
    * no hover, so the strip steps aside and a tap on it opens the row like anywhere else.
@@ -32,17 +31,14 @@ type PollStripProps = {
   hoverable?: boolean;
 };
 
-export function PollStrip({ game, hoverable = true }: PollStripProps) {
-  const cells = pollCells(game);
+export function PollStrip({ cells: code, hoverable = true }: PollStripProps) {
+  const cells = decodePollCells(code);
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span
-          role="img"
-          aria-label={pollStripLabel(game)}
-          className={cn("inline-flex gap-0.5", hoverable ? "relative z-10" : "pointer-events-none")}
-        >
+        <span data-poll-strip className={cn("inline-flex gap-0.5", hoverable ? "relative z-10" : "pointer-events-none")}>
+          <span className="sr-only">{pollSummary(cells)}</span>
           {cells.map((cell) => (
             <span
               key={cell.playerCount}

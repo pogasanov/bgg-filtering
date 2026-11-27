@@ -11,6 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { activeFilterChips } from "@/lib/active-filters";
 import { defaultFilters } from "@/lib/url-state";
 import { PriceCell } from "@/components/results/price-cell";
+import { encodePollCells, pollCells } from "@/lib/poll";
 import { pollGame } from "./fixtures";
 import { offer } from "./price-fixtures";
 
@@ -43,12 +44,18 @@ function render<P extends object>(component: ComponentType<P>, props: P) {
 }
 
 test("poll strip marks verdicts and range without relying on colour", () => {
-  const html = render(PollStrip, { game: pollGame });
+  const html = render(PollStrip, { cells: encodePollCells(pollCells(pollGame)) });
   expect(html.match(/data-verdict="/g)).toHaveLength(7);
   expect(html).toMatch(/<span(?=[^>]*data-verdict="recommended")(?=[^>]*data-in-range="false")/);
   expect(html).toMatch(/<span(?=[^>]*data-verdict="best")(?=[^>]*data-in-range="true")/);
-  expect(html).toContain("2 игрока: лучше всего — лучше 10 (71%)");
   expect(html).not.toContain("tabindex");
+});
+
+test("poll strip says the verdicts in text, for screen readers and search engines, not in an attribute", () => {
+  const html = render(PollStrip, { cells: encodePollCells(pollCells(pollGame)) });
+  expect(html).toContain('<span class="sr-only">Опрос: лучше всего на 2</span>');
+  expect(html).not.toContain("aria-label");
+  expect(html.match(/aria-hidden="true"/g)).toHaveLength(7);
 });
 
 test("thumbnail falls back to a placeholder tile", () => {
@@ -100,9 +107,10 @@ test("phone list shows thumbnail, title, strip and rating per game", () => {
 
 test("on phones the strip lets taps through to the row link; on desktop it stays hoverable", () => {
   const list = render(ResultsList, { games: [pollGame], russian: false });
-  expect(list).toMatch(/<span(?=[^>]*role="img")(?=[^>]*pointer-events-none)/);
+  expect(list).toMatch(/<span(?=[^>]*data-poll-strip)(?=[^>]*pointer-events-none)/);
   const table = render(ResultsTable, { games: [pollGame], sort: "rank", sortDir: "asc", russian: false });
-  expect(table).not.toMatch(/<span(?=[^>]*role="img")(?=[^>]*pointer-events-none)/);
+  expect(table).toMatch(/<span(?=[^>]*data-poll-strip)/);
+  expect(table).not.toMatch(/<span(?=[^>]*data-poll-strip)(?=[^>]*pointer-events-none)/);
 });
 
 test("complexity is drawn as a five-step meter next to the number", () => {
@@ -125,7 +133,7 @@ test("'not recommended' squares use their own colour and keep an outline", () =>
       "3": { best: 1, recommended: 2, notRecommended: 9, verdict: "not-recommended" as const },
     },
   };
-  const html = render(PollStrip, { game });
+  const html = render(PollStrip, { cells: encodePollCells(pollCells(game)) });
   expect(html).toMatch(/<span(?=[^>]*data-verdict="not-recommended")(?=[^>]*class="[^"]*bg-poll-no[^"]*ring-poll-no-border)/);
 });
 

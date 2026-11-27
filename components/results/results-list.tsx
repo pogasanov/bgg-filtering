@@ -6,6 +6,7 @@ import { PriceCell } from "@/components/results/price-cell";
 import { displayTitle, EmptyResults } from "@/components/results/results-table";
 import type { ListedGame } from "@/lib/bgg/types";
 import { formatNumber } from "@/lib/labels";
+import { encodePollCells, pollCells } from "@/lib/poll";
 
 type ResultsListProps = {
   games: ListedGame[];
@@ -36,7 +37,7 @@ export function ResultsList({ games, russian }: ResultsListProps) {
                 ) : null}
               </div>
               <div className="mt-1.5">
-                <PollStrip game={game} hoverable={false} />
+                <PollStrip cells={encodePollCells(pollCells(game))} hoverable={false} />
               </div>
             </div>
             <div className="flex-none text-right font-mono tabular-nums">
