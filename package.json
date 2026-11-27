@@ -19,6 +19,7 @@
     "worker:sentry-check": "pnpm worker:build && MODAL_PROFILE=bgfilter modal run worker/modal_app.py --sentry-check",
     "vc": "tsx --env-file-if-exists=.env.local scripts/vercel.ts",
     "prices:collect": "tsx --env-file-if-exists=.env.local scripts/prices-collect.ts",
+    "prices:review": "tsx --env-file-if-exists=.env.local scripts/prices-review.ts",
     "prices:dry-run": "node --import ./scripts/register-alias.mjs scripts/prices-dry-run.mts",
     "db:generate": "drizzle-kit generate",
     "sentry": "SENTRY_CONFIG_DIR=${SENTRY_CONFIG_DIR:-$HOME/.config/sentry-bgg} sentry"

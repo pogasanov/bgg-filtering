@@ -1,7 +1,8 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { resultRows, type Db } from "@/lib/db/client";
 import { priceChecks, priceHistory, priceRuns, productLinks, shopProducts } from "@/lib/db/schema";
 import type { Link } from "@/lib/prices/match";
+import { waitingCandidate } from "@/lib/prices/review";
 import type { ShopCode, ShopProduct } from "@/lib/prices/types";
 
 /** Rows per statement, to stay well under Postgres' limit of 65,535 bound parameters. */
@@ -292,9 +293,8 @@ export async function getCurrentOffers(db: Db, now: Date = new Date(), bggIds?: 
 
 /** How many links are waiting for the owner, for the run summary. */
 export async function countCandidates(db: Db): Promise<number> {
-  const [row] = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(productLinks)
-    .where(and(eq(productLinks.status, "candidate")));
+  const [row] = resultRows<{ n: number }>(
+    await db.execute(sql`SELECT count(*)::int AS n FROM product_links l WHERE ${waitingCandidate}`),
+  );
   return row?.n ?? 0;
 }

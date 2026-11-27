@@ -284,3 +284,20 @@ Results and caches are written to `data/price-cache/`. Requests obey each shop's
 - `--from-cache` stores the catalogues a `prices:dry-run` already saved under `data/price-cache/` instead of asking the shops again.
 
 It needs `DATABASE_URL`. Game names and Russian publishers come from the database, where the BGG sync stores every alternate name and publisher ID of a game; run the sync once before the first price run. Apply migrations first with `pnpm db:migrate`.
+
+On production the same run happens daily on Modal (see the Modal setup above).
+
+## Reviewing uncertain matches
+
+The matcher confirms a link between a game and a shop product only when it is certain; the rest become candidates. Review them on your machine:
+
+```bash
+pnpm prices:review
+```
+
+It shows one candidate at a time: the game, the shop product with its link, why it was not confirmed, and the product the game is linked to in that shop now, if any. Answer `y` (this product is the game; it replaces the product linked before), `n` (it is not; never proposed again) or `s` (skip for now); `q` quits. Every answer is stored at once. Games that show no price anywhere come first.
+
+- `--shop lavkaigr` reviews one shop.
+- `--without-price` shows only games that have no price on the site yet.
+
+Once a game has a product you confirmed in a shop, its other candidates there stop waiting, and later runs never replace your choice. Confirmed prices appear after the next price run.
