@@ -35,6 +35,11 @@ const languageCodes: Record<string, string> = {
 /** The path segment for "any language". */
 export const ANY_LANGUAGE_SLUG = "any";
 
+/** The ISO 639-1 code of a BGG language name, when the site knows it. */
+export function languageCode(language: string): string | null {
+  return languageCodes[language] ?? null;
+}
+
 /** The path segment of a language: its ISO code when it has one, otherwise its name in lower case. */
 export function languageSlug(language: string): string {
   if (language === "") return ANY_LANGUAGE_SLUG;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +14,27 @@ type TagFilterProps = {
   onChange: (next: string[]) => void;
 };
 
+/**
+ * How many options the server renders. The box shows about ten at a time; the full list (hundreds,
+ * each a checkbox) would make up a fifth of every page's HTML and push the games further down for
+ * crawlers. The rest are added in the browser right after the page loads.
+ */
+const SERVER_OPTIONS = 30;
+
+const noop = () => () => {};
+
+/** False while rendering on the server and hydrating, true afterwards. */
+function useHydrated() {
+  return useSyncExternalStore(
+    noop,
+    () => true,
+    () => false,
+  );
+}
+
 export function TagFilter({ allTags, selected, counts, onChange }: TagFilterProps) {
   const [query, setQuery] = useState("");
+  const hydrated = useHydrated();
 
   const options = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -30,6 +49,7 @@ export function TagFilter({ allTags, selected, counts, onChange }: TagFilterProp
           a.localeCompare(b),
       );
   }, [allTags, selected, counts, query]);
+  const shown = hydrated ? options : options.slice(0, SERVER_OPTIONS);
 
   function toggle(tag: string) {
     onChange(selected.includes(tag) ? selected.filter((item) => item !== tag) : [...selected, tag]);
@@ -54,7 +74,7 @@ export function TagFilter({ allTags, selected, counts, onChange }: TagFilterProp
       <ScrollArea className="h-64 [&_[data-slot=scroll-area-viewport]>div]:!block">
         <div className="pr-3">
           {options.length === 0 ? <p className="py-2 text-xs text-muted-foreground">Ничего не найдено</p> : null}
-          {options.map((tag) => (
+          {shown.map((tag) => (
             <Label
               key={tag}
               className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1 text-[13px] font-normal hover:bg-muted"

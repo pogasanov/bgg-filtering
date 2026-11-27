@@ -12,6 +12,22 @@ Filters live in a rail on the left with the player-count × verdict matrix on to
 - **Errors and logs:** Sentry (Developer plan), for both the site and the worker.
 - **Product analytics:** PostHog (EU Cloud, free), for the site only, reached through the site's own `/relay` path.
 
+## Search engines and AI assistants
+
+The site is built to be found by search engines and by the AI assistants that search the web for their answers (Алиса AI, ChatGPT, Claude, Perplexity), which pick their sources from search results.
+
+- **robots.txt** (`app/robots.ts`): every crawler may read the pages, AI search crawlers included (`OAI-SearchBot`, `ChatGPT-User`, `Claude-SearchBot`, `Claude-User`, `PerplexityBot`). Crawlers that collect pages for AI training are kept out (`GPTBot`, `ClaudeBot`, `Google-Extended`, `Applebot-Extended`, `CCBot`, `Bytespider`, `meta-externalagent`, and the shared `__usage_ai-training` signal), because BGG data must not be used to train AI. `Google-Extended` also stops Gemini Apps from using the pages as sources; Google Search and its AI answers are not affected. For Yandex, `Clean-param: sort&dir` says the sort does not change a view's games.
+- **sitemap.xml** (`app/sitemap.ts`): every page of the full lists in Russian (`/`), English (`/en`) and every edition (`/any`). Filtered views are endless combinations and are left out.
+- **Titles and canonical addresses** (`lib/seo.ts`): every list page has its own title, description, `<h1>` and canonical address (its filters and page, without the sort). A title search is kept out of the index with an `X-Robots-Tag: noindex` header. A page number past the end is a 404.
+- **Text for machines:** the player-count poll is colour and shape on screen, so each row also says it in text for screen readers and crawlers ("Опрос: лучше всего на 3; рекомендуют на 2, 4").
+- **Page weight:** Googlebot reads only the first 2 MB of a page, uncompressed. A list page is about 1.4 MB; a filtered view about 2 MB, because Next sends its rendered rows twice. Keep classes repeated in every row short (`num-cell`, `poll-cell`, `meter-bar` in `app/globals.css`), and check the size after changing a row: `curl -s https://bg.gsnv.dev/ | wc -c`. The tag filter renders its first 30 options on the server and the rest in the browser.
+- **Bots and metadata:** `htmlLimitedBots` in `next.config.ts` lists only link-preview bots (Telegram's included). Search engines get the same cached pages as visitors, with the metadata in `<head>`.
+- **IndexNow:** after each sync and price run the worker tells Yandex, Bing and the other IndexNow engines that the pages in the sitemap changed (`lib/indexnow.ts`), only when it refreshed the public site. The key is public by design and is served from `public/<key>.txt`.
+
+### Webmaster tools
+
+Add `https://bg.gsnv.dev` to [Yandex Webmaster](https://webmaster.yandex.ru), [Google Search Console](https://search.google.com/search-console) and [Bing Webmaster Tools](https://www.bing.com/webmasters), with the project's own accounts. Prove ownership with a DNS TXT record on `gsnv.dev`, or put each tool's meta-tag value into `YANDEX_VERIFICATION`, `GOOGLE_SITE_VERIFICATION` or `BING_SITE_VERIFICATION` on Vercel and redeploy. Then submit `https://bg.gsnv.dev/sitemap.xml` in each. Their AI reports: «Видимость сайта в Алисе AI» in Yandex Webmaster, the generative AI performance report in Search Console, AI Performance in Bing.
+
 ## Local setup
 
 1. Install dependencies: `pnpm install`

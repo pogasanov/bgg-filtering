@@ -1,6 +1,8 @@
 import { cacheLife, cacheTag } from "next/cache";
 import type { CatalogFrame } from "@/lib/games-view";
-import { CATALOG_TAG, loadFrame } from "./load";
+import { pageCount } from "@/lib/pagination";
+import { parseFilters } from "@/lib/url-state";
+import { CATALOG_TAG, loadFrame, loadShownCount } from "./load";
 
 const HOUR = 60 * 60;
 
@@ -24,3 +26,14 @@ export async function loadCatalogFrame(): Promise<CatalogFrame> {
   cacheCatalogOutput();
   return loadFrame();
 }
+
+/**
+ * How many pages the view in the query has (the query in `serializeView` form, its page ignored).
+ * Cached like the pages, so checking a page number costs no query on a repeated view.
+ */
+export async function loadPageCount(query: string): Promise<number> {
+  "use cache";
+  cacheCatalogOutput();
+  return pageCount(await loadShownCount(parseFilters(new URLSearchParams(query))));
+}
+
