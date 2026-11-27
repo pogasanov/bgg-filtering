@@ -311,6 +311,22 @@ export async function queryGamesView(
   };
 }
 
+/** One listed game with its details and offers, for its own page; null when it is not listed. */
+export async function queryGame(db: Db, id: number, now: Date = new Date()): Promise<ListedGame | null> {
+  const rows = await db.select(listedColumns).from(games).innerJoin(rankedGames, isRanked).where(eq(games.bggId, id));
+  const [game] = await withDetails(db, rows as GameRow[], now);
+  return game ?? null;
+}
+
+/** Every listed game's id and names, best ranked first: the addresses of the game pages. */
+export function queryGameNames(db: Db): Promise<{ id: number; title: string; titleRu: string | null }[]> {
+  return db
+    .select({ id: games.bggId, title: games.title, titleRu: games.titleRu })
+    .from(games)
+    .innerJoin(rankedGames, isRanked)
+    .orderBy(asc(rankedGames.rank));
+}
+
 /** What the filter rail offers and the counts with no filters: the part of the page no filter changes. */
 export async function queryCatalogFrame(db: Db): Promise<CatalogFrame> {
   const [tagRows, languageRows, yearRows, total, counts, [status]] = await Promise.all([

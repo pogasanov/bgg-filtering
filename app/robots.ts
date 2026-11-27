@@ -25,9 +25,9 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        // The API and the analytics relay are not pages. /view and /page/N are the internal routes
-        // behind "/?…" and "/?page=N"; visitors and links never use them.
-        disallow: ["/api/", "/relay/", "/view", "/page/", "/*/page/"],
+        // The API and the analytics relay are not pages. /view, /page/N and /podborka/… are the internal
+        // routes behind "/?…", "/?page=N" and the collections ("/na-dvoih"); visitors and links never use them.
+        disallow: ["/api/", "/relay/", "/view", "/page/", "/*/page/", "/podborka/"],
         // Yandex: the sort changes the order of a view, not its games.
         other: { "Clean-param": "sort&dir" },
       },

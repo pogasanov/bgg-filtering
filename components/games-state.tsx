@@ -21,6 +21,14 @@ import type { SortKey } from "@/lib/bgg/types";
 import type { CatalogStatus } from "@/lib/catalog/types";
 import { defaultSortDir, type GameFilters } from "@/lib/filtering";
 import type { GameFacets } from "@/lib/games-view";
+import {
+  MECHANIC_COLLECTION_ROUTE,
+  mechanicCollectionFilters,
+  mechanicFromSlug,
+  PLAYER_COLLECTION_ROUTE,
+  playerCollectionFilters,
+  playerCountFromSlug,
+} from "@/lib/collections";
 import { languageFromSlug, viewHref } from "@/lib/language-path";
 import { defaultFilters, parseFilters, RUSSIAN } from "@/lib/url-state";
 
@@ -71,17 +79,34 @@ export function useGames(): GamesState {
  * underneath the controls.
  */
 export function GamesProvider(props: GamesProviderProps) {
-  const [openedOnView] = useState(useSelectedLayoutSegment() === "view");
-  const { lang } = useParams<{ lang?: string | string[] }>();
+  const segment = useSelectedLayoutSegment();
+  const [openedOnView] = useState(segment === "view");
+  const { lang, slug: collectionSlug } = useParams<{ lang?: string | string[]; slug?: string }>();
   const slug = Array.isArray(lang) ? lang[0] : lang;
   const [pathLanguage] = useState(() =>
     slug === undefined ? null : (languageFromSlug(slug, props.facets.allLanguages) ?? RUSSIAN),
   );
+  // A collection page ("/na-dvoih", "/mehaniki/…") is static too: its filters come from its path.
+  const [collectionFilters] = useState(() => collectionFiltersFor(segment, collectionSlug, props.facets.allTags));
+  if (collectionFilters) return <GamesState {...props} initialFilters={collectionFilters} />;
   return openedOnView ? (
     <UrlSeededState {...props} pathLanguage={pathLanguage} />
   ) : (
     <GamesState {...props} initialFilters={{ ...defaultFilters, language: pathLanguage ?? RUSSIAN }} />
   );
+}
+
+function collectionFiltersFor(segment: string | null, slug: string | undefined, mechanics: string[]): GameFilters | null {
+  if (slug === undefined) return null;
+  if (segment === PLAYER_COLLECTION_ROUTE) {
+    const playerCount = playerCountFromSlug(slug);
+    return playerCount === null ? null : playerCollectionFilters(playerCount);
+  }
+  if (segment === MECHANIC_COLLECTION_ROUTE) {
+    const mechanic = mechanicFromSlug(slug, mechanics);
+    return mechanic === null ? null : mechanicCollectionFilters(mechanic);
+  }
+  return null;
 }
 
 function UrlSeededState({ pathLanguage, ...props }: GamesProviderProps & { pathLanguage: string | null }) {

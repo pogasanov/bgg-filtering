@@ -1,7 +1,9 @@
 import { getDb, hasDatabaseUrl, type Db } from "@/lib/db/client";
 import type { GameFilters } from "@/lib/filtering";
 import { emptyCatalogFrame, emptyGamesView, type CatalogFrame, type GamesView } from "@/lib/games-view";
-import { countCatalogGames, countFilteredGames, queryCatalogFrame, queryGamesView } from "./query";
+import { countCatalogGames, countFilteredGames, queryCatalogFrame, queryGame, queryGameNames, queryGamesView } from "./query";
+import { EMPTY_HISTORY, getGameHistory, type GameHistory } from "@/lib/prices/history";
+import type { ListedGame } from "@/lib/bgg/types";
 
 export const CATALOG_TAG = "bgg-catalog";
 
@@ -36,4 +38,18 @@ export async function loadGameCount(): Promise<number> {
 export async function loadShownCount(filters: GameFilters): Promise<number> {
   const db = catalogDb();
   return db ? countFilteredGames(db, filters) : 0;
+}
+
+/** One game and its price history, for the game's page; null when the game is not listed. */
+export async function loadGame(id: number): Promise<{ game: ListedGame; history: GameHistory } | null> {
+  const db = catalogDb();
+  if (!db) return null;
+  const game = await queryGame(db, id);
+  if (!game) return null;
+  return { game, history: game.offers.length > 0 ? await getGameHistory(db, id) : EMPTY_HISTORY };
+}
+
+export async function loadGameNames(): Promise<{ id: number; title: string; titleRu: string | null }[]> {
+  const db = catalogDb();
+  return db ? queryGameNames(db) : [];
 }

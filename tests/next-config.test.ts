@@ -88,6 +88,20 @@ describe("Search engine headers", () => {
   });
 });
 
+describe("Collection addresses", () => {
+  test("map each short address to the collection route, ahead of the language rules", async () => {
+    const rewrites = await nextConfig.rewrites!();
+    if (Array.isArray(rewrites)) throw new Error("expected grouped rewrites");
+    const before = rewrites.beforeFiles ?? [];
+    const collection = before.findIndex((rule) => rule.source === "/na-dvoih");
+    expect(before[collection]).toMatchObject({ destination: "/podborka/na-dvoih" });
+    expect(collection).toBeLessThan(before.findIndex((rule) => rule.destination === "/view/:lang"));
+    // Neither a collection nor the game or mechanic prefix can pass for a language.
+    const language = before.find((rule) => rule.destination === "/view/:lang")!.source;
+    for (const segment of ["na-dvoih", "igra", "mehaniki", "podborka"]) expect(language).toContain(segment);
+  });
+});
+
 describe("Bots served blocking metadata", () => {
   test("are the link-preview bots, Telegram's included, not the search engines that can read the cached pages", () => {
     expect(nextConfig.htmlLimitedBots).toBe(HTML_LIMITED_BOTS);

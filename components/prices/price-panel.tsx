@@ -8,6 +8,7 @@ import { track } from "@/lib/analytics";
 import { intlLocale, type Locale } from "@/lib/i18n/locale";
 import { changeRows } from "@/lib/prices/changes";
 import type { GameHistory } from "@/lib/prices/history";
+import { gamePath } from "@/lib/game-page";
 import { formatPrice, shopNames, type GameOffer } from "@/lib/prices/offers";
 
 export type HistoryState = { status: "loading" } | { status: "error" } | { status: "ready"; history: GameHistory };
@@ -38,6 +39,17 @@ function BggLink({ bggUrl, game }: { bggUrl: string; game: PanelGame }) {
   );
 }
 
+/** The game's own page on this site: its poll, prices and mechanics on one address. */
+function GameLink({ game }: { game: PanelGame }) {
+  const t = useMessages();
+  if (game.gameId === undefined || game.title === undefined) return null;
+  return (
+    <a href={gamePath(game.gameId, game.title)} className={linkClass}>
+      {t.gamePage}
+    </a>
+  );
+}
+
 /** The lowest price ever recorded, when prices were last refreshed, and the way out to BGG. */
 function PanelFooter({ offers, lowest, bggUrl, game }: { offers: GameOffer[]; lowest: GameHistory["lowest"]; bggUrl: string; game: PanelGame }) {
   const checkTimes = offers.flatMap((offer) => (offer.checkedAt === null ? [] : [offer.checkedAt])).sort();
@@ -54,6 +66,7 @@ function PanelFooter({ offers, lowest, bggUrl, game }: { offers: GameOffer[]; lo
         </span>
       ) : null}
       {updatedAt ? <span>{t.pricesUpdated(date(updatedAt, locale))}</span> : null}
+      <GameLink game={game} />
       <BggLink bggUrl={bggUrl} game={game} />
     </p>
   );
@@ -74,7 +87,8 @@ export function PricePanelView({ offers, bggUrl, state, onRetry, gameId, title }
     return (
       <div className="grid gap-2 px-4 py-4 text-[13px] text-muted-foreground">
         <p>{t.notInShops}</p>
-        <p>
+        <p className="flex flex-wrap gap-x-4 gap-y-1">
+          <GameLink game={game} />
           <BggLink bggUrl={bggUrl} game={game} />
         </p>
       </div>

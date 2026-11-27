@@ -1,14 +1,28 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs/config";
 import { fileURLToPath } from "node:url";
+import { MECHANIC_COLLECTION_ROUTE, PLAYER_COLLECTION_ROUTE, playerCollections } from "./lib/collections";
+import { GAME_ROUTE } from "./lib/game-page";
 import { POSTHOG_PROXY_PATH, posthogProxyRewrites } from "./lib/posthog-options";
 import { filterParamKeys } from "./lib/url-state";
+
+/** First path segments that are not languages: internal routes, the proxy, collections and game pages. */
+const RESERVED_SEGMENTS = [
+  "view",
+  "page",
+  "api",
+  POSTHOG_PROXY_PATH.slice(1),
+  PLAYER_COLLECTION_ROUTE,
+  MECHANIC_COLLECTION_ROUTE,
+  GAME_ROUTE,
+  ...playerCollections.map(({ slug }) => slug),
+];
 
 /**
  * A language prefix: one lower-case path segment, as `languageSlug` writes it. Rewrites run as a
  * chain, so the internal routes "/" is rewritten to ("/view", "/page") must not pass for a language.
  */
-const LANGUAGE_SOURCE = `/:lang((?!(?:view|page|api|${POSTHOG_PROXY_PATH.slice(1)})(?:/|$))[a-z0-9-]+)`;
+const LANGUAGE_SOURCE = `/:lang((?!(?:${RESERVED_SEGMENTS.join("|")})(?:/|$))[a-z0-9-]+)`;
 
 export const HTML_LIMITED_BOTS =
   /[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|bitlybot|tumblr|vkShare|quora link preview|redditbot|BingPreview|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|TelegramBot|googleweblight/i;
@@ -53,6 +67,9 @@ const nextConfig: NextConfig = {
       beforeFiles: [
         // PostHog through our own domain, so blockers and blocked hosts don't drop the analytics.
         ...posthogProxyRewrites,
+        // Collections live at short Russian addresses ("/na-dvoih") on one static route. A query on
+        // them is ignored: changing a filter there moves to the usual view.
+        ...playerCollections.map(({ slug }) => ({ source: `/${slug}`, destination: `/${PLAYER_COLLECTION_ROUTE}/${slug}` })),
         ...filterQuery.map((has) => ({ source: "/", has: [has], destination: "/view" })),
         { source: "/", has: [pageQuery], missing: filterQuery, destination: "/page/:number" },
         ...filterQuery.map((has) => ({ source: LANGUAGE_SOURCE, has: [has], destination: "/view/:lang" })),
