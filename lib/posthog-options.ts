@@ -38,6 +38,25 @@ export const POSTHOG_SCRIPT_ALIASES: Readonly<Record<string, string>> = {
 const SCRIPT_PATH = `${POSTHOG_PROXY_PATH}/m`;
 
 /**
+ * Blocker lists also match PostHog's API paths on any host ("/i/v0/e/", "/flags/", "/s/"), so the
+ * SDK sends to neutral paths and a rewrite maps each back. Without this a visitor with a blocker
+ * reached PostHog with the first pageview (sent to "/e/" before the project settings load) and
+ * nothing after it. Keep an alias once published: an open tab may still send to it.
+ */
+export const POSTHOG_PATH_ALIASES: Readonly<Record<string, string>> = {
+  "/e/": "/c1",
+  "/i/v0/e/": "/c2",
+  "/batch/": "/c3",
+  "/s/": "/c4",
+  "/flags/": "/c5",
+  "/decide/": "/c6",
+};
+
+/** The project settings script, "/array/<token>/config" and "config.js", under a neutral directory. */
+const CONFIG_PATH = `${POSTHOG_PROXY_PATH}/k`;
+const CONFIG_REQUEST = new RegExp(`^${POSTHOG_PROXY_PATH}/array/([^/]+)/config(\\.js)?$`);
+
+/**
  * Next.js rewrites for the proxy. The renamed scripts come first, then the SDK's other assets, then
  * the API. The SDK asks for a script at "/static/<version>/<name>.js", or "/static/<name>.js?v=…"
  * when that fails; the query string is passed on as it is.
@@ -47,6 +66,12 @@ export const posthogProxyRewrites = [
     { source: `${SCRIPT_PATH}/:version/${alias}.js`, destination: `${POSTHOG_ASSETS_HOST}/static/:version/${name}.js` },
     { source: `${SCRIPT_PATH}/${alias}.js`, destination: `${POSTHOG_ASSETS_HOST}/static/${name}.js` },
   ]),
+  ...Object.entries(POSTHOG_PATH_ALIASES).map(([path, alias]) => ({
+    source: `${POSTHOG_PROXY_PATH}${alias}`,
+    destination: `${POSTHOG_API_HOST}${path}`,
+  })),
+  { source: `${CONFIG_PATH}/:token/v`, destination: `${POSTHOG_ASSETS_HOST}/array/:token/config` },
+  { source: `${CONFIG_PATH}/:token/v.js`, destination: `${POSTHOG_ASSETS_HOST}/array/:token/config.js` },
   { source: `${POSTHOG_PROXY_PATH}/static/:path*`, destination: `${POSTHOG_ASSETS_HOST}/static/:path*` },
   { source: `${POSTHOG_PROXY_PATH}/:path*`, destination: `${POSTHOG_API_HOST}/:path*` },
 ];
@@ -63,12 +88,29 @@ export function neutralScriptUrl(src: string, base: string): string {
   return url.toString();
 }
 
+/**
+ * Points a request the SDK built at its neutral path; the query string is kept. Requests outside
+ * the proxy and paths without an alias are left alone.
+ */
+export function neutralRequestUrl(url: URL): URL {
+  const config = CONFIG_REQUEST.exec(url.pathname);
+  if (config) {
+    url.pathname = `${CONFIG_PATH}/${config[1]}/v${config[2] ?? ""}`;
+    return url;
+  }
+  if (!url.pathname.startsWith(`${POSTHOG_PROXY_PATH}/`)) return url;
+  const alias = POSTHOG_PATH_ALIASES[url.pathname.slice(POSTHOG_PROXY_PATH.length)];
+  if (alias) url.pathname = `${POSTHOG_PROXY_PATH}${alias}`;
+  return url;
+}
+
 /** Browser init options. No visitor is identified, so no person profiles are made. */
 export const posthogOptions = {
   api_host: POSTHOG_PROXY_PATH,
   ui_host: "https://eu.posthog.com",
   defaults: "2026-08-30",
   person_profiles: "identified_only",
+  rewriteRequestPath: neutralRequestUrl,
   prepare_external_dependency_script: (script: HTMLScriptElement) => {
     script.src = neutralScriptUrl(script.src, window.location.href);
     return script;
