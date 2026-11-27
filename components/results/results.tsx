@@ -5,7 +5,7 @@ import { ResultsTable } from "@/components/results/results-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { defaultSortDir, type GameFilters } from "@/lib/filtering";
 import type { GamesView } from "@/lib/games-view";
-import { canonicalPath, SITE_DESCRIPTION, viewHeading } from "@/lib/seo";
+import { viewHeading } from "@/lib/seo";
 import { RUSSIAN } from "@/lib/url-state";
 
 type ResultsProps = {
@@ -14,7 +14,7 @@ type ResultsProps = {
 };
 
 /**
- * The heading, the count bar, one page of games and the page links. The rows are rendered on the server.
+ * The (hidden) heading, the count bar, one page of games and the page links. The rows are rendered on the server.
  * Both layouts are in the markup and CSS shows one: the server cannot know the screen width,
  * and a page holds few enough rows for the hidden copy to be cheap.
  */
@@ -32,16 +32,11 @@ export function Results({ view, filters }: ResultsProps) {
 
   // Prices are for Russian editions only, so they are shown only while the list is of those.
   const russian = filters.language === RUSSIAN;
-  const heading = viewHeading(filters);
-  // The one line about what the site is, on the page people and search engines arrive at first.
-  const intro = canonicalPath(filters, view.page) === "/";
 
   return (
     <>
-      <header className="px-4 pt-3">
-        <h1 className="text-[15px] font-semibold tracking-tight text-balance">{heading}</h1>
-        {intro ? <p className="mt-0.5 max-w-prose text-xs text-muted-foreground">{SITE_DESCRIPTION}</p> : null}
-      </header>
+      {/* For search engines and screen readers only: the page has no visible heading by design. */}
+      <h1 className="sr-only">{viewHeading(filters)}</h1>
       <TagCountsSync counts={view.tagCounts} />
       <AppResultsBar shown={view.shown} total={view.total} />
       <SearchResultsTracker search={filters.search} language={filters.language} resultsCount={view.shown} />
