@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { neutralScriptUrl, POSTHOG_SCRIPT_ALIASES, posthogProxyRewrites } from "@/lib/posthog-options";
+import {
+  neutralRequestUrl,
+  neutralScriptUrl,
+  POSTHOG_PATH_ALIASES,
+  POSTHOG_SCRIPT_ALIASES,
+  posthogProxyRewrites,
+} from "@/lib/posthog-options";
 import nextConfig, { HTML_LIMITED_BOTS } from "@/next.config";
 
 describe("Next development origins", () => {
@@ -45,6 +51,24 @@ describe("PostHog proxy", () => {
     expect(neutralScriptUrl("https://us-assets.i.posthog.com/static/surveys.js", base)).toBe(
       "https://us-assets.i.posthog.com/static/surveys.js",
     );
+  });
+
+  test("sends API requests to neutral paths, each rewritten back to PostHog", () => {
+    const rewrite = (path: string) => neutralRequestUrl(new URL(path, "https://bg.gsnv.dev")).toString();
+    expect(rewrite("/relay/i/v0/e/?ip=0&compression=gzip-js")).toBe("https://bg.gsnv.dev/relay/c2?ip=0&compression=gzip-js");
+    expect(rewrite("/relay/e/")).toBe("https://bg.gsnv.dev/relay/c1");
+    expect(rewrite("/relay/s/?ver=1")).toBe("https://bg.gsnv.dev/relay/c4?ver=1");
+    expect(rewrite("/relay/flags/?v=2&config=true")).toBe("https://bg.gsnv.dev/relay/c5?v=2&config=true");
+    expect(rewrite("/relay/array/phc_abc/config")).toBe("https://bg.gsnv.dev/relay/k/phc_abc/v");
+    expect(rewrite("/relay/array/phc_abc/config.js")).toBe("https://bg.gsnv.dev/relay/k/phc_abc/v.js");
+    expect(rewrite("/relay/i/v1/metrics")).toBe("https://bg.gsnv.dev/relay/i/v1/metrics");
+    expect(rewrite("https://eu.i.posthog.com/e/")).toBe("https://eu.i.posthog.com/e/");
+
+    for (const [path, alias] of Object.entries(POSTHOG_PATH_ALIASES)) {
+      expect(posthogProxyRewrites).toContainEqual({ source: `/relay${alias}`, destination: `https://eu.i.posthog.com${path}` });
+    }
+    expect(posthogProxyRewrites).toContainEqual({ source: "/relay/k/:token/v", destination: "https://eu-assets.i.posthog.com/array/:token/config" });
+    expect(new Set(Object.values(POSTHOG_PATH_ALIASES)).size).toBe(Object.keys(POSTHOG_PATH_ALIASES).length);
   });
 
   test("keeps the trailing slash PostHog's endpoints use", () => {

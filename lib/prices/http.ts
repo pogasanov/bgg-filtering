@@ -4,7 +4,14 @@ import type { Get } from "@/lib/prices/types";
 const DEFAULT_MIN_INTERVAL_MS = 2000;
 const MAX_REDIRECTS = 5;
 const MAX_ATTEMPTS = 3;
-const REQUEST_TIMEOUT_MS = 30_000;
+/** How long to wait for a shop to start answering. */
+const HEADER_TIMEOUT_MS = 30_000;
+/**
+ * How long a whole download may take. Kept apart from the wait for the first byte:
+ * GaGa's sitemap is several megabytes served at ~120 KB/s, so it needs half a minute
+ * or more to arrive even when the shop answers at once.
+ */
+const TRANSFER_TIMEOUT_MS = 180_000;
 
 /** An honest identity: who is asking and why. Never a personal name or email. */
 export function buildUserAgent(infoUrl?: string): string {
@@ -25,10 +32,16 @@ export class ShopBlockedError extends Error {
   }
 }
 
+type Fetched = { status: number; headers: Headers; body: ArrayBuffer };
+
+const ok = (response: Fetched) => response.status >= 200 && response.status < 300;
+
 type ShopGetOptions = {
   origin: string;
   userAgent: string;
   minIntervalMs?: number;
+  headerTimeoutMs?: number;
+  transferTimeoutMs?: number;
   fetchImpl?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
@@ -41,6 +54,8 @@ type ShopGetOptions = {
 export function createShopGet(options: ShopGetOptions): Get {
   const origin = new URL(options.origin).origin;
   const minIntervalMs = options.minIntervalMs ?? DEFAULT_MIN_INTERVAL_MS;
+  const headerTimeoutMs = options.headerTimeoutMs ?? HEADER_TIMEOUT_MS;
+  const transferTimeoutMs = options.transferTimeoutMs ?? TRANSFER_TIMEOUT_MS;
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const now = options.now ?? Date.now;
@@ -49,24 +64,33 @@ export function createShopGet(options: ShopGetOptions): Get {
   let lastRequestAt: number | null = null;
   let robots: Promise<string> | null = null;
 
-  async function attempt(url: string): Promise<Response> {
+  /** One request with its body read in full, so a download cut short counts as a dropped connection. */
+  async function attempt(url: string): Promise<Fetched> {
     if (lastRequestAt !== null) {
       const wait = lastRequestAt + minIntervalMs - now();
       if (wait > 0) await sleep(wait);
     }
+    const waitForAnswer = new AbortController();
+    const headerTimer = setTimeout(
+      () => waitForAnswer.abort(new DOMException(`No answer within ${headerTimeoutMs} ms`, "TimeoutError")),
+      headerTimeoutMs,
+    );
     try {
-      return await fetchImpl(url, {
+      const response = await fetchImpl(url, {
         headers: { "user-agent": options.userAgent },
         redirect: "manual",
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.any([waitForAnswer.signal, AbortSignal.timeout(transferTimeoutMs)]),
       });
+      clearTimeout(headerTimer);
+      return { status: response.status, headers: response.headers, body: await response.arrayBuffer() };
     } finally {
+      clearTimeout(headerTimer);
       lastRequestAt = now();
     }
   }
 
   /** One request, tried again when the connection drops. An HTTP answer, even an error, is never retried. */
-  async function request(url: string): Promise<Response> {
+  async function request(url: string): Promise<Fetched> {
     let lastError: unknown;
     for (let tries = 0; tries < MAX_ATTEMPTS; tries += 1) {
       try {
@@ -84,8 +108,8 @@ export function createShopGet(options: ShopGetOptions): Get {
     const response = await request(url);
     if (response.status === 403 || response.status === 429) throw new ShopBlockedError(response.status, url);
     if (response.status === 404) return "";
-    if (!response.ok) throw new Error(`Could not read robots.txt (HTTP ${response.status}): ${url}`);
-    return response.text();
+    if (!ok(response)) throw new Error(`Could not read robots.txt (HTTP ${response.status}): ${url}`);
+    return new TextDecoder("utf-8").decode(response.body);
   }
 
   async function run(startUrl: string, encoding: "utf-8" | "windows-1251"): Promise<string> {
@@ -108,8 +132,8 @@ export function createShopGet(options: ShopGetOptions): Get {
         url = new URL(location, url).href;
         continue;
       }
-      if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
-      return new TextDecoder(encoding).decode(await response.arrayBuffer());
+      if (!ok(response)) throw new Error(`HTTP ${response.status} for ${url}`);
+      return new TextDecoder(encoding).decode(response.body);
     }
 
     throw new Error(`Too many redirects starting at ${startUrl}`);

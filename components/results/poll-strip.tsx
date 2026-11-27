@@ -1,6 +1,7 @@
 "use client";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { playerCountText } from "@/lib/labels";
 import { decodePollCells, pollCellLabel, pollSummary, type PollCell } from "@/lib/poll";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +48,7 @@ export function PollStrip({ cells: code, hoverable = true }: PollStripProps) {
               aria-hidden="true"
               className={cellClass(cell)}
             >
-              {cell.verdict === "unknown" ? "·" : cell.playerCount}
+              {cell.verdict === "unknown" ? "·" : playerCountText(cell.playerCount)}
             </span>
           ))}
         </span>

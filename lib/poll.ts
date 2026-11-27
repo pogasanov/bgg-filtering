@@ -1,6 +1,6 @@
 import { playerCounts, type ListedGame, type PlayerCount, type RecommendationVerdict } from "./bgg/types";
 import { isNotPlayable } from "./filtering";
-import { playersLabel, verdictLabels } from "./labels";
+import { playerCountText, playersLabel, verdictLabels } from "./labels";
 
 export type PollCell = {
   playerCount: PlayerCount;
@@ -55,7 +55,7 @@ const summaryGroups: [RecommendationVerdict, string][] = [
  */
 export function pollSummary(cells: PollCell[]): string {
   const parts = summaryGroups.flatMap(([verdict, label]) => {
-    const counts = cells.filter((cell) => cell.inRange && cell.verdict === verdict).map((cell) => cell.playerCount);
+    const counts = cells.filter((cell) => cell.inRange && cell.verdict === verdict).map((cell) => playerCountText(cell.playerCount));
     return counts.length > 0 ? [`${label} на ${counts.join(", ")}`] : [];
   });
   return parts.length > 0 ? `Опрос: ${parts.join("; ")}` : "Опрос: нет данных";

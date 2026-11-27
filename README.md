@@ -96,7 +96,7 @@ Source maps are uploaded during the Vercel build with an org auth token. On Verc
 
 The site has its own PostHog project in the project's PostHog account, in **EU Cloud** (`eu.posthog.com`). Its project API key (`phc_…`) is public and goes into `NEXT_PUBLIC_POSTHOG_KEY`; without it PostHog is off, which is the default for local runs.
 
-The browser never talks to PostHog directly. It sends to `https://bg.gsnv.dev/relay/…`, and `next.config.ts` rewrites that to `eu.i.posthog.com` (and `/relay/static/…` to `eu-assets.i.posthog.com`), so blockers and networks that block PostHog's hosts don't drop the events. The path name is deliberately neutral; don't rename it to anything with "posthog", "analytics" or "ingest" in it.
+The browser never talks to PostHog directly. It sends to `https://bg.gsnv.dev/relay/…`, and `next.config.ts` rewrites that to `eu.i.posthog.com` (and `/relay/static/…` to `eu-assets.i.posthog.com`), so blockers and networks that block PostHog's hosts don't drop the events. The path name is deliberately neutral; don't rename it to anything with "posthog", "analytics" or "ingest" in it. Blockers also match PostHog's own API paths on any host (`/i/v0/e/`, `/flags/`, `/s/`), so the SDK sends to aliases (`/relay/c1`…`/relay/c6`, `/relay/k/<token>/v`) through `rewriteRequestPath`, and `lib/posthog-options.ts` rewrites each back.
 
 What the site sends: pageviews, page leaves and autocaptured clicks, plus four product events defined in `lib/analytics.ts`:
 

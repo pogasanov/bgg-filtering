@@ -3,7 +3,7 @@
 import { Fragment } from "react";
 import { Toggle } from "@/components/ui/toggle";
 import { matrixVerdicts, playerCounts, type MatrixSelection } from "@/lib/bgg/types";
-import { matrixCellLabel, verdictShortLabels } from "@/lib/labels";
+import { matrixCellLabel, playerCountText, verdictShortLabels } from "@/lib/labels";
 
 type MatrixGridProps = {
   value: MatrixSelection[];
@@ -31,7 +31,7 @@ export function MatrixGrid({ value, onChange }: MatrixGridProps) {
       {playerCounts.map((playerCount) => (
         <Fragment key={playerCount}>
           <span className="font-mono text-xs text-muted-foreground" aria-hidden="true">
-            {playerCount}
+            {playerCountText(playerCount)}
           </span>
           {matrixVerdicts.map((verdict) => {
             const key = `${playerCount}:${verdict}`;
