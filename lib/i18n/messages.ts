@@ -2,7 +2,6 @@ import type { Locale } from "./locale";
 
 /** Interface text in Russian. Its shape is the contract every other language fills in. */
 const ru = {
-  interfaceLanguage: "Язык интерфейса",
 
   // Filters
   filters: "Фильтры",
@@ -114,7 +113,6 @@ const ru = {
 export type Messages = typeof ru;
 
 const en: Messages = {
-  interfaceLanguage: "Interface language",
 
   filters: "Filters",
   filtersWithActive: (count) => `Filters, ${count} active`,

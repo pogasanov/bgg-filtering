@@ -4,7 +4,7 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { AppFilterRail } from "@/components/filters/app-filter-rail";
 import { useGames } from "@/components/games-state";
-import { LocaleSwitch, useMessages } from "@/components/locale";
+import { useMessages } from "@/components/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -71,10 +71,8 @@ export function SearchBar() {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-[320px] gap-0 overflow-hidden p-0 sm:max-w-[320px]">
-          {/* On phones the top bar has no room for the language switch, so it lives here. */}
           <SheetHeader className="flex-row items-center gap-3 border-b py-2.5 pr-12 pl-4">
             <SheetTitle className="mr-auto text-sm">{t.filters}</SheetTitle>
-            <LocaleSwitch className="h-8 [&>*]:h-8" />
             <SheetDescription className="sr-only">{t.filtersDescription}</SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1">
@@ -82,8 +80,6 @@ export function SearchBar() {
           </div>
         </SheetContent>
       </Sheet>
-
-      <LocaleSwitch className="hidden lg:flex" />
     </div>
   );
 }
