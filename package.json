@@ -15,6 +15,7 @@
     "worker:build": "node scripts/build-worker.mjs",
     "worker:deploy": "pnpm worker:build && MODAL_PROFILE=bgfilter modal deploy worker/modal_app.py",
     "worker:run": "pnpm worker:build && MODAL_PROFILE=bgfilter modal run worker/modal_app.py",
+    "worker:run-prices": "pnpm worker:build && MODAL_PROFILE=bgfilter modal run worker/modal_app.py::daily_prices",
     "worker:sentry-check": "pnpm worker:build && MODAL_PROFILE=bgfilter modal run worker/modal_app.py --sentry-check",
     "vc": "tsx --env-file-if-exists=.env.local scripts/vercel.ts",
     "prices:collect": "tsx --env-file-if-exists=.env.local scripts/prices-collect.ts",

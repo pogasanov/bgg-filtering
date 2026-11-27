@@ -134,7 +134,7 @@ modal token new --profile bgfilter --no-activate
 MODAL_PROFILE=bgfilter modal secret create bgg-sync DATABASE_URL=... BGG_TOKEN=... REVALIDATE_URL=https://bg.gsnv.dev/api/revalidate REVALIDATE_SECRET=... SENTRY_DSN=...
 ```
 
-4. Deploy the weekly schedule and run the first sync:
+4. Deploy both schedules (BGG sync on Mondays at 03:00 UTC, shop prices daily at 05:00 UTC) and run the first sync:
 
 ```bash
 pnpm worker:deploy
@@ -142,6 +142,12 @@ pnpm worker:deploy
 
 ```bash
 pnpm worker:run
+```
+
+5. Run the first price collection by hand. It reads the shops one request at a time, so it takes a while:
+
+```bash
+pnpm worker:run-prices
 ```
 
 ## Operations
