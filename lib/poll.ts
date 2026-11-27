@@ -2,7 +2,7 @@ import { playerCounts, type ListedGame, type PlayerCount, type RecommendationVer
 import { isNotPlayable } from "./filtering";
 import { DEFAULT_LOCALE, type Locale } from "./i18n/locale";
 import { messages } from "./i18n/messages";
-import { playersLabel, verdictLabel } from "./labels";
+import { playerCountText, playersLabel, verdictLabel } from "./labels";
 
 export type PollCell = {
   playerCount: PlayerCount;
@@ -46,4 +46,46 @@ export function pollStripLabel(game: ListedGame, locale: Locale = DEFAULT_LOCALE
   return pollCells(game)
     .map((cell) => pollCellLabel(cell, locale))
     .join("; ");
+}
+
+const summaryVerdicts = ["best", "recommended", "not-recommended"] as const;
+
+/**
+ * The poll in one short sentence of page text: the strip itself is colour and shape, which neither
+ * screen readers nor search engines read. Only the counts the game supports are named.
+ */
+export function pollSummary(cells: PollCell[], locale: Locale = DEFAULT_LOCALE): string {
+  const t = messages[locale];
+  const parts = summaryVerdicts.flatMap((verdict) => {
+    const counts = cells.filter((cell) => cell.inRange && cell.verdict === verdict).map((cell) => playerCountText(cell.playerCount));
+    return counts.length > 0 ? [t.pollSummaryPart(verdictLabel(verdict, locale), counts.join(", "))] : [];
+  });
+  return t.pollSummary(parts.length > 0 ? parts.join("; ") : t.pollNoData);
+}
+
+const verdictCodes: Record<RecommendationVerdict, string> = { best: "b", recommended: "r", "not-recommended": "n", unknown: "u" };
+
+/**
+ * The cells as a short string for the browser ("r0.0.6.4 b1.10.4.0 …"): the strip is a client
+ * component, and its props travel in the page once per row and layout.
+ */
+export function encodePollCells(cells: PollCell[]): string {
+  return cells
+    .map((cell) => `${verdictCodes[cell.verdict]}${cell.inRange ? 1 : 0}.${cell.best}.${cell.recommended}.${cell.notRecommended}`)
+    .join(" ");
+}
+
+export function decodePollCells(code: string): PollCell[] {
+  const verdictByCode = Object.fromEntries(Object.entries(verdictCodes).map(([verdict, short]) => [short, verdict]));
+  return code.split(" ").map((part, index) => {
+    const [head, best, recommended, notRecommended] = part.split(".");
+    return {
+      playerCount: playerCounts[index],
+      verdict: (verdictByCode[head[0]] ?? "unknown") as RecommendationVerdict,
+      inRange: head[1] === "1",
+      best: Number(best),
+      recommended: Number(recommended),
+      notRecommended: Number(notRecommended),
+    };
+  });
 }

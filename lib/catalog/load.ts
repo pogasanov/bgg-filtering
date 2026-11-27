@@ -1,7 +1,7 @@
 import { getDb, hasDatabaseUrl, type Db } from "@/lib/db/client";
 import type { GameFilters } from "@/lib/filtering";
 import { emptyCatalogFrame, emptyGamesView, type CatalogFrame, type GamesView } from "@/lib/games-view";
-import { countCatalogGames, queryCatalogFrame, queryGamesView } from "./query";
+import { countCatalogGames, countFilteredGames, queryCatalogFrame, queryGamesView } from "./query";
 
 export const CATALOG_TAG = "bgg-catalog";
 
@@ -30,4 +30,10 @@ export async function loadFrame(): Promise<CatalogFrame> {
 export async function loadGameCount(): Promise<number> {
   const db = catalogDb();
   return db ? countCatalogGames(db) : 0;
+}
+
+/** How many games pass the filters, over all pages. */
+export async function loadShownCount(filters: GameFilters): Promise<number> {
+  const db = catalogDb();
+  return db ? countFilteredGames(db, filters) : 0;
 }

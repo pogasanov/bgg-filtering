@@ -6,7 +6,7 @@ import {
   POSTHOG_SCRIPT_ALIASES,
   posthogProxyRewrites,
 } from "@/lib/posthog-options";
-import nextConfig from "@/next.config";
+import nextConfig, { HTML_LIMITED_BOTS } from "@/next.config";
 
 describe("Next development origins", () => {
   test("allows the WSL loopback host used to open the local app", () => {
@@ -73,5 +73,34 @@ describe("PostHog proxy", () => {
 
   test("keeps the trailing slash PostHog's endpoints use", () => {
     expect(nextConfig.skipTrailingSlashRedirect).toBe(true);
+  });
+});
+
+describe("Search engine headers", () => {
+  test("keeps title searches out of the index on every list address", async () => {
+    const headers = await nextConfig.headers!();
+    const search = headers.filter((rule) => rule.has?.some((condition) => condition.type === "query" && condition.key === "q"));
+    expect(search.map((rule) => rule.source)).toEqual(["/", expect.stringContaining(":lang")]);
+    for (const rule of search) expect(rule.headers).toEqual([{ key: "X-Robots-Tag", value: "noindex, follow" }]);
+    const value = new RegExp(`^${search[0].has![0].value}$`);
+    expect(value.test("крылья")).toBe(true);
+    expect(value.test("  ")).toBe(false);
+  });
+});
+
+describe("Bots served blocking metadata", () => {
+  test("are the link-preview bots, Telegram's included, not the search engines that can read the cached pages", () => {
+    expect(nextConfig.htmlLimitedBots).toBe(HTML_LIMITED_BOTS);
+    for (const agent of ["TelegramBot (like TwitterBot)", "facebookexternalhit/1.1", "Mozilla/5.0 (compatible; vkShare; +http://vk.com/dev/Share)", "Slackbot-LinkExpanding 1.0"]) {
+      expect(HTML_LIMITED_BOTS.test(agent), agent).toBe(true);
+    }
+    for (const agent of [
+      "Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)",
+      "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+      "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+      "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; OAI-SearchBot/1.3; +https://openai.com/searchbot",
+    ]) {
+      expect(HTML_LIMITED_BOTS.test(agent), agent).toBe(false);
+    }
   });
 });

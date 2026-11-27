@@ -8,6 +8,7 @@ import { ResetFiltersButton, SortButton } from "@/components/results/results-con
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ListedGame, SortDir, SortKey } from "@/lib/bgg/types";
 import { formatNumber } from "@/lib/labels";
+import { encodePollCells, pollCells } from "@/lib/poll";
 import { cn } from "@/lib/utils";
 
 type ResultsTableProps = {
@@ -28,7 +29,9 @@ export function displayTitle(game: ListedGame, russian: boolean): string {
 /** Gives way to the price column where the table would otherwise not fit. */
 const narrowHidden = "hidden xl:table-cell";
 const headClass = "h-9 px-3 text-xs font-medium text-muted-foreground";
-const numClass = "px-3 text-right font-mono tabular-nums";
+// Padding stays a plain utility so it reliably overrides the cell's own p-2; the rest is one short
+// class because it repeats in eight cells of every row (app/globals.css).
+const numClass = "px-3 num-cell";
 
 export function playersRange(game: ListedGame): string {
   const { minPlayers, maxPlayers } = game;
@@ -48,7 +51,7 @@ function WeightMeter({ weight }: { weight: number }) {
         <span
           key={step}
           data-meter-bar={step <= filled ? "on" : "off"}
-          className={cn("h-[11px] w-[5px] rounded-[1px]", step <= filled ? "bg-meter" : "bg-border")}
+          className={cn("meter-bar", step <= filled ? "bg-meter" : "bg-border")}
         />
       ))}
     </span>
@@ -132,7 +135,7 @@ export function ResultsTable({ games, sort, sortDir, russian }: ResultsTableProp
               </TableCell>
               <TableCell className={cn(numClass, "text-muted-foreground")}>{game.year ?? "—"}</TableCell>
               <TableCell className="px-3">
-                <PollStrip game={game} />
+                <PollStrip cells={encodePollCells(pollCells(game))} />
               </TableCell>
               <TableCell className={numClass}>{playersRange(game)}</TableCell>
               <TableCell className={numClass}>{game.playingTime === null ? "—" : `${game.playingTime}′`}</TableCell>

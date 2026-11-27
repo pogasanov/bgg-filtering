@@ -76,6 +76,8 @@ const ru = {
   pollBest: "лучше",
   pollRecommended: "реком.",
   pollNotRecommended: "не рек.",
+  pollSummary: (text: string) => `Опрос: ${text}`,
+  pollSummaryPart: (verdict: string, counts: string) => `${verdict} на ${counts}`,
 
   // Sorting
   sortRank: "Ранг",
@@ -177,6 +179,8 @@ const en: Messages = {
   pollBest: "best",
   pollRecommended: "rec.",
   pollNotRecommended: "not rec.",
+  pollSummary: (text) => `Poll: ${text}`,
+  pollSummaryPart: (verdict, counts) => `${verdict} with ${counts}`,
 
   sortRank: "Rank",
   sortYear: "Year",

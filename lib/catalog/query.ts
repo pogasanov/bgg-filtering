@@ -138,6 +138,11 @@ export async function queryListedIds(db: Db): Promise<number[]> {
   return rows.map((row) => row.id);
 }
 
+/** How many games pass the filters, over all pages. */
+export function countFilteredGames(db: Db, filters: GameFilters): Promise<number> {
+  return countGames(db, filterCondition(filters));
+}
+
 /** How many games the catalog lists under the default filters: the unfiltered pages' length. */
 export function countCatalogGames(db: Db): Promise<number> {
   return countGames(db, filterCondition(defaultFilters));
