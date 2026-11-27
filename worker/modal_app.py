@@ -1,7 +1,7 @@
 """Modal app that runs the weekly BGG sync (a bundled Node script) on a cron schedule.
 
 Deploy with `pnpm worker:deploy`; run once by hand with `pnpm worker:run`.
-Both commands pin MODAL_PROFILE=bgg so nothing lands in another Modal account.
+Both commands pin MODAL_PROFILE=bgfilter so nothing lands in another Modal account.
 """
 
 import subprocess
