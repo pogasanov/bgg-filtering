@@ -1,5 +1,5 @@
 import { CachedCatalogResults } from "@/components/results/catalog-results";
-import { viewMetadata } from "@/lib/seo";
+import { viewMetadata, websiteJsonLd } from "@/lib/seo";
 import { defaultFilters } from "@/lib/url-state";
 
 // The first page with no filters must never be rendered per request: the build fails if anything
@@ -10,5 +10,10 @@ export const ensureStatic = "navigation";
 export const metadata = viewMetadata(defaultFilters, 1);
 
 export default function Page() {
-  return <CachedCatalogResults query="" />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()).replace(/</g, "\\u003c") }} />
+      <CachedCatalogResults query="" />
+    </>
+  );
 }

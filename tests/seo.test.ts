@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { canonicalPath, editionsPhrase, viewDescription, viewHeading, viewMetadata, viewTitle } from "@/lib/seo";
+import { canonicalPath, editionsPhrase, viewDescription, viewHeading, viewMetadata, viewTitle, websiteJsonLd } from "@/lib/seo";
 import { defaultFilters } from "@/lib/url-state";
 
 describe("view headings and titles", () => {
@@ -72,5 +72,16 @@ describe("canonical addresses", () => {
     expect(meta.openGraph).toMatchObject({ url: "/any?page=2", siteName: "Настолки по числу игроков" });
     expect(meta.robots).toBeUndefined();
     expect(viewMetadata({ ...defaultFilters, search: "крылья" }, 1).robots).toEqual({ index: false, follow: true });
+  });
+});
+
+describe("the home page's WebSite record", () => {
+  test("names the site, its other names and its address on the new domain", () => {
+    expect(websiteJsonLd()).toMatchObject({
+      "@type": "WebSite",
+      name: "Настолки по числу игроков",
+      alternateName: ["My Next Board Game", "mynextboardgame.com"],
+      url: "https://mynextboardgame.com/",
+    });
   });
 });

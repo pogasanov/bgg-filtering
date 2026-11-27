@@ -11,6 +11,8 @@ import { yearRangeLabel } from "./year-presets";
 /** The public address of the site; canonical URLs, the sitemap and robots.txt are built on it. */
 export const SITE_URL = "https://mynextboardgame.com";
 export const SITE_NAME = "Настолки по числу игроков";
+/** Other names the site goes by: search engines show one as its name, assistants match mentions to it. */
+export const SITE_ALTERNATE_NAMES = ["My Next Board Game", "mynextboardgame.com"];
 export const SITE_DESCRIPTION =
   "Лучшие настолки с BoardGameGeek под ваш состав: на двоих, на троих, на шестерых — по голосам игроков. Фильтры по механикам и цены в магазинах.";
 
@@ -113,5 +115,18 @@ export function viewMetadata(filters: GameFilters, page: number): Metadata {
     ...(filters.search.trim() ? { robots: { index: false, follow: true } } : {}),
     openGraph: { type: "website", siteName: SITE_NAME, locale: "ru_RU", title, description, url },
     twitter: { card: "summary_large_image", title, description },
+  };
+}
+
+/** The home page's WebSite record: the site's name for search results and the address it lives at. */
+export function websiteJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE_NAME,
+    alternateName: SITE_ALTERNATE_NAMES,
+    url: `${SITE_URL}/`,
+    description: SITE_DESCRIPTION,
+    inLanguage: "ru",
   };
 }

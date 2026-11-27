@@ -24,7 +24,8 @@ The site is built to be found by search engines and by the AI assistants that se
 - **Text for machines:** the player-count poll is colour and shape on screen, so each row also says it in text for screen readers and crawlers ("Опрос: лучше всего на 3; рекомендуют на 2, 4").
 - **Page weight:** Googlebot reads only the first 2 MB of a page, uncompressed. A list page is about 1.4 MB; a filtered view about 2 MB, because Next sends its rendered rows twice. Keep classes repeated in every row short (`num-cell`, `poll-cell`, `meter-bar` in `app/globals.css`), and check the size after changing a row: `curl -s https://mynextboardgame.com/ | wc -c`. The tag filter renders its first 30 options on the server and the rest in the browser.
 - **Bots and metadata:** `htmlLimitedBots` in `next.config.ts` lists only link-preview bots (Telegram's included). Search engines get the same cached pages as visitors, with the metadata in `<head>`.
-- **IndexNow:** after each sync and price run the worker tells Yandex, Bing and the other IndexNow engines that the pages in the sitemap changed (`lib/indexnow.ts`), only when it refreshed the public site. The key is public by design and is served from `public/<key>.txt`.
+- **Site name:** the home page carries a `WebSite` record with the site's Russian name and its other names (`My Next Board Game`, the domain), so search engines show one name and assistants tie mentions of either to the site.
+- **IndexNow:** after each sync and price run the worker tells Yandex, Bing and the other IndexNow engines that the pages in the sitemap changed (`lib/indexnow.ts`), only when it refreshed the public site. A `REVALIDATE_URL` on an old address of the site still works: the worker follows its redirect to the public site, and passes the secret on to no other host. The key is public by design and is served from `public/<key>.txt`.
 
 ### Webmaster tools
 
