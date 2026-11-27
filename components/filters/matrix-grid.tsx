@@ -1,9 +1,10 @@
 "use client";
 
 import { Fragment } from "react";
+import { useLocale } from "@/components/locale";
 import { Toggle } from "@/components/ui/toggle";
 import { matrixVerdicts, playerCounts, type MatrixSelection } from "@/lib/bgg/types";
-import { matrixCellLabel, playerCountText, verdictShortLabels } from "@/lib/labels";
+import { matrixCellLabel, playerCountText, verdictShortLabel } from "@/lib/labels";
 
 type MatrixGridProps = {
   value: MatrixSelection[];
@@ -12,6 +13,7 @@ type MatrixGridProps = {
 
 /** Player count × verdict. State reads from fill alone: empty outline when off, solid when on. */
 export function MatrixGrid({ value, onChange }: MatrixGridProps) {
+  const locale = useLocale();
   const selected = new Set(value.map((item) => `${item.playerCount}:${item.verdict}`));
 
   function toggle(selection: MatrixSelection, pressed: boolean) {
@@ -25,7 +27,7 @@ export function MatrixGrid({ value, onChange }: MatrixGridProps) {
       <span />
       {matrixVerdicts.map((verdict) => (
         <span key={verdict} className="pb-0.5 text-center text-[10px] text-muted-foreground" aria-hidden="true">
-          {verdictShortLabels[verdict]}
+          {verdictShortLabel(verdict, locale)}
         </span>
       ))}
       {playerCounts.map((playerCount) => (
@@ -43,7 +45,7 @@ export function MatrixGrid({ value, onChange }: MatrixGridProps) {
                 size="sm"
                 pressed={selected.has(key)}
                 onPressedChange={(pressed) => toggle({ playerCount, verdict }, pressed)}
-                aria-label={matrixCellLabel({ playerCount, verdict })}
+                aria-label={matrixCellLabel({ playerCount, verdict }, locale)}
                 className="h-6 min-w-0 rounded-[4px] p-0 shadow-none data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:hover:bg-foreground/85"
               />
             );

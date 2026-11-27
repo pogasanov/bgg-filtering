@@ -1,3 +1,4 @@
+import { Msg } from "@/components/locale";
 import { PersonalPrice } from "@/components/results/personal-price";
 import { bestOffer, formatPrice, lowestKnownOffer, type GameOffer } from "@/lib/prices/offers";
 
@@ -29,7 +30,9 @@ export function PriceCell({ offers }: { offers: GameOffer[] }) {
   return (
     <span className="inline-flex flex-col items-end leading-tight text-muted-foreground">
       <span>{formatPrice(known.price)}</span>
-      <span className="font-sans text-[11px]">нет в наличии</span>
+      <span className="font-sans text-[11px]">
+        <Msg id="outOfStock" />
+      </span>
     </span>
   );
 }

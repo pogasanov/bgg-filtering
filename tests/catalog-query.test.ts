@@ -57,11 +57,11 @@ describe("queryGamesView", () => {
 });
 
 describe("queryCatalogFrame", () => {
-  test("offers the tags, languages and years of listed games only, with tag counts of the default (Russian) view", async () => {
+  test("offers the mechanics, languages and years of listed games only, with mechanic counts of the default (Russian) view", async () => {
     await storeCatalog(db, [
       makeGame(1, { year: 2020, categories: ["Economic"], mechanics: ["Worker Placement"], languages: ["German"] }),
-      makeGame(2, { year: 1995, categories: ["Economic"], mechanics: [], languages: ["English", "German", "Russian"] }),
-      makeGame(3, { year: null, categories: [], mechanics: ["Economic"], languages: ["Russian"] }),
+      makeGame(2, { year: 1995, categories: ["Economic"], mechanics: ["Worker Placement"], languages: ["English", "German", "Russian"] }),
+      makeGame(3, { year: null, categories: ["Card Game"], mechanics: ["Set Collection"], languages: ["Russian"] }),
     ]);
     // Details for a game outside the ranked list stay out of the frame.
     await upsertGames(db, [makeGame(99, { categories: ["Hidden"], languages: ["Klingon"], year: 1800 })], new Date());
@@ -69,13 +69,14 @@ describe("queryCatalogFrame", () => {
     const frame = await queryCatalogFrame(db);
 
     expect(frame.facets).toEqual({
-      allTags: ["Economic", "Worker Placement"],
+      // Categories are stored but not offered.
+      allTags: ["Set Collection", "Worker Placement"],
       allLanguages: ["English", "German", "Russian"],
       yearScale: [1995, 2020],
     });
     expect(frame.total).toBe(3);
     expect(frame.status.gameCount).toBe(3);
-    // Game 1 has no Russian edition, so its tags are not counted.
-    expect(Object.fromEntries(frame.tagCounts)).toEqual({ Economic: 2 });
+    // Game 1 has no Russian edition, so its mechanics are not counted.
+    expect(Object.fromEntries(frame.tagCounts)).toEqual({ "Set Collection": 1, "Worker Placement": 1 });
   });
 });

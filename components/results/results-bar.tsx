@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
+import { useMessages } from "@/components/locale";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { FilterChip } from "@/lib/active-filters";
@@ -19,11 +20,12 @@ type ResultsBarProps = {
 };
 
 export function ResultsBar({ shown, total, chips, onChange, onReset, children }: ResultsBarProps) {
+  const t = useMessages();
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-4 py-2.5">
       <output className="flex items-baseline gap-1.5 font-mono" aria-live="polite">
         <span className="text-xl font-semibold tracking-tight">{formatNumber(shown, 0)}</span>
-        <span className="text-xs text-muted-foreground">из {formatNumber(total, 0)}</span>
+        <span className="text-xs text-muted-foreground">{t.ofTotal(formatNumber(total, 0))}</span>
       </output>
       {children}
       {chips.length > 0 ? (
@@ -36,7 +38,7 @@ export function ResultsBar({ shown, total, chips, onChange, onReset, children }:
                   <button
                     type="button"
                     onClick={() => onChange(chip.next)}
-                    aria-label={`Убрать фильтр: ${chip.label}`}
+                    aria-label={t.removeFilter(chip.label)}
                     className="rounded-sm p-0.5 text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     <X className="size-3" aria-hidden="true" />
@@ -48,7 +50,7 @@ export function ResultsBar({ shown, total, chips, onChange, onReset, children }:
           {/* With one chip its own cross does the same. */}
           {chips.length > 1 ? (
             <Button variant="ghost" size="sm" onClick={onReset} className="ml-auto h-7 flex-none text-xs text-muted-foreground">
-              Сбросить всё
+              {t.resetAll}
             </Button>
           ) : null}
         </>

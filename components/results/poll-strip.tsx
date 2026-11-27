@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/locale";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ListedGame } from "@/lib/bgg/types";
 import { playerCountText } from "@/lib/labels";
@@ -34,6 +35,7 @@ type PollStripProps = {
 };
 
 export function PollStrip({ game, hoverable = true }: PollStripProps) {
+  const locale = useLocale();
   const cells = pollCells(game);
 
   return (
@@ -41,7 +43,7 @@ export function PollStrip({ game, hoverable = true }: PollStripProps) {
       <TooltipTrigger asChild>
         <span
           role="img"
-          aria-label={pollStripLabel(game)}
+          aria-label={pollStripLabel(game, locale)}
           className={cn("inline-flex gap-0.5", hoverable ? "relative z-10" : "pointer-events-none")}
         >
           {cells.map((cell) => (
@@ -60,7 +62,7 @@ export function PollStrip({ game, hoverable = true }: PollStripProps) {
       <TooltipContent side="bottom" align="start" className="max-w-none text-left">
         <ul className="grid gap-0.5 font-mono text-[11px]">
           {cells.map((cell) => (
-            <li key={cell.playerCount}>{pollCellLabel(cell)}</li>
+            <li key={cell.playerCount}>{pollCellLabel(cell, locale)}</li>
           ))}
         </ul>
       </TooltipContent>

@@ -1,3 +1,4 @@
+import { Msg } from "@/components/locale";
 import { Pagination } from "@/components/results/pagination";
 import { AppResultsBar, PendingResults, SearchResultsTracker, TagCountsSync } from "@/components/results/results-controls";
 import { ResultsList } from "@/components/results/results-list";
@@ -22,8 +23,12 @@ export function Results({ view, filters }: ResultsProps) {
     return (
       <div className="p-4">
         <Alert>
-          <AlertTitle>Игр пока нет</AlertTitle>
-          <AlertDescription>Данные об играх ещё не загружены. Загляните чуть позже.</AlertDescription>
+          <AlertTitle>
+            <Msg id="noGamesTitle" />
+          </AlertTitle>
+          <AlertDescription>
+            <Msg id="noGamesText" />
+          </AlertDescription>
         </Alert>
       </div>
     );

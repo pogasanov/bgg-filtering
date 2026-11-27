@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
+import { LocaleProvider } from "@/components/locale";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
@@ -27,7 +28,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="ru" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body>
-        <TooltipProvider delayDuration={150}>{children}</TooltipProvider>
+        <LocaleProvider>
+          <TooltipProvider delayDuration={150}>{children}</TooltipProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

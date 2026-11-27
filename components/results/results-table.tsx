@@ -1,12 +1,13 @@
 import { BggLink, ExpandableTableRow, RowToggle } from "@/components/results/expandable-row";
+import { Msg } from "@/components/locale";
 import { GameThumb } from "@/components/results/game-thumb";
+import { MechanicsLine } from "@/components/results/mechanics-line";
 import { PollStrip } from "@/components/results/poll-strip";
 import { PriceCell } from "@/components/results/price-cell";
 import { ResetFiltersButton, SortButton } from "@/components/results/results-controls";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ListedGame, SortDir, SortKey } from "@/lib/bgg/types";
-import { gameTags } from "@/lib/filtering";
-import { formatNumber, sortLabels } from "@/lib/labels";
+import { formatNumber } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 type ResultsTableProps = {
@@ -57,7 +58,9 @@ function WeightMeter({ weight }: { weight: number }) {
 export function EmptyResults() {
   return (
     <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-      <p className="text-sm text-muted-foreground">Ничего не найдено</p>
+      <p className="text-sm text-muted-foreground">
+        <Msg id="nothingFound" />
+      </p>
       <ResetFiltersButton />
     </div>
   );
@@ -70,7 +73,7 @@ export function EmptyResults() {
 export function ResultsTable({ games, sort, sortDir, russian }: ResultsTableProps) {
   const columnCount = russian ? 11 : 10;
 
-  function sortHead(key: SortKey, label = sortLabels[key], className?: string) {
+  function sortHead(key: SortKey, label?: string, className?: string) {
     const active = sort === key;
     return (
       <TableHead
@@ -87,10 +90,16 @@ export function ResultsTable({ games, sort, sortDir, russian }: ResultsTableProp
       <TableHeader className="bg-muted/50">
         <TableRow className="hover:bg-transparent">
           {sortHead("rank", "#")}
-          <TableHead className={headClass}>Игра</TableHead>
+          <TableHead className={headClass}>
+            <Msg id="columnGame" />
+          </TableHead>
           {sortHead("year")}
-          <TableHead className={headClass}>Опрос</TableHead>
-          <TableHead className={cn(headClass, "text-right")}>Игроки</TableHead>
+          <TableHead className={headClass}>
+            <Msg id="columnPoll" />
+          </TableHead>
+          <TableHead className={cn(headClass, "text-right")}>
+            <Msg id="columnPlayers" />
+          </TableHead>
           {sortHead("playingTime")}
           {sortHead("weight")}
           {sortHead("geekRating")}
@@ -108,7 +117,6 @@ export function ResultsTable({ games, sort, sortDir, russian }: ResultsTableProp
           </TableRow>
         ) : null}
         {games.map((game) => {
-          const tags = gameTags(game).slice(0, 4).join(" · ");
           const title = displayTitle(game, russian);
           const cells = (
             <>
@@ -118,7 +126,7 @@ export function ResultsTable({ games, sort, sortDir, russian }: ResultsTableProp
                   <GameThumb url={game.thumbnailUrl} size={40} />
                   <div className="min-w-0">
                     {russian ? <RowToggle title={title} /> : <BggLink gameId={game.id} title={title} bggUrl={game.bggUrl} />}
-                    {tags ? <div className="truncate text-xs text-muted-foreground">{tags}</div> : null}
+                    <MechanicsLine names={game.mechanics} />
                   </div>
                 </div>
               </TableCell>

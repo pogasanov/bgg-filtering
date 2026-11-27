@@ -4,6 +4,7 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { AppFilterRail } from "@/components/filters/app-filter-rail";
 import { useGames } from "@/components/games-state";
+import { LocaleSwitch, useMessages } from "@/components/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -17,6 +18,7 @@ function isTypingTarget(target: EventTarget | null) {
 /** Title search and, on phones, the button that opens the filters. */
 export function SearchBar() {
   const { filters, setFilters, chips } = useGames();
+  const t = useMessages();
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -43,8 +45,8 @@ export function SearchBar() {
           type="search"
           value={filters.search}
           onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-          placeholder="Поиск по названию…"
-          aria-label="Поиск по названию"
+          placeholder={t.searchPlaceholder}
+          aria-label={t.searchAria}
           aria-keyshortcuts="/ Control+K Meta+K"
           className="h-9 pr-10 pl-9 text-[13px] shadow-none md:text-[13px]"
         />
@@ -61,23 +63,27 @@ export function SearchBar() {
           <Button
             variant="outline"
             className="h-9 gap-1.5 shadow-none lg:hidden"
-            aria-label={chips.length > 0 ? `Фильтры, активных: ${chips.length}` : "Фильтры"}
+            aria-label={chips.length > 0 ? t.filtersWithActive(chips.length) : t.filters}
           >
             <SlidersHorizontal className="size-4" aria-hidden="true" />
-            Фильтры
+            {t.filters}
             {chips.length > 0 ? <span className="font-mono text-xs">{chips.length}</span> : null}
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-[320px] gap-0 overflow-hidden p-0 sm:max-w-[320px]">
-          <SheetHeader className="border-b px-4 py-3.5">
-            <SheetTitle className="text-sm">Фильтры</SheetTitle>
-            <SheetDescription className="sr-only">Фильтры списка игр и синхронизация данных</SheetDescription>
+          {/* On phones the top bar has no room for the language switch, so it lives here. */}
+          <SheetHeader className="flex-row items-center gap-3 border-b py-2.5 pr-12 pl-4">
+            <SheetTitle className="mr-auto text-sm">{t.filters}</SheetTitle>
+            <LocaleSwitch className="h-8 [&>*]:h-8" />
+            <SheetDescription className="sr-only">{t.filtersDescription}</SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1">
             <AppFilterRail />
           </div>
         </SheetContent>
       </Sheet>
+
+      <LocaleSwitch className="hidden lg:flex" />
     </div>
   );
 }

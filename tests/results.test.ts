@@ -64,7 +64,9 @@ test("table renders one row per game with dashes for missing numbers", () => {
   expect(html.match(/<tr/g)).toHaveLength(2);
   expect(html).toContain('aria-sort="ascending"');
   expect(html.match(/—/g)!.length).toBeGreaterThanOrEqual(4);
-  expect(html).toContain("Economic · Worker Placement");
+  // Mechanics only, in Russian; categories are not shown.
+  expect(html).toContain(">Размещение рабочих<");
+  expect(html).not.toContain("Economic");
   expect(html).not.toContain("SECRET");
 });
 
@@ -81,10 +83,10 @@ test("empty result shows a reset action", () => {
 });
 
 test("bar shows the count, chips and reset only when filtered", () => {
-  const chips = activeFilterChips({ ...defaultFilters, tags: ["Economic"] });
+  const chips = activeFilterChips({ ...defaultFilters, tags: ["Worker Placement"] });
   const html = render(ResultsBar, { shown: 47, total: 2000, chips, onChange() {}, onReset() {} });
   expect(html).toContain(">47<");
-  expect(html).toContain("Убрать фильтр: Economic");
+  expect(html).toContain("Убрать фильтр: Размещение рабочих");
   expect(html).toContain("Сбросить всё");
   const plain = render(ResultsBar, { shown: 2000, total: 2000, chips: [], onChange() {}, onReset() {} });
   expect(plain).not.toContain("Сбросить всё");

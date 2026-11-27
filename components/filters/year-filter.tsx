@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale, useMessages } from "@/components/locale";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { activeYearPreset, yearPresets } from "@/lib/year-presets";
@@ -17,6 +18,8 @@ const chipClass =
   "h-6 flex-none rounded-full border px-2.5 text-xs font-normal text-muted-foreground shadow-none data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:text-background";
 
 export function YearFilter({ minYear, maxYear, yearScale, onChange }: YearFilterProps) {
+  const locale = useLocale();
+  const t = useMessages();
   const active = activeYearPreset(minYear, maxYear);
   const [customOpen, setCustomOpen] = useState(active === "custom");
   const showSlider = customOpen || active === "custom";
@@ -45,23 +48,23 @@ export function YearFilter({ minYear, maxYear, yearScale, onChange }: YearFilter
         value={showSlider ? "custom" : (active ?? "")}
         onValueChange={select}
         spacing={1}
-        aria-label="Год выпуска"
+        aria-label={t.yearAria}
         className="flex w-full flex-wrap justify-start"
       >
         {yearPresets.map((preset) => (
           <ToggleGroupItem key={preset.id} value={preset.id} className={chipClass}>
-            {preset.label}
+            {preset.label[locale]}
           </ToggleGroupItem>
         ))}
         <ToggleGroupItem value="custom" className={chipClass}>
-          Свой…
+          {t.yearCustom}
         </ToggleGroupItem>
       </ToggleGroup>
 
       {showSlider ? (
         <div className="grid gap-2">
           <Slider
-            aria-label="Диапазон года выпуска"
+            aria-label={t.yearRangeAria}
             min={sliderMin}
             max={sliderMax}
             step={1}
@@ -76,8 +79,8 @@ export function YearFilter({ minYear, maxYear, yearScale, onChange }: YearFilter
             }
           />
           <div className="flex justify-between text-[11px] text-muted-foreground" aria-hidden="true">
-            <span>без минимума</span>
-            <span>без максимума</span>
+            <span>{t.yearNoMin}</span>
+            <span>{t.yearNoMax}</span>
           </div>
         </div>
       ) : null}
