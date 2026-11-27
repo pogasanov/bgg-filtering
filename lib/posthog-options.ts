@@ -1,5 +1,5 @@
 /**
- * PostHog is reached through this site: the browser talks to bg.gsnv.dev/<path>, and Vercel passes
+ * PostHog is reached through this site: the browser talks to mynextboardgame.com/<path>, and Vercel passes
  * the requests on to PostHog's EU hosts. The path is deliberately neutral: blocker lists match
  * "posthog", "analytics", "ingest" and the like.
  */

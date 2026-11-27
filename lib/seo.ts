@@ -9,7 +9,7 @@ import { RUSSIAN } from "./url-state";
 import { yearRangeLabel } from "./year-presets";
 
 /** The public address of the site; canonical URLs, the sitemap and robots.txt are built on it. */
-export const SITE_URL = "https://bg.gsnv.dev";
+export const SITE_URL = "https://mynextboardgame.com";
 export const SITE_NAME = "Настолки по числу игроков";
 export const SITE_DESCRIPTION =
   "Лучшие настолки с BoardGameGeek под ваш состав: на двоих, на троих, на шестерых — по голосам игроков. Фильтры по механикам и цены в магазинах.";

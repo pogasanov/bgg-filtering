@@ -20,19 +20,19 @@ describe("createRevalidator", () => {
   test("on the public site, then tells search engines through IndexNow, and survives its failure", async () => {
     const fetchImpl = vi.fn(async (url: string | URL | Request) =>
       String(url).endsWith("/sitemap.xml")
-        ? new Response("<urlset><url><loc>https://bg.gsnv.dev/</loc></url></urlset>")
+        ? new Response("<urlset><url><loc>https://mynextboardgame.com/</loc></url></urlset>")
         : new Response("{}", { status: 200 }),
     );
     const log = vi.fn();
-    await createRevalidator("https://bg.gsnv.dev/api/revalidate", "s", fetchImpl as typeof fetch, log)();
+    await createRevalidator("https://mynextboardgame.com/api/revalidate", "s", fetchImpl as typeof fetch, log)();
     expect(fetchImpl).toHaveBeenCalledTimes(5);
     expect(fetchImpl).toHaveBeenNthCalledWith(5, "https://api.indexnow.org/indexnow", expect.objectContaining({ method: "POST" }));
     expect(log).toHaveBeenCalledWith("IndexNow: 1 pages submitted.");
 
     const failing = vi.fn(async (url: string | URL | Request) =>
-      String(url).includes("indexnow") ? new Response(null, { status: 429 }) : new Response("<urlset><url><loc>https://bg.gsnv.dev/</loc></url></urlset>"),
+      String(url).includes("indexnow") ? new Response(null, { status: 429 }) : new Response("<urlset><url><loc>https://mynextboardgame.com/</loc></url></urlset>"),
     );
-    await expect(createRevalidator("https://bg.gsnv.dev/api/revalidate", "s", failing as typeof fetch, log)()).resolves.toBeUndefined();
+    await expect(createRevalidator("https://mynextboardgame.com/api/revalidate", "s", failing as typeof fetch, log)()).resolves.toBeUndefined();
     expect(log).toHaveBeenLastCalledWith("IndexNow not notified: IndexNow answered 429");
   });
 
