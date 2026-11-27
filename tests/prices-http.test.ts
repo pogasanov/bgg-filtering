@@ -207,3 +207,44 @@ describe("createShopGet — network errors", () => {
   });
 });
 
+
+describe("createShopGet timeouts", () => {
+  /** A page whose body arrives in chunks, `chunkDelayMs` apart, and stops when the request is aborted. */
+  function slowBody(chunks: number, chunkDelayMs: number) {
+    return (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/robots.txt")) return new Response("");
+      const signal = init?.signal;
+      let sent = 0;
+      const body = new ReadableStream<Uint8Array>({
+        async pull(controller) {
+          await new Promise((resolve) => setTimeout(resolve, chunkDelayMs));
+          if (signal?.aborted) return controller.error(signal.reason);
+          controller.enqueue(new TextEncoder().encode("x"));
+          sent += 1;
+          if (sent === chunks) controller.close();
+        },
+      });
+      return new Response(body);
+    }) as typeof fetch;
+  }
+
+  const options = (fetchImpl: typeof fetch) => ({
+    origin: "https://shop.example",
+    userAgent: buildUserAgent(),
+    fetchImpl,
+    sleep: async () => {},
+    now: () => 0,
+    headerTimeoutMs: 30,
+    transferTimeoutMs: 2_000,
+  });
+
+  it("lets a large page download for longer than the wait for its first byte", async () => {
+    const get = createShopGet(options(slowBody(5, 20)));
+    expect(await get("https://shop.example/sitemap.xml")).toBe("xxxxx");
+  });
+
+  it("still gives up on a download that never finishes, naming the URL", async () => {
+    const get = createShopGet({ ...options(slowBody(1_000, 20)), transferTimeoutMs: 100 });
+    await expect(get("https://shop.example/sitemap.xml")).rejects.toThrow("https://shop.example/sitemap.xml");
+  });
+});
