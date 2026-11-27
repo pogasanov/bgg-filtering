@@ -15,6 +15,7 @@ import {
   type SetStateAction,
 } from "react";
 import { activeFilterChips, type FilterChip } from "@/lib/active-filters";
+import { changedFilterGroups, filterProperties, rememberFilters, track } from "@/lib/analytics";
 import type { SortKey } from "@/lib/bgg/types";
 import type { CatalogStatus } from "@/lib/catalog/types";
 import { defaultSortDir, type GameFilters } from "@/lib/filtering";
@@ -105,6 +106,12 @@ function GamesState({
   // The last address asked of the router. Compared instead of the address bar, which lags behind a navigation in flight.
   const requestedHref = useRef(viewHref(initialFilters));
   const requestedSearch = useRef(initialFilters.search);
+  // The filters last reported to analytics: an event says which groups changed since.
+  const trackedFilters = useRef(initialFilters);
+
+  useEffect(() => {
+    rememberFilters(initialFilters);
+  }, [initialFilters]);
 
   const chips = useMemo(() => activeFilterChips(filters), [filters]);
 
@@ -119,6 +126,10 @@ function GamesState({
     const timer = window.setTimeout(() => {
       requestedHref.current = href;
       requestedSearch.current = filters.search;
+      // Reported once the change settles, like the URL: a typed search is one event, not one per key.
+      track("filters_changed", { changed: changedFilterGroups(trackedFilters.current, filters), ...filterProperties(filters) });
+      rememberFilters(filters);
+      trackedFilters.current = filters;
       startNavigation(() => {
         router.replace(href, { scroll: false });
       });

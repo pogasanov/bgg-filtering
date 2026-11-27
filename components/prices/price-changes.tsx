@@ -4,6 +4,8 @@ import { useState } from "react";
 import { PersonalPrice } from "@/components/results/personal-price";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { PanelGame } from "@/components/prices/price-panel";
+import { linkHost, track } from "@/lib/analytics";
 import type { ChangeRow } from "@/lib/prices/changes";
 import { formatPrice, shopNames } from "@/lib/prices/offers";
 import { cn } from "@/lib/utils";
@@ -37,7 +39,7 @@ function Change({ row }: { row: ChangeRow }) {
  * product page. A table rather than a chart: prices move a few times a year, and a row says
  * exactly when and by how much.
  */
-export function PriceChanges({ rows }: { rows: ChangeRow[] }) {
+export function PriceChanges({ rows, game = {} }: { rows: ChangeRow[]; game?: PanelGame }) {
   const [showAll, setShowAll] = useState(false);
   const visible = showAll ? rows : rows.slice(0, VISIBLE_ROWS);
 
@@ -69,6 +71,20 @@ export function PriceChanges({ rows }: { rows: ChangeRow[] }) {
                       // Stretched over the row, so a click anywhere on it opens the product page.
                       <a
                         href={row.url}
+                        onClick={() =>
+                          track("outbound_link_clicked", {
+                            destination: "shop",
+                            placement: "price_history",
+                            shop: row.shop,
+                            shop_host: row.url ? linkHost(row.url) : null,
+                            price: row.price,
+                            available: row.available,
+                            current: row.current,
+                            game_id: game.gameId,
+                            game_title: game.title,
+                            url: row.url,
+                          })
+                        }
                         target="_blank"
                         rel="noreferrer"
                         className="outline-none after:absolute after:inset-0 focus-visible:underline"

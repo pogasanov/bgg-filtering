@@ -82,7 +82,13 @@ The site has its own PostHog project in the project's PostHog account, in **EU C
 
 The browser never talks to PostHog directly. It sends to `https://bg.gsnv.dev/relay/…`, and `next.config.ts` rewrites that to `eu.i.posthog.com` (and `/relay/static/…` to `eu-assets.i.posthog.com`), so blockers and networks that block PostHog's hosts don't drop the events. The path name is deliberately neutral; don't rename it to anything with "posthog", "analytics" or "ingest" in it.
 
-What the site sends: pageviews, page leaves and autocaptured clicks. No visitor is identified, so no person profiles are created. Session recording stays off unless it is turned on in the project's settings.
+What the site sends: pageviews, page leaves and autocaptured clicks, plus three product events defined in `lib/analytics.ts`:
+
+- `filters_changed`: the filters settled on a new combination. `changed` lists the groups touched (`search`, `language`, `tags`, `matrix`, `years`, `sort`); `filters_combo` is the whole combination as one string, and `filter_*` hold each value. The last one in a session is where the visitor stopped. The current combination is also attached to every later event of the session.
+- `price_history_opened`: a game's price panel was opened (`game_id`, `game_title`, `layout`).
+- `outbound_link_clicked`: a shop product page (`destination: shop`, `shop`) or BoardGameGeek (`destination: bgg`) was opened, with `placement` and the game.
+
+The dashboard "Каталог: фильтры, цены, переходы" in the PostHog project is built on these names; keep them stable. No visitor is identified, so no person profiles are created. Session recording stays off unless it is turned on in the project's settings.
 
 ### 4. Vercel
 

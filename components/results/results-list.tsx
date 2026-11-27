@@ -29,7 +29,7 @@ export function ResultsList({ games, russian }: ResultsListProps) {
                 {russian ? (
                   <RowToggle title={title} className="min-w-0 flex-1" />
                 ) : (
-                  <BggLink title={title} bggUrl={game.bggUrl} />
+                  <BggLink gameId={game.id} title={title} bggUrl={game.bggUrl} />
                 )}
                 {game.year !== null ? (
                   <span className="flex-none font-mono text-xs text-muted-foreground">{game.year}</span>
@@ -61,7 +61,7 @@ export function ResultsList({ games, russian }: ResultsListProps) {
           );
         }
         return (
-          <ExpandableListItem key={game.id} gameId={game.id} offers={game.offers} bggUrl={game.bggUrl}>
+          <ExpandableListItem key={game.id} gameId={game.id} title={title} offers={game.offers} bggUrl={game.bggUrl}>
             {content}
           </ExpandableListItem>
         );

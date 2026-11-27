@@ -117,7 +117,7 @@ export function ResultsTable({ games, sort, sortDir, russian }: ResultsTableProp
                 <div className="flex items-center gap-3">
                   <GameThumb url={game.thumbnailUrl} size={40} />
                   <div className="min-w-0">
-                    {russian ? <RowToggle title={title} /> : <BggLink title={title} bggUrl={game.bggUrl} />}
+                    {russian ? <RowToggle title={title} /> : <BggLink gameId={game.id} title={title} bggUrl={game.bggUrl} />}
                     {tags ? <div className="truncate text-xs text-muted-foreground">{tags}</div> : null}
                   </div>
                 </div>
@@ -155,6 +155,7 @@ export function ResultsTable({ games, sort, sortDir, russian }: ResultsTableProp
             <ExpandableTableRow
               key={game.id}
               gameId={game.id}
+              title={title}
               offers={game.offers}
               bggUrl={game.bggUrl}
               colSpan={columnCount}
