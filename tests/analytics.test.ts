@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { changedFilterGroups, filterProperties, linkHost } from "@/lib/analytics";
+import { changedFilterGroups, filterProperties, linkHost, normalizeSearch, searchProperties } from "@/lib/analytics";
 import { defaultFilters } from "@/lib/url-state";
 
 test("the default filters: only the language, and one readable combination", () => {
@@ -52,4 +52,17 @@ test("names the groups that changed", () => {
 test("link host", () => {
   expect(linkHost("https://www.lavkaigr.ru/p/1")).toBe("www.lavkaigr.ru");
   expect(linkHost("not a url")).toBeNull();
+});
+
+test("search properties fold case and spaces, and say whether anything matched", () => {
+  expect(searchProperties("  Каркассон   Охотники ", 0, "")).toEqual({
+    search_query: "Каркассон   Охотники",
+    search_query_normalized: "каркассон охотники",
+    search_length: 20,
+    results_count: 0,
+    has_results: false,
+    filter_language: "any",
+  });
+  expect(normalizeSearch("Catan")).toBe(normalizeSearch(" catan "));
+  expect(searchProperties("catan", 3, "Russian").has_results).toBe(true);
 });

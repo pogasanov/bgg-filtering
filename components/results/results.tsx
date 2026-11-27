@@ -1,5 +1,5 @@
 import { Pagination } from "@/components/results/pagination";
-import { AppResultsBar, PendingResults, TagCountsSync } from "@/components/results/results-controls";
+import { AppResultsBar, PendingResults, SearchResultsTracker, TagCountsSync } from "@/components/results/results-controls";
 import { ResultsList } from "@/components/results/results-list";
 import { ResultsTable } from "@/components/results/results-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -36,6 +36,7 @@ export function Results({ view, filters }: ResultsProps) {
     <>
       <TagCountsSync counts={view.tagCounts} />
       <AppResultsBar shown={view.shown} total={view.total} />
+      <SearchResultsTracker search={filters.search} language={filters.language} resultsCount={view.shown} />
 
       <PendingResults>
         <div className="hidden lg:block">

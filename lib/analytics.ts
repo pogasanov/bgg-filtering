@@ -9,8 +9,9 @@ import { defaultSortDir } from "./filtering";
  *   last one in a session is where the visitor stopped, and `changed` names the filter groups touched.
  * - price_history_opened: a game's price panel was opened.
  * - outbound_link_clicked: a link to a shop's product page or to BoardGameGeek was followed.
+ * - search_performed: a title search settled and its results were shown, with how many games matched.
  */
-export type AnalyticsEvent = "filters_changed" | "price_history_opened" | "outbound_link_clicked";
+export type AnalyticsEvent = "filters_changed" | "price_history_opened" | "outbound_link_clicked" | "search_performed";
 
 /** The filter groups, as reported in `changed` and `filters_active`. Sorting counts as one, though it is not a filter. */
 export type FilterGroup = "search" | "language" | "tags" | "matrix" | "years" | "sort";
@@ -93,6 +94,23 @@ export function track(event: AnalyticsEvent, properties: Record<string, unknown>
 export function rememberFilters(filters: GameFilters): void {
   if (typeof window === "undefined" || !posthog.__loaded) return;
   posthog.register_for_session(filterProperties(filters));
+}
+
+/** A search as typed, folded so "Каркассон " and "каркассон" count as one query. */
+export function normalizeSearch(search: string): string {
+  return search.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/** The properties of a search_performed event; `results_count` is how many games matched. */
+export function searchProperties(search: string, resultsCount: number, language: string) {
+  return {
+    search_query: search.trim(),
+    search_query_normalized: normalizeSearch(search),
+    search_length: search.trim().length,
+    results_count: resultsCount,
+    has_results: resultsCount > 0,
+    filter_language: language === "" ? "any" : language,
+  };
 }
 
 /** The host of a link, for grouping shop clicks; null for a malformed URL. */

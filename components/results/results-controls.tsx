@@ -1,12 +1,13 @@
 "use client";
 
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { useLayoutEffect, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, type ReactNode } from "react";
 import { useGames } from "@/components/games-state";
 import { ResultsBar } from "@/components/results/results-bar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sortKeys, type SortDir, type SortKey } from "@/lib/bgg/types";
+import { normalizeSearch, searchProperties, track } from "@/lib/analytics";
 import { defaultSortDir } from "@/lib/filtering";
 import { sortLabels } from "@/lib/labels";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,43 @@ import { cn } from "@/lib/utils";
 export function TagCountsSync({ counts }: { counts: Map<string, number> }) {
   const { setTagCounts } = useGames();
   useLayoutEffect(() => setTagCounts(counts), [counts, setTagCounts]);
+  return null;
+}
+
+/** How long a search must stay unchanged to count as one the visitor meant, not a step while typing. */
+const SEARCH_SETTLE_MS = 1500;
+/** The last search reported in this tab, so paging or re-sorting the same results does not report it again. */
+let lastReportedSearch = "";
+
+/**
+ * Reports a title search once its results are on screen and the visitor has stopped typing.
+ * Rendered by the server with the results, so it knows how many games matched. Sent at once if
+ * the tab is hidden first, so a search followed straight away by leaving is not lost.
+ */
+export function SearchResultsTracker({ search, language, resultsCount }: { search: string; language: string; resultsCount: number }) {
+  const { filters } = useGames();
+  // The visitor has typed on since these results were asked for; the newer results will report.
+  const current = normalizeSearch(filters.search) === normalizeSearch(search);
+
+  useEffect(() => {
+    const key = `${language}|${normalizeSearch(search)}`;
+    if (!current || normalizeSearch(search) === "" || key === lastReportedSearch) return;
+    const report = () => {
+      if (key === lastReportedSearch) return;
+      lastReportedSearch = key;
+      track("search_performed", searchProperties(search, resultsCount, language));
+    };
+    const onHide = () => {
+      if (document.visibilityState === "hidden") report();
+    };
+    const timer = window.setTimeout(report, SEARCH_SETTLE_MS);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [current, search, language, resultsCount]);
+
   return null;
 }
 
